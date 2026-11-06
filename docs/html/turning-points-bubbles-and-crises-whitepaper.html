@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="source-sha256" content="33ecde31f353e9b2aa3a7fd7c964860c06038df722fb87e9275a9a4aa3fbb632">
+<title>Turning Points, Bubbles, and Crises</title>
+<style>
+:root {
+  --navy: #0f2747; --navy-2: #16335c; --navy-line: #21436f;
+  --ink: #1a1f29; --muted: #5b6675; --paper: #f7f5f0; --card: #ffffff;
+  --rule: #e4e0d6; --accent: #b9892f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.55;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 80px; }
+.masthead {
+  background: var(--navy); color: #fff; border-radius: 10px;
+  padding: 22px 20px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(15,39,71,.18);
+}
+.masthead h1 { margin: 0 0 6px; font-size: 1.55rem; letter-spacing: .3px; font-weight: 700; }
+.masthead h2, .masthead h3 { margin: 4px 0; font-size: 1rem; font-weight: 400; color: #c7d4e8; }
+.masthead p { color: #c7d4e8; margin: 4px 0; }
+.masthead p strong { color: #fff; }
+.masthead em { color: #aebfd9; }
+.masthead a { color: #dbe6f6; }
+.masthead code { color: #e8eef8; background: rgba(255,255,255,.10); padding: 1px 4px; border-radius: 3px; }
+.controls { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.controls button {
+  font-family: inherit; font-size: .78rem; letter-spacing: .04em;
+  text-transform: uppercase; background: #fff; color: var(--navy);
+  border: 1px solid var(--navy-line); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer;
+}
+nav.toc {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 9px;
+  padding: 12px 16px 14px; margin-bottom: 16px;
+}
+nav.toc h2 {
+  margin: 0 0 8px; font-size: .74rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); font-family: inherit;
+}
+nav.toc ol { margin: 0; padding-left: 20px; }
+nav.toc li { margin: 3px 0; }
+nav.toc a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--rule); }
+nav.toc a:hover { border-bottom-color: var(--accent); }
+details.section {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: 9px; margin-bottom: 12px; overflow: hidden;
+  scroll-margin-top: 8px;
+}
+summary.section-head {
+  list-style: none; cursor: pointer; background: var(--navy); color: #fff;
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; user-select: none;
+}
+summary.section-head::-webkit-details-marker { display: none; }
+.section-title { font-size: 1.02rem; font-weight: 700; letter-spacing: .2px; }
+.chev {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #cdd9ec; transition: transform .18s ease;
+}
+.chev::before { content: "\25B8"; }
+details[open] .chev { transform: rotate(90deg); color: #fff; }
+details[open] summary.section-head { background: var(--navy-2); }
+.section-body { padding: 6px 16px 18px; }
+.section-body h2 { font-size: 1.05rem; color: var(--navy); margin: 18px 0 6px;
+  border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.section-body h3 { font-size: .98rem; color: var(--navy-2); margin: 16px 0 4px; }
+.section-body h4 { font-size: .9rem; color: var(--muted); margin: 12px 0 4px;
+  text-transform: uppercase; letter-spacing: .05em; }
+.section-body p { margin: 8px 0; }
+.section-body strong { color: var(--navy); }
+.section-body em { color: var(--muted); }
+.section-body ul, .section-body ol { margin: 8px 0; padding-left: 20px; }
+.section-body li { margin: 3px 0; }
+.section-body li.task { list-style: none; margin-left: -1.1em; }
+.section-body li.task .box { font-size: 1.05em; }
+.section-body blockquote {
+  margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.section-body code {
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace; font-size: .82em;
+  background: #f1eee6; padding: 1px 4px; border-radius: 3px;
+}
+.section-body pre { background: #f1eee6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.section-body pre code { background: none; padding: 0; }
+.section-body hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-family: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  font-size: .72rem; line-height: 1.35;
+}
+.section-body th, .section-body td {
+  border: 1px solid var(--rule); padding: 5px 6px; text-align: left; vertical-align: top;
+}
+.section-body th { background: var(--navy); color: #fff; font-weight: 600; }
+.section-body tr:nth-child(even) td { background: #faf8f3; }
+.section-body .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figure.fig {
+  margin: 18px 0; padding: 12px 10px 8px; background: #fff;
+  border: 1px solid var(--rule); border-radius: 7px;
+}
+figure.fig svg { display: block; max-width: 100%; height: auto; }
+figure.fig img { display: block; max-width: 100%; height: auto; }
+figure.fig figcaption {
+  margin-top: 8px; font-size: .74rem; line-height: 1.45; color: var(--muted);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; font-style: italic; }
+@media print {
+  .controls { display: none; }
+  details.section { break-inside: auto; border: 0; }
+  figure.fig { break-inside: avoid; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .section-body table { font-size: .66rem; }
+  .masthead h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+<h1>Turning Points, Bubbles, and Crises</h1>
+<h2>How Cycles End and Begin, Read From Inside</h2>
+<p><strong>Companion white paper — chester-reports library</strong>
+<strong>Series placement:</strong> Companion <strong>XXVI</strong> — the Markets shelf, the market-timing layer, beside Base Rates; it succeeds Tops and Bottoms, whose numeral X is retired and never reused (D8; the library programme's R-8). Per the library guide, which is canonical for numerals; cross-references in this paper are by name
+<strong>Version:</strong> Draft 1 — 6 November 2026
+<strong>Status:</strong> Draft 1, for the operator's read (the library programme's L-7; ruled 6 November 2026, D59). The market paper on turning points. It keeps the episode study it inherits, reads it with what the Top &amp; Bottom harness has since learned, and adds bubbles, banking crises, liquidity crises, emerging-market crises and international tops as mechanisms. Not investment advice.</p>
+  </div>
+
+  <div class="controls">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+  </div>
+
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-i-what-tops-and-bottoms-established">Part I — What Tops and Bottoms Established</a></li><li><a href="#s3-part-ii-bubbles-as-an-anatomy">Part II — Bubbles as an Anatomy</a></li><li><a href="#s4-part-iii-banking-crises-as-a-mechanism">Part III — Banking Crises as a Mechanism</a></li><li><a href="#s5-part-iv-liquidity-crises">Part IV — Liquidity Crises</a></li><li><a href="#s6-part-v-emerging-market-crises">Part V — Emerging-Market Crises</a></li><li><a href="#s7-part-vi-international-tops">Part VI — International Tops</a></li><li><a href="#s8-part-vii-reading-a-turn-from-inside">Part VII — Reading a Turn From Inside</a></li><li><a href="#s9-part-viii-applications-wiring-and-environments">Part VIII — Applications, Wiring and Environments</a></li></ol></nav>
+
+    <details class="section" id="s1-front-matter" open>
+      <summary class="section-head">
+        <span class="section-title">Front matter</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h3>Reader's note</h3>
+<p>Most of the time markets do what they did yesterday, and most of the library is about how they do it. This paper is about the minority of days and weeks when that stops: the top that ends a bull market, the bottom that ends a bear, the bubble that ends in a crash, and the funding failure that turns a decline into a crisis. They are few, they are where most of a decade's return is made or lost, and they are where a trader's process is most likely to fail. The paper is written for the operator who must act at them, in real time, with the information that existed on the day.</p>
+<p>It inherits a study. Tops and Bottoms, the library's episode paper, examined every major U.S. turning point since 1970: eight bear markets, six near-misses, and a synthesis whose central sentence — tops are idiosyncratic, bottoms rhyme — has survived everything since. The Top &amp; Bottom harness has tested that sentence against its own calibration, and the Top &amp; Bottom Report Manual records what it found. Part I keeps the eight episodes and the near-misses and reads them again with the harness's findings. The study's own text is preserved in the archive, and nothing in it is contradicted here. It is extended.</p>
+<p>Parts II to VI add what the study did not cover: bubbles as an anatomy, banking crises, liquidity crises, emerging-market crises and tops that begin outside the United States. Each is written as a mechanism, the way a crisis actually propagates, with the tells the stack already prints at each stage. Part VII is the hardest problem in the paper, reading a turn from inside, and it gives the system's three instruments for doing so and the study that shows their limit. Part VIII is the operating chapter: what each book does, which report prints which signpost, and which environments the mechanisms belong to.</p>
+<p>Three boundaries keep the paper honest. <strong>Debt Cycles, Regimes and Environments owns the long-cycle tops and the debt-cycle lens.</strong> Its Part III narrates 1929, 1989, 2000 and 2007 as the ends of long cycles, and this paper reads those years only as turning points: what the tape and the indicators showed, not why the cycle ended. <strong>The Top &amp; Bottom Report Manual owns the T&amp;B methodology</strong>: the composite, the triggers, the overlays and the calibration. This paper reports their findings and does not restate how they are computed. <strong>The present is quarantined in Appendix B</strong>, dated, with no forecast. The body describes how turns work. It does not say where the market is.</p>
+<h3>Prerequisites</h3>
+<p>The paper assumes the four books of the Operating Doctrine's Part IV, defined here where first used. <strong>Book A, allocation</strong>, holds positions for one to six months and is run by exposure bands set from the regime; its question at a turn is how much to own. <strong>Book B, swing</strong>, holds positions for one to six weeks on trend, momentum and variant perception; its question is which stage of a move to trade. <strong>Book C, tactical</strong>, holds positions for one to five days on event reactions, dealer positioning and session structure; it works at the edges of a turn, where the moves are fastest. <strong>Book D, opportunistic</strong>, has no fixed horizon and takes small, defined-risk positions on behavioral and alternative data, forced flows and mispriced optionality; at a turn it is where convexity lives.</p>
+<p>It also assumes the vocabulary of Base Rates (a conditional rate is read beside its unconditional one), of the Rate and Liquidity Machine (reserves, the Treasury General Account, the repo market), of Credit (spreads as the price of default and of liquidity), and of the Dealer's Hand (gamma and the flip). Each is cited where it is needed and not re-taught.</p>
+<p>The paper uses one convention throughout. A <strong>bear market</strong> is a fall of about 20 percent or more in the S&amp;P 500 on a closing basis, the convention Tops and Bottoms adopted. A <strong>turn</strong> is the peak or trough that begins or ends one. A <strong>near-miss</strong> is a decline that looked like the start of a bear and resolved without one.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s2-part-i-what-tops-and-bottoms-established">
+      <summary class="section-head">
+        <span class="section-title">Part I — What Tops and Bottoms Established</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 1 — The eight episodes, kept</h2>
+<p>Tops and Bottoms studied eight bear markets in the S&amp;P 500 since 1970, and its first discipline was to describe each one strictly historically, with no comparison to the present inside an episode chapter. That discipline is kept here. The eight are summarised as turning points, each with what made the top, what made the bottom, and the type the study assigned it. The full chapters, with each episode's indicators at the top and the bottom and its standardised aftermath, are in the archived study.</p>
+<p><strong>1973–74, the Nifty Fifty and the inflation bear.</strong> A two-tier market — fifty "one-decision" growth stocks at multiples near forty while the rest of the market sat near half that — met accelerating inflation and a tightening Federal Reserve. The oil embargo of late 1973 turned a valuation problem into a stagflation problem. The decline ran from January 1973 to October 1974 and took close to half the index's value, the longest and deepest bear of the period until 2007. The bottom came at a single-digit price-to-earnings ratio, with inflation still in double digits. The market turned before inflation did, on the second derivative of the variable that drove it down. Type: inflation and policy, with a valuation tier.</p>
+<p><strong>1980–82, the Volcker bear.</strong> This top was cheap. The market's cyclically adjusted multiple was under ten, and the bear was made entirely by policy: a Federal Reserve holding the funds rate near twenty percent to break inflation, a deeply inverted curve and a recession. The decline, from late 1980 to August 1982, was a little over a quarter, shallow by the standard of the others. It ended within days of the Fed's easing in the summer of 1982, which also began the longest bull market of the century. Type: policy.</p>
+<p><strong>1987, the crash without a recession.</strong> The market rose about a third in the first eight months of 1987 while bond yields climbed. Then, in the week of 19 October, it fell by roughly a third, with the largest one-day decline on record on the Monday. The mechanism was structural: portfolio insurance programmes selling futures into a falling market, which fed the fall they were hedging. The economy did not contract, credit did not break, and the Fed's statement of liquidity support the next morning ended the panic. The index regained its prior high within two years. Type: mechanical.</p>
+<p><strong>1990, the Gulf War bear and the credit crunch.</strong> A late-cycle economy already constrained by a savings-and-loan collapse and tight bank lending was hit by an oil shock when Iraq invaded Kuwait. The decline, July to October 1990, stopped a fraction short of twenty percent on a closing basis. The study included it because a recession accompanied it and convention counts it. The bottom came at peak fear about the war, with no volatility index yet in existence to mark it. Type: exogenous shock onto a credit-constrained economy.</p>
+<p><strong>2000–02, the dot-com unwind.</strong> Here valuation was the whole story. The cyclically adjusted multiple stood at an all-time high, the equity risk premium was near zero, technology was the largest weight in the index, and new issuance was at a record. The top in March 2000 was preceded by about two years of narrowing breadth, as fewer and fewer stocks carried the index. The decline ran two and a half years, through a recession and a wave of accounting frauds, and took about half the index. Type: valuation and capital exhaustion.</p>
+<p><strong>2007–09, the global financial crisis.</strong> This is the study's most important episode for this paper, because it was the deepest and because it was invisible to the equity indicators. Equity multiples at the October 2007 top were moderate, implied volatility was low, and spreads were tight in level. The excess lived on lenders' balance sheets and in the funding structure of the shadow banking system. The decline ran seventeen months and took more than half the index. Its bottom in March 2009 came with policy at its maximum scale: rates at zero, the first round of asset purchases and the bank stress tests. Type: credit.</p>
+<p><strong>2020, the pandemic crash.</strong> An exogenous shock arrived on a market at a high multiple and low volatility. The decline, about a third in five weeks from February to March, was the fastest bear in the record. It ended on the day the Federal Reserve announced unlimited asset purchases and corporate credit facilities. Type: exogenous, with a liquidity crisis inside it (Part IV).</p>
+<p><strong>2022, the inflation and rates bear.</strong> A market at a cyclically adjusted multiple near forty met inflation at a forty-year high and the fastest tightening in four decades. Stocks and bonds fell together. There was no recession, no credit blow-out and no panic spike in volatility. The decline, January to October, took about a quarter of the index, and the bottom came as the inflation rate inflected, not on a pivot in policy. Type: valuation and policy collision, with no credit dimension.</p>
+<p>The eight are summarised below as a cheat sheet. The type is the study's; the decline is the closing peak to trough <em>(the S&amp;P 500 on a closing basis; Tops and Bottoms' episode set, as published May 2026; cited 6 November 2026)</em>.</p>
+<table>
+<thead>
+<tr>
+<th>Episode</th>
+<th>Top to bottom</th>
+<th>Decline (about)</th>
+<th>Recession</th>
+<th>The study's type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1973–74</td>
+<td>Jan 1973 – Oct 1974</td>
+<td>−48%</td>
+<td>Yes</td>
+<td>Inflation and policy, with a valuation tier</td>
+</tr>
+<tr>
+<td>1980–82</td>
+<td>Nov 1980 – Aug 1982</td>
+<td>−27%</td>
+<td>Yes</td>
+<td>Policy</td>
+</tr>
+<tr>
+<td>1987</td>
+<td>Aug 1987 – Dec 1987</td>
+<td>−34%</td>
+<td>No</td>
+<td>Mechanical</td>
+</tr>
+<tr>
+<td>1990</td>
+<td>Jul 1990 – Oct 1990</td>
+<td>−20%</td>
+<td>Yes</td>
+<td>Exogenous, onto a credit crunch</td>
+</tr>
+<tr>
+<td>2000–02</td>
+<td>Mar 2000 – Oct 2002</td>
+<td>−49%</td>
+<td>Yes</td>
+<td>Valuation and capital exhaustion</td>
+</tr>
+<tr>
+<td>2007–09</td>
+<td>Oct 2007 – Mar 2009</td>
+<td>−57%</td>
+<td>Yes</td>
+<td>Credit</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>Feb 2020 – Mar 2020</td>
+<td>−34%</td>
+<td>Yes</td>
+<td>Exogenous</td>
+</tr>
+<tr>
+<td>2022</td>
+<td>Jan 2022 – Oct 2022</td>
+<td>−25%</td>
+<td>No</td>
+<td>Valuation and policy</td>
+</tr>
+</tbody>
+</table>
+<p>What the operator does differently because of this chapter is to classify a decline by type before sizing it. A mechanical decline and a credit decline can look identical in their first week, and they call for opposite actions from Book A.</p>
+<h2>Chapter 2 — The near-misses, kept</h2>
+<p>The study's third principle was to include the near-misses, because a study of confirmed turns alone has its survivorship built in. Six declines since 1990 looked like the start of a bear and resolved without one, and they are the false positives any turning-point method must survive. They are summarised here because the rest of the paper leans on them.</p>
+<p><strong>1994</strong> was a rate shock. A surprise tightening began a cycle that produced the worst bond year in decades, yet the S&amp;P 500's decline stayed under ten percent. A strong economy and a young credit cycle absorbed it as a time correction rather than a price correction.</p>
+<p><strong>1998</strong> was a financial-stress event: Russia's default and the near-failure of a large leveraged hedge fund produced a decline of nearly a fifth in ten weeks. The Fed's three cuts and a privately financed rescue resolved it within two months. The study's sharpest observation about it is that the rescue itself fuelled the final leg of the 1999 bubble: emergency liquidity into a strong economy.</p>
+<p><strong>2011</strong> was a sovereign scare: a fight over the U.S. debt ceiling, a downgrade of U.S. debt and doubt about the eurozone. The decline also stopped a fraction short of a fifth. There was no U.S. recession, credit stress stayed a repricing rather than a default cycle, and the European Central Bank's liquidity operations removed the tail. The October low carried a full bottom signature, and the study scored it as a bottom.</p>
+<p><strong>2015–16</strong> was a sector recession. China's devaluation and the oil collapse produced a genuine default cycle in energy credit, and the high-yield index widened sharply. The stress never spread beyond energy and manufacturing. The study's lesson is that breadth of stress matters as much as its intensity.</p>
+<p><strong>2018</strong> was a policy error. The Fed was tightening and running down its balance sheet into slowing global growth while tariffs escalated, and the decline stopped two-tenths of a percent short of the bear threshold. It ended within days of the Fed's January 2019 pivot. The speed of the resolution is itself evidence that no organic recession or credit cycle was underway.</p>
+<p><strong>2024</strong> was a positioning unwind. A Bank of Japan hike forced the unwinding of yen-funded carry, and the volatility index printed a crisis-grade level intraday against a single-digit decline in the index. The market recovered in two weeks. Modern market structure can manufacture crisis-grade volatility with no economic event underneath it.</p>
+<p>From the six, the study drew the rule that runs through the rest of this paper. <strong>Corrections become bears when a recession or a credit event follows; absent both, every drawdown in the set resolved within months.</strong> Recession accompanied every bear but 1987, and no near-miss. Bears featured broad credit deterioration or valuations extreme enough that multiple compression alone sufficed, while near-misses featured contained credit stress or none. Near-misses ended when policy turned supportive quickly, and bears persisted because policy either could not turn, as in the inflation regimes, or turned too slowly against a deleveraging. Volatility spikes and breadth washouts appeared in both populations, so they mark stress without telling a correction from a bear <em>(the six near-misses of 1994, 1998, 2011, 2015–16, 2018 and 2024 against the eight bears; Tops and Bottoms, May 2026; cited 6 November 2026)</em>.</p>
+<p>What the operator does differently because of this chapter is to ask the two diagnostic questions on the first day of any sharp decline, and to keep asking them: is credit deteriorating broadly, and is the economy rolling over? Everything else is texture.</p>
+<h2>Chapter 3 — What the harness has since learned</h2>
+<p>The Top &amp; Bottom report scores the market against thresholds calibrated on these episodes, and its calibration is the most rigorous test the study's conclusions have faced. The Top &amp; Bottom Report Manual describes it in full. Three findings matter for this paper, and each sharpens the study rather than overturning it.</p>
+<p><strong>Bottoms are catchable.</strong> Thirteen episodes — three tops, six bottoms and four controls — were run through the report's composite at their turning dates. Under the original weights, the composite classified four of the six bottoms and all four controls correctly <em>(the report's calibration of 3 September 2026; thirteen episodes, each scored once at its date; cited 6 November 2026)</em>. A bottom is a washout: spreads blown out, breadth destroyed, sentiment at its worst, positioning flushed. A composite built from those readings sees it, because every washout has those parts even when its cause differs. The two bottoms it missed had the study's two exceptions in them. 1990 bottomed without a volatility extreme, because the index barely existed. 2022 bottomed with almost none of the washout present, turning on the inflection of the variable that drove it. Macro-driven bears bottom on second derivatives; credit-driven bears bottom on the scale of the policy response.</p>
+<p><strong>Most tops are not catchable by a composite.</strong> The same calibration classified none of the three tops correctly. A top has a cause, and the cause differs: valuation in one episode, credit in another, policy in a third. An average across categories under-reads whichever category carries the episode. The report's response was to add three overlays independent of the composite, one for each historically distinct way a top forms: concentration and complacency for valuation tops, high-yield spread acceleration for credit tops, and liquidity and funding stress for plumbing tops. The study's sentence — tops are idiosyncratic, bottoms rhyme — is now built into the report's architecture.</p>
+<p><strong>The 2007 top is structurally uncatchable by the composite.</strong> A sweep of the composite's weights showed that no reweighting of the existing indicator set catches a 2007-type top. The multiple was elevated but not extreme, implied volatility was low, breadth was acceptable and spreads were tight in level. The fragility sat in leverage and in the structure of funding, which the composite did not measure. The top was not late in the indicators; it was absent from them. The high-yield acceleration overlay is the answer: a credit top read in the rate of change of spreads rather than their level. The study had already found that spread acceleration off its trough led the 2007 top by about four months and stayed correctly silent in 1987, 2018, 2020 and January 2022.</p>
+<p>Two later results qualify the three. The harness's first point-in-time edition could not reproduce the composite's record on the box's own store, because the store does not yet hold the long histories the episodes need. Its verdict was "insufficient", not "failed" <em>(the T&amp;B harness ledger, 26 October 2026; 13 episodes, 17 decision dates)</em>. The false-bottom audit tested the bottom side against the rallies that looked like bottoms and were not. It found one confirmation element that discriminated, relative breadth after the trough, against a pre-registered requirement of two <em>(the false-bottom audit, 16 rallies, ledger of 18 October 2026)</em>. The audit failed its own bar. So the catchable side is catchable at its washout, and much less so in the weeks after, when a rally must be told from a recovery.</p>
+<h2>Chapter 4 — What survives: the taxonomy of tops</h2>
+<p>What survives from Part I is a taxonomy, and the rest of the paper is organised around it. The study sorted the eight tops into five kinds. The harness's overlays now map one instrument to each of the three kinds that leave a measurable trace in advance.</p>
+<p><strong>Inflation and policy tops</strong> — 1973, 1980 and 2022 — happen when the central bank is forced to tighten into a slowing market. Valuation can be high or low; the driver is the policy bind. Stocks and bonds fall together, and the bear ends when the inflation variable inflects, usually well before policy turns. The tell is the inflation rate and the curve, read through the Monthly's plumbing and the market-state object's Macro dial. The harness has no overlay for this kind. The study's second lens for macro-driven bears — the rate of change of the driving variable — is the instrument, and it lives in the Monthly rather than in the report.</p>
+<p><strong>Credit tops</strong> — 2007, and 1990 in part — happen when the excess lives on lenders' balance sheets. Equity valuation is silent. The tell is the rate of change of credit spreads off their trough, which the high-yield acceleration overlay reads, and the bank-stress panel of Part III. These produce the deepest drawdowns in the record.</p>
+<p><strong>Valuation and capital-exhaustion tops</strong> — 2000, and 1973's Nifty Fifty tier — happen when extreme multiples meet the end of the marginal buyer. Breadth divergence gives the earliest warning, sometimes years early, and concentration is the measurable form. The concentration overlay reads this kind, and Part II's bubble anatomy describes it.</p>
+<p><strong>Mechanical tops</strong> — 1987, and the near-misses of 1998, 2018 and 2024 — happen when positioning and market structure produce the decline while the economy is fine. They are fast, deep and fully retraced, and in real time they are distinguished by silent credit and stable leading indicators. The liquidity overlay and the dealer read are the instruments, and Part IV describes the plumbing.</p>
+<p><strong>Exogenous tops</strong> — 2020, and the trigger of 1990 — are untimeable by construction. The valuation at entry and the pricing of volatility decide the damage, and the speed of policy decides the duration. No instrument catches them in advance. The system's answer is sizing and convexity, not prediction.</p>
+<table>
+<thead>
+<tr>
+<th>Kind of top</th>
+<th>Episodes</th>
+<th>Lead tell</th>
+<th>The stack's instrument</th>
+<th>Catchable in advance?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Inflation and policy</td>
+<td>1973, 1980, 2022</td>
+<td>The driving variable's rate of change</td>
+<td>The Monthly; the Macro dial</td>
+<td>Partly, by the macro lens</td>
+</tr>
+<tr>
+<td>Credit</td>
+<td>2007, 1990 in part</td>
+<td>Spread acceleration off the trough</td>
+<td>HY acceleration overlay; bank stress</td>
+<td>Yes, by rate of change, not level</td>
+</tr>
+<tr>
+<td>Valuation and exhaustion</td>
+<td>2000, 1973 tier</td>
+<td>Narrowing breadth; concentration</td>
+<td>Concentration overlay; froth breadth</td>
+<td>Early but imprecise</td>
+</tr>
+<tr>
+<td>Mechanical</td>
+<td>1987; 1998, 2018, 2024</td>
+<td>Positioning; silent credit</td>
+<td>Liquidity overlay; dealer read</td>
+<td>Rarely; recognised as it happens</td>
+</tr>
+<tr>
+<td>Exogenous</td>
+<td>2020; 1990's trigger</td>
+<td>None</td>
+<td>Sizing and convexity</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>What the operator does differently because of Part I is to stop asking "is this the top?" and ask instead "which kind of top would this be, and is that kind's instrument firing?" A valuation instrument that is silent at a credit top is not wrong, and it is not reassurance either.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s3-part-ii-bubbles-as-an-anatomy">
+      <summary class="section-head">
+        <span class="section-title">Part II — Bubbles as an Anatomy</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 5 — The Minsky–Kindleberger sequence</h2>
+<p>A bubble is not a price that is too high. Prices are often too high for years without ending in a crash, and a definition that waits for the crash is a definition by outcome. The useful definition is a sequence: a way that credit, belief and price feed on each other through recognisable stages until the feeding stops. The sequence was set out by Hyman Minsky, whose financial instability hypothesis described how stability itself breeds the borrowing that makes a system fragile. Charles Kindleberger turned it into a history of manias across three centuries <em>(Minsky's Stabilizing an Unstable Economy, 1986, and his 1992 statement of the hypothesis; Kindleberger's Manias, Panics, and Crashes, first edition 1978; cited 6 November 2026)</em>. It has five stages, and each has a mechanism.</p>
+<p><strong>Displacement.</strong> Something real changes the outlook for some part of the economy: a technology (railways, radio, the internet, AI), a financial innovation, a change in policy or the end of a war. The displacement is genuine. That is why the sequence is so persuasive and so hard to resist. The profits it creates at first are real, and the early buyers are right. Nothing about the first stage is a mistake.</p>
+<p><strong>Boom.</strong> Credit expands to finance the opportunity, prices rise, and the rise attracts capital. Minsky's contribution is the change in how the borrowing is structured. Early borrowers can repay principal and interest from their income, which Minsky called hedge finance. As the boom continues, borrowers increasingly can pay only the interest and must roll the principal (speculative finance), and finally some can pay neither and rely on the asset's price continuing to rise (Ponzi finance). The share of Ponzi finance is the system's fragility. It grows in the good years because the good years make it look safe.</p>
+<p><strong>Euphoria.</strong> The price rise becomes its own justification. New buyers arrive who would not have bought the asset on its fundamentals, because it has risen. Issuance surges as owners and promoters sell to them. Valuation frameworks are replaced by new ones that justify the price ("this time is different", "a new era"). Concentration rises as the leaders of the displacement become the index. The stage is marked by a change in who is buying, from the informed to the uninformed and from the patient to the levered.</p>
+<p><strong>Profit-taking, or distress.</strong> The informed begin to sell. Prices stop rising and drift; the leaders lose momentum while the rest of the market looks fine. Credit begins to tighten at the margin, because lenders notice the Ponzi borrowers. This is the stage Kindleberger called distress: a period, sometimes long, in which the bubble neither grows nor bursts and in which nobody can tell whether it is a pause or the end. Most of the money lost in bubbles is lost by people buying in this stage, because the price is lower than the peak and the story is unchanged.</p>
+<p><strong>Panic, or revulsion.</strong> Something forces sales: a failure, a fraud, a rate rise, a margin call. The Ponzi borrowers must sell to meet obligations, their selling lowers prices, and lower prices force more borrowers into the same position. The sequence that built the bubble now runs in reverse, with credit contracting as fast as it expanded. Revulsion follows, a refusal to touch the asset at any price, which carries prices below any measure of value. That overshoot is the next cycle's displacement opportunity.</p>
+<p>The sequence is a mechanism, not a calendar. Stages can last months or years, can be skipped, and can repeat: a panic inside a boom becomes a correction, and the boom resumes. The 1998 near-miss of Chapter 2 is the canonical case of a panic arrested by policy, after which euphoria resumed. And not every displacement ends in a bubble. The best large-sample test found that a sharp run-up in an industry's price, taken alone, does not predict a negative return on average. It does raise the probability of a crash, and the probability rises further when the run-up comes with high volatility, heavy issuance, rising turnover and an accelerating price path <em>(Greenwood, Shleifer and You, U.S. industries from 1928 and international industries from 1985, with run-ups of 100 percent or more over two years; published 2019; cited 6 November 2026)</em>. Those features are the stack's signposts, and Chapter 6 maps them.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Mechanism</th>
+<th>Who is buying</th>
+<th>What changes in credit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Displacement</td>
+<td>A real change in the outlook</td>
+<td>The informed early</td>
+<td>Little</td>
+</tr>
+<tr>
+<td>Boom</td>
+<td>Credit finances the opportunity</td>
+<td>The informed, then the trend</td>
+<td>Hedge finance turns speculative</td>
+</tr>
+<tr>
+<td>Euphoria</td>
+<td>The rise justifies itself</td>
+<td>The uninformed and the levered</td>
+<td>Ponzi finance grows; issuance surges</td>
+</tr>
+<tr>
+<td>Distress</td>
+<td>The informed sell; leaders stall</td>
+<td>Dip buyers</td>
+<td>Tightens at the margin</td>
+</tr>
+<tr>
+<td>Panic and revulsion</td>
+<td>Forced sales feed on themselves</td>
+<td>Nobody, then value at the overshoot</td>
+<td>Contracts as fast as it grew</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 6 — The signposts the stack carries at each stage</h2>
+<p>The sequence is useful to an operator only if its stages can be recognised from data available on the day. The stack carries six families of signpost that bear on the bubble sequence. None of them identifies a stage alone; read together, they narrow the range. Each is described here by what it measures and what it has historically shown, and the cheat sheet at the end maps each to the stages where it moves.</p>
+<p><strong>Valuation</strong> is the slowest signpost and the most often misused. The cyclically adjusted multiple, the forward multiple and the equity risk premium measure how much optimism is in the price. They set the asymmetry of a decline — how far there is to fall — and they explain much of the variance of ten-year returns across the episode study. They do not time anything. The study recorded tops at a cyclically adjusted multiple under ten and bottoms near thirty <em>(Tops and Bottoms, the eight episodes, May 2026; cited 6 November 2026)</em>. In the sequence, valuation rises through boom and euphoria and stays high through distress, so a high reading says the bubble has formed but not which stage it is in.</p>
+<p><strong>Concentration</strong> measures how much of the index the displacement's leaders have become. It rises through the boom and peaks near the top of the euphoria, because euphoria is when the leaders are bought for their own momentum. Concentration is the measurable form of the breadth divergence that led the valuation tops by months to years. The concentration overlay reads it, together with complacency in volatility. The routed table of Chapter 8 gives it a historical ceiling, and the concentration twin — the cap-weighted index against its equal-weighted version — prints it daily.</p>
+<p><strong>Issuance</strong> measures the supply response. In euphoria, owners and promoters sell to the new buyers through initial offerings, secondary offerings and convertible debt. Issuance in the bubble's sector rising faster than the sector's earnings is one of the clearest stage markers there is, because it means the informed are selling. The stack carries the hyperscalers' filed capital spending and financing from EDGAR, and the private AI-financing ledger the register proposes covers what does not reach the public bond data.</p>
+<p><strong>Leverage</strong> measures the Ponzi share. Margin debt, leveraged exchange-traded product assets, levered single-stock products and the funding of the bubble's builders all rise through the boom and euphoria and fall in the panic. Leverage's turn is a better marker of the transition from distress to panic than price, because forced selling begins when leverage starts to contract. The stack's fragility panel holds margin debt and its share of household equity, and the leveraged-ETF rebalance. Batch 25 adds free credit balances and a deleveraging flag, a two-month decline of ten percent or more.</p>
+<p><strong>The froth gauge</strong> measures speculation at the edge: how many assets are in a parabolic state, and how much of the index they carry. The register's froth-breadth count (item 113's amendment of item 31) counts the S&amp;P 500 stocks whose six-month return is more than two standard deviations above normal with an accelerating price path, by sector. The Digital Assets addendum's froth gauge does the same for new crypto listings. Froth breadth is the euphoria signpost. Its most useful property is that it shows where froth is moving. A rotation can carry froth from the bubble's sector into defensive sectors, which then become the crowded hiding place.</p>
+<p><strong>The Capitulation Count</strong> measures the panic and the revulsion. It is the system's five-family bottom checklist: volatility, equity-only put/call, the dealer gamma flip, short interest against price, and flows with sentiment. Part VII describes it. In the sequence, it moves only at the end, and it measures exhaustion of selling, not the end of the bubble's cause. A count of four or five in the panic says the selling is exhausted for now. It does not say the revulsion is over.</p>
+<table>
+<thead>
+<tr>
+<th>Signpost</th>
+<th>What it measures</th>
+<th>Rises through</th>
+<th>Peaks or turns at</th>
+<th>The stack's read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Valuation</td>
+<td>Optimism in the price</td>
+<td>Boom, euphoria</td>
+<td>Stays high into distress</td>
+<td>CAPE, forward P/E, ERP; the Monthly</td>
+</tr>
+<tr>
+<td>Concentration</td>
+<td>The leaders' share of the index</td>
+<td>Boom</td>
+<td>Late euphoria</td>
+<td>Concentration overlay; the twin; item 31's band</td>
+</tr>
+<tr>
+<td>Issuance</td>
+<td>The informed selling to the new buyer</td>
+<td>Euphoria</td>
+<td>Late euphoria</td>
+<td>EDGAR capital spending; the financing ledger</td>
+</tr>
+<tr>
+<td>Leverage</td>
+<td>The Ponzi share</td>
+<td>Boom, euphoria</td>
+<td>Its contraction starts the panic</td>
+<td>Fragility panel; margin debt; levered ETFs</td>
+</tr>
+<tr>
+<td>Froth breadth</td>
+<td>Parabolic assets and their weight</td>
+<td>Euphoria</td>
+<td>Euphoria; it rotates in distress</td>
+<td>Item 113's count; the crypto froth gauge</td>
+</tr>
+<tr>
+<td>Capitulation Count</td>
+<td>Selling exhausted</td>
+<td>—</td>
+<td>Panic</td>
+<td>Item 97's five families</td>
+</tr>
+</tbody>
+</table>
+<p>What the operator does differently because of this chapter is to read the six together and ask which pattern they make, not whether any one of them is extreme. High valuation with rising concentration, issuance and leverage is euphoria. High valuation with stalled leaders, falling froth and leverage beginning to fall is distress. Only the second is a reason for Book A to act.</p>
+<h2>Chapter 7 — A hold-and-trade playbook</h2>
+<p>A bubble poses a different question to each book, because each book lives on a different clock. The worst mistake is to answer one book's question with another's: a Book A stance moved on a Book C signal, or a Book C trade sized on a Book A conviction. The Doctrine's Rule 19 (top-down sets the budget; a lower horizon may veto but never enlarge) already forbids the second. This chapter says what each book does at each stage. It is a playbook of roles, not a prediction of which stage the market is in. The Doctrine owns the rules and Portfolio Construction owns the sizes.</p>
+<p><strong>Book A holds through.</strong> The allocation book's job in a bubble is the hardest and the simplest: stay inside its band and let the regime, not the narrative, move it. Through displacement and boom, Book A owns the market at the band the regime sets, which means owning the bubble's leaders at their index weight. Underweighting them because they look expensive is the error the Doctrine's Rule 29 names, the cost of being out, and in a long boom it is the largest cost in the record. Through euphoria, Book A does not sell because the market is expensive. It lets the concentration overlay and the regime's stamps move the band, and the high-yield acceleration overlay is the trigger it most needs to respect. In distress, Book A's question is whether the regime has turned, and the T&amp;B composite and overlays are the instruments. A stalled leader is not a turned regime. In the panic, Book A holds its floor, and re-entry after the panic waits for the false-bottom gate, not the first rally (Chapter 8). The book's discipline at a bubble is to be wrong slowly and recover fully, rather than right early and out of the market for years.</p>
+<p><strong>Book B trades the stages.</strong> The swing book is where a bubble's stages are traded directly, because its one-to-six-week clock matches the length of a stage's moves. In boom and euphoria, Book B trades with the trend in the leaders, and its exit discipline (the written exit, the time stop) is what keeps a trend trade from becoming a belief. In distress, Book B's edge is variant perception: the leaders stall while the index holds, and the relative trade — the leaders against the equal-weighted index, or the bubble's sector against defensives — is cleaner than the directional one. In the panic, Book B's counter-trend trades carry the five-session time stop of the Doctrine's Rule 27. A short in the panic is closed on the Top &amp; Bottom bottom signal, not on conviction (Doctrine Rule 26). The swing book's characteristic error in a bubble is to short the euphoria because it is irrational, and the study's 1999 lesson is that irrational markets go further than anyone's patience.</p>
+<p><strong>Book C works the edges.</strong> The tactical book trades the violent sessions at the turns: the blow-off days in late euphoria, the first failed rallies of distress, the capitulation sessions of the panic. Its instruments are the dealer read (negative gamma amplifies; a flip back above the gamma level marks exhaustion), the Capitulation Count, and the event-reaction setup. Book C does not decide what stage the market is in. It takes the edge's mechanical trade at Book C size and leaves the stage question to Books A and B. Its characteristic error is to treat a capitulation session as the bottom and hold it into Book A's horizon.</p>
+<p><strong>Book D holds the convexity.</strong> The opportunistic book's role is the cheap option on the panic. Its tail budget buys defined-risk protection in euphoria, when implied volatility is low because the market is calm, and spends it in the panic, when protection is expensive and pays. Book D is also where forced flows are traded: the levered-ETF rebalance and the margin-call liquidation, each with defined risk.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Book A (1–6 months)</th>
+<th>Book B (1–6 weeks)</th>
+<th>Book C (1–5 days)</th>
+<th>Book D</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Displacement, boom</td>
+<td>Own the band, leaders at index weight</td>
+<td>Trade with the trend; written exits</td>
+<td>Ordinary setups</td>
+<td>Little to do</td>
+</tr>
+<tr>
+<td>Euphoria</td>
+<td>Hold the band; respect the HY acceleration overlay</td>
+<td>With the trend; no shorts on irrationality</td>
+<td>Blow-off sessions, defined risk</td>
+<td>Buy cheap protection</td>
+</tr>
+<tr>
+<td>Distress</td>
+<td>Ask whether the regime has turned</td>
+<td>The relative trade: leaders against breadth</td>
+<td>Failed rallies</td>
+<td>Hold the protection</td>
+</tr>
+<tr>
+<td>Panic, revulsion</td>
+<td>Hold the floor; re-entry waits for the gate</td>
+<td>Counter-trend only with the five-session stop</td>
+<td>Capitulation sessions; the gamma flip</td>
+<td>Spend the protection; forced flows</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 8 — The routed items: peak concentration and the bear rally</h2>
+<p>The signal-triage register routes two items on bubbles to this paper. Each is read here as a mechanism, with the caveats the register filed with it.</p>
+<p><strong>The peak-concentration table (item 31).</strong> BofA Global Investment Strategy's table of the top basket's share of market capitalisation at the peaks of historic bubbles puts the share in a narrow band. Railroads in the nineteenth century reached about 63 percent; the utilities, telecommunications and industrials of the 1920s about 36 percent; the Nifty Fifty about 40 percent; Japan about 44 percent of the world index in 1989; technology, media and telecom about 41 percent in 2000 <em>(BofA Global Investment Strategy's chart, relayed through secondary reporting; filed with Batch 6, 15 October 2026; cited 6 November 2026)</em>.</p>
+<p>The register's ruling carries two caveats that this paper repeats because they matter more than the numbers. The baskets are defined after the fact, by people who knew which stocks led. And the measures differ: Japan's is a country's share of a world index, not a basket's share of a domestic one. The table says that when the leaders of a displacement reach roughly two-fifths of the market, the market has usually been at or near the end of a bubble. It does not say that concentration at that level causes a top, or that a top must follow.</p>
+<p>The actionable half of the table is the half the register asked for and has not yet built: what followed a 40 percent share, measured as the leaders' relative drawdown, the time to the trough and the behaviour of breadth. The ruling added a peak-band flag on the box's own top-ten share against the 40 to 44 percent historical band, as a calibration of the concentration overlay's existing input with no new weight. The present reading belongs in Appendix B. In the bubble sequence, the table locates late euphoria, and the operator reads it with the other five signposts of Chapter 6, never alone.</p>
+<p><strong>The bear-rally structure (SR-8).</strong> The register's SR-8 entry describes the other end of the sequence. Inside a bear, rallies are large, frequent and indistinguishable in real time from the start of a new bull. The Nasdaq Composite from March 2000 to October 2002 produced five rallies of 12 to 45 percent inside a decline of 78 percent, each a "bottom" in real time <em>(the Nasdaq Composite, March 2000 to October 2002; the register's SR-8 entry, filed 19 September 2026)</em>.</p>
+<p>The mechanism is the panic's own structure. Forced sellers overshoot. Short sellers and the dip-buying cohort cover and buy, producing a violent rally. The rally attracts trend-followers. When the forced selling resumes — because the cause of the bear has not been repaired — the rally fails. Each rally is fuelled by positioning, not by a change in the cause. That is why the register's confirmation set looks for a change in the cause. It asks for a breadth thrust, leadership by new groups rather than the most-shorted prior leaders, spreads tightening through the rally, a volatility term structure back in contango, and a successful retest. It also carries a time prior: bears off valuation peaks have run two to three years, so a bottom four months in is a low-probability call on the base rate alone.</p>
+<p>The system's response is a gate. Once the Top &amp; Bottom top side has fired and price is below a falling 200-day average, Book A's re-entry needs the bottom composite plus two of the confirmation set, and rallies in that state are Book C material. The false-bottom audit tested the confirmation set against the rallies that failed and found only relative breadth after the trough discriminated (Chapter 3). The gate's rule therefore stands on one admitted tell. The proposed Doctrine rule words the behavioral point: in a declared bear regime a rally is a mechanism, not a signal, and size should assume that a bear rally and a new bull are indistinguishable in real time.</p>
+<table>
+<thead>
+<tr>
+<th>Routed item</th>
+<th>What it is</th>
+<th>Stage it locates</th>
+<th>Caveat</th>
+<th>The system's use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Item 31, peak concentration</td>
+<td>The leaders' share at historic bubble peaks, about 36–63%, most near 40%</td>
+<td>Late euphoria</td>
+<td>Baskets defined after the fact; measures differ</td>
+<td>Peak-band flag on the concentration overlay's input; no new weight</td>
+</tr>
+<tr>
+<td>SR-8, bear-rally structure</td>
+<td>Five rallies of 12–45% inside a 78% decline</td>
+<td>Panic and revulsion</td>
+<td>One market, one bear</td>
+<td>Re-entry gate; rallies are Book C material</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s4-part-iii-banking-crises-as-a-mechanism">
+      <summary class="section-head">
+        <span class="section-title">Part III — Banking Crises as a Mechanism</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 9 — The common structure</h2>
+<p>Banking crises look different on the surface — a technology lender in 2023, the shadow banks of 2008, an oil-lending money-centre bank in 1984, the banks of a whole currency union in 2011 — and they share one structure underneath. <strong>A bank crisis happens when a loss on the asset side meets a funding mismatch on the liability side.</strong> Either alone is survivable. A bank with a large loss and stable, patient funding can earn its way out over years, and many did after 1990. A bank with flighty funding and no loss is never run, because nobody has a reason to run. Put the two together, and a loss that is not yet large enough to make the bank insolvent can still make it illiquid. Illiquidity, through forced sales, can then make the loss large enough to make it insolvent.</p>
+<p>The loss comes in two kinds, and the kind decides how visible the crisis is beforehand. <strong>A duration loss</strong> comes from holding long-dated assets — bonds, fixed-rate mortgages — funded by short-dated liabilities when rates rise. It is the slow kind: visible in public data quarters before it matters, because unrealised losses are reported. It is easy to ignore, because accounting lets a bank hold the assets at cost if it does not sell. <strong>A credit loss</strong> comes from borrowers not repaying. It is the opaque kind: it sits in loan books and structured securities whose value nobody outside can see, and it is recognised late, in lumps.</p>
+<p>The funding mismatch also comes in two kinds. <strong>Uninsured deposits</strong>, large balances above the guarantee, belong to depositors who have every reason to leave at the first doubt and, in the age of the mobile banking app, the means to leave within hours. <strong>Wholesale funding</strong> — repo, commercial paper, interbank loans, deposits placed by other institutions — is short-dated, priced daily and withdrawn by professionals who watch each other.</p>
+<p>The run is the mechanism that turns the combination into a crisis. It is a coordination problem. Each depositor is safe if the others stay and ruined if they leave first, so a credible rumour is self-fulfilling. That is why banking crises are sudden even when their causes are slow, and why the resolution is almost always a guarantee, a promise that makes running pointless, rather than a fix of the loss.</p>
+<p><strong>The contagion channel</strong> is what makes a bank crisis a market event. Investors and depositors look for the next bank with the same combination: the same loss or the same funding. The market sells it before the run arrives. Bank equity indices therefore lead the funding data in a bank crisis, and the regional-bank index against the broad financial index is one of the fastest tells the stack has (Chapter 11).</p>
+<p>What the operator does differently because of this chapter is to ask two questions of any bank failure: is the loss specific to this bank or common to many, and is the funding that fled specific or common? A specific loss with specific funding is an idiosyncratic failure. A common loss with common funding is a crisis.</p>
+<h2>Chapter 10 — Four cases</h2>
+<p><strong>Continental Illinois, 1984.</strong> The seventh-largest bank in the United States had grown fast by buying energy loans, many originated by a small Oklahoma bank, Penn Square, which failed in 1982 when oil prices fell. The credit loss was large and concentrated. The funding was the mismatch: Continental had little retail deposit base and financed itself mostly in the wholesale and foreign deposit markets, from professional lenders with no insurance and no loyalty. In May 1984, rumours of its insolvency produced a run by those lenders that withdrew a large share of its funding in days. The regulators' response was to guarantee all depositors and creditors, not just the insured ones, and to take ownership of the bank. The phrase "too big to fail" entered the language in the congressional hearings that followed <em>(the FDIC's history of the banking crises of the 1980s; cited 6 November 2026)</em>. Continental is the template for every later wholesale run, and the first modern case of the guarantee as resolution.</p>
+<p><strong>2008.</strong> The global financial crisis was a banking crisis whose banks were not all banks. The credit loss sat in mortgage securities held by banks, broker-dealers and off-balance-sheet vehicles. The funding mismatch was in the shadow banking system: asset-backed commercial paper, the repo market and money-market funds, short-term wholesale funding on a scale Continental could not have imagined. The run came in stages. Asset-backed commercial paper froze in August 2007, the month a large European bank suspended redemptions from funds holding U.S. mortgage securities. Repo lenders raised their haircuts on mortgage collateral through 2007 and 2008, which was a run conducted by margin rather than by withdrawal. Bear Stearns lost its repo funding in March 2008. Lehman Brothers failed on 15 September, a money-market fund broke its one-dollar value the next day, and a run on money funds followed.</p>
+<p>The policy response escalated over a year: discount-window facilities from December 2007, a primary-dealer facility in March 2008, a guarantee of money funds and capital injections into banks in the autumn, and the stress tests of 2009. The equity market's bottom came with the stress tests, when the guarantee finally became credible. The study's record that credit-driven bears bottom on the scale of the policy response is the 2008 record. The 2007 top was the credit top that no equity composite could see, and that the bank-stress tells of Chapter 11 and the spread acceleration overlay were built to see <em>(the episode and its sequence; Tops and Bottoms, May 2026, and the run-on-repo literature; cited 6 November 2026)</em>.</p>
+<p><strong>2023's regional run.</strong> Silicon Valley Bank had taken in a flood of deposits from technology companies in 2020 and 2021 and invested them in long-dated Treasury and agency securities at the low yields of the time. When rates rose through 2022, the securities lost much of their value: a pure duration loss, published quarter by quarter in the bank's filings and in the FDIC's industry-wide figures for unrealised losses. The funding was the mismatch: the great majority of its deposits were uninsured, held by a concentrated and networked client base. On 8 March 2023 the bank announced a loss on securities sales and a capital raise. On 9 March its depositors withdrew roughly a quarter of its deposits in a single day, organised in part through group chats, and on 10 March it was closed. Signature Bank failed two days later. On 12 March the regulators guaranteed all deposits at both banks and created a facility lending against Treasury and agency collateral at par, which neutralised the duration loss for funding purposes. The regional-bank index fell by about a third over the month. A large Swiss bank was merged into its rival a week later, and First Republic failed on 1 May <em>(the FDIC's and the Federal Reserve's reviews of the March 2023 failures; cited 6 November 2026)</em>.</p>
+<p>The equity market as a whole barely registered it. The S&amp;P 500's decline in March 2023 was single digits. The episode is the clearest modern case of a banking crisis that stayed a sector event, because the guarantee came within four days and the loss, though large, was a duration loss the guarantee could neutralise.</p>
+<p><strong>The sovereign–bank loop.</strong> The eurozone crisis of 2010 to 2012 added a mechanism the other three lack: the state and its banks bring each other down. Banks hold their own government's bonds, so a fall in the sovereign's credit is a loss on the banks' asset side. The government stands behind its banks, so a loss in the banks is a liability of the sovereign. In Ireland, a blanket guarantee of bank liabilities in 2008 turned the banks' property losses into the state's debt, and the state needed a bailout by 2010. In Greece, the sovereign's insolvency wiped out the banks that held its bonds. In Spain and Italy, each side's weakness raised the other's funding cost, and the loop tightened through 2011. Inside a currency union, neither the government nor the banks could print the currency that would have broken it.</p>
+<p>The loop was broken by the central bank. The European Central Bank's three-year lending operations of December 2011 and February 2012 funded the banks, and its president's commitment of July 2012 to do "whatever it takes", backed by a bond-purchase programme, removed the tail on the sovereigns <em>(the episode as recorded in the ECB's own publications; cited 6 November 2026)</em>. The 2011 U.S. near-miss of Chapter 2 sat inside this loop, which is why it resolved when Europe's tail was removed.</p>
+<p>The four cases share the structure of Chapter 9 and differ in its parts, which is the point of laying them side by side.</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>The loss</th>
+<th>The funding that fled</th>
+<th>How fast</th>
+<th>What ended it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Continental Illinois, 1984</td>
+<td>Credit: energy loans</td>
+<td>Wholesale and foreign deposits</td>
+<td>Days</td>
+<td>A guarantee of all creditors</td>
+</tr>
+<tr>
+<td>2008</td>
+<td>Credit: mortgage securities</td>
+<td>Repo, commercial paper, money funds</td>
+<td>Over a year, in stages</td>
+<td>Escalating facilities; capital; stress tests</td>
+</tr>
+<tr>
+<td>2023 regional run</td>
+<td>Duration: long securities</td>
+<td>Uninsured, concentrated deposits</td>
+<td>Hours</td>
+<td>A guarantee of all deposits; lending at par within four days</td>
+</tr>
+<tr>
+<td>Sovereign–bank loop, 2010–12</td>
+<td>Sovereign credit, both ways</td>
+<td>Interbank and wholesale</td>
+<td>Months</td>
+<td>Central-bank funding; a commitment to the sovereigns</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 11 — The tells the bank-stress panel prints</h2>
+<p>The stack's bank-stress panel (item 59) was built to see the structure of Chapter 9 from public data. It prints each series with its percentiles over its own history, two flags, and a classifier, and it opens the 12:30 slot only on the session a flag turns on. Its members map onto the two halves of the structure.</p>
+<p><strong>The loss side</strong> has three members. The FDIC's quarterly unrealised losses on banks' securities are the duration-loss tell, the one that was visible quarters before 2023. The Federal Reserve's senior loan officer survey reads lending standards, which tighten as lenders see credit losses coming; Credit describes it as the cycle's lead. The financial stress indices — the St. Louis Fed's and the Office of Financial Research's — are composites that read both halves at once.</p>
+<p><strong>The funding side</strong> has six members, and they are the faster tells:</p>
+<ul>
+<li><strong>SOFR less the interest on reserves</strong>, with SOFR's 99th percentile. It is the price of overnight funding against the floor the Fed pays, and it rises when someone needs cash badly.</li>
+<li><strong>Financial commercial paper less the bill.</strong> It is the price of unsecured funding to financial firms, the market that froze in 2008.</li>
+<li><strong>The discount window and other credit.</strong> It records borrowing from the Fed, which banks avoid unless they must.</li>
+<li><strong>The Federal Home Loan Banks' advances.</strong> This is the lender of next-to-last resort, whose surge preceded both 2023 failures.</li>
+<li><strong>Deposits at small banks against large.</strong> The series records where the money is going.</li>
+<li><strong>Retail money-market fund assets.</strong> They record where it is going when it leaves banks altogether.</li>
+</ul>
+<p><strong>The equity side</strong> has one member: the regional-bank index against the broad financial index. It leads the funding data in a crisis, because the market sells the next bank before the run arrives.</p>
+<p>The panel's two flags are the structure's two halves made into rules. <strong>Funding stress</strong> is any two of four funding members above their 95th percentile at once. <strong>Deposit flight</strong> is small-bank deposits falling while money-market funds rise, over four weeks. The <strong>correction-or-crisis classifier</strong> prints only when the regional-bank index has fallen ten percent or more over twenty sessions, and asks which side of the structure the decline is on. Its credit-default-swap and bail-in-bond arm is not tracked.</p>
+<p>What the panel cannot see is worth naming. It cannot see a credit loss in a loan book until it is recognised, which is why 2008's loss was invisible to it until the funding moved. It cannot see the shadow banks' funding directly, beyond commercial paper and repo rates. And it cannot see a sovereign–bank loop outside the United States; the EM screen of Part V and the European spreads in the Monthly carry that. The panel catches the 2023 kind early and the 2008 kind late. That is the right way round for a panel built from public data, and the operator should not expect more of it.</p>
+<table>
+<thead>
+<tr>
+<th>Half of the structure</th>
+<th>The panel's members</th>
+<th>Tell it gives</th>
+<th>Speed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Duration loss</td>
+<td>FDIC unrealised losses</td>
+<td>Quarters ahead</td>
+<td>Slow</td>
+</tr>
+<tr>
+<td>Credit loss</td>
+<td>Lending standards; stress indices</td>
+<td>When lenders see it</td>
+<td>Slow to medium</td>
+</tr>
+<tr>
+<td>Funding mismatch</td>
+<td>SOFR–IORB; financial CP; discount window; FHLB advances; deposits by size; money funds</td>
+<td>Days to weeks</td>
+<td>Fast</td>
+</tr>
+<tr>
+<td>The market's verdict</td>
+<td>Regional banks against financials</td>
+<td>Before the run</td>
+<td>Fastest</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s5-part-iv-liquidity-crises">
+      <summary class="section-head">
+        <span class="section-title">Part IV — Liquidity Crises</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 12 — The plumbing's failure modes</h2>
+<p>A liquidity crisis is not a solvency crisis. Nobody need have lost money on a bad loan. What fails is the system's ability to turn safe assets into cash at short notice, at a price near their value. The assets are often the safest in the world: Treasury securities, government bonds, overnight repo. When that ability fails, holders who need cash must sell what they can, at any price, and the price of the safest asset in the system moves like a speculative one. The Rate and Liquidity Machine describes the plumbing in full. This chapter describes the three ways it has broken in recent memory, because each broke differently and each needed a different repair.</p>
+<p><strong>The 2019 repo spike: reserve scarcity.</strong> In mid-September 2019, a corporate tax date and the settlement of a large Treasury auction drained cash from the banking system on the same day. The Fed had been shrinking its balance sheet, and reserves had fallen toward the level at which the largest banks, bound by their own liquidity requirements, would no longer lend them out. On 17 September the secured overnight rate jumped from just over two percent to above five, and some overnight repo traded near ten percent intraday <em>(the Federal Reserve Bank of New York's rate data and its subsequent review; cited 6 November 2026)</em>. The failure mode was a floor nobody had measured. The banks held reserves, but the regulations and their internal limits had raised the level below which they would not part with them. The Fed restored liquidity the same day with overnight repo operations, and within weeks began buying bills to rebuild reserves. It was the fastest policy response in this Part, because the cause was mechanical and the remedy was the Fed's ordinary tool. The equity market barely noticed.</p>
+<p><strong>March 2020: the dash for cash.</strong> As the pandemic closed economies, every holder of liquid assets wanted cash at once. Foreign official holders sold Treasuries to defend currencies or fund spending, money-market funds faced redemptions, and leveraged funds unwound the Treasury basis trade, long cash bonds against short futures, as margins rose. Dealers, constrained by their balance sheets, could not absorb the selling. The Treasury market, the deepest in the world, became dysfunctional: off-the-run securities cheapened sharply, bid-ask spreads widened, and the safe asset fell in price on the days risk assets fell. Commercial paper froze and prime money funds faced a run.</p>
+<p>The Fed's response escalated over two weeks:
+- a rate cut on 3 March;
+- rates to zero and large purchases on 15 March;
+- commercial-paper, primary-dealer and money-fund facilities over the next three days;
+- unlimited purchases and corporate credit facilities on 23 March.</p>
+<p>The S&amp;P 500 made its low that day <em>(the Federal Reserve's announcements and the S&amp;P 500's close, March 2020; cited 6 November 2026)</em>. The failure mode was dealer capacity: the market's intermediaries could not hold the inventory the sellers needed to sell. The remedy was the central bank as dealer of last resort.</p>
+<p><strong>The 2022 gilt episode: leverage in a hedge.</strong> On 23 September 2022 the United Kingdom announced large unfunded tax cuts, and gilt yields rose sharply. U.K. pension schemes had used liability-driven investment funds that hedged their liabilities with leveraged long positions in long-dated gilts. As yields rose, the funds faced collateral calls they could only meet by selling gilts, which raised yields further and produced more calls. The thirty-year gilt yield rose by more than a percentage point in a few sessions. On 28 September the Bank of England announced temporary purchases of long-dated gilts, a financial-stability operation it ran while it was raising rates to fight inflation. It ended the purchases on schedule in mid-October, and the fiscal measures were reversed <em>(the Bank of England's statements and its subsequent review of the episode; cited 6 November 2026)</em>. The failure mode was leverage hidden inside an instrument sold as a hedge, and a forced seller in the market that was supposed to be the hedge. The remedy was the central bank buying exactly what the forced sellers had to sell, for exactly as long as they had to sell it, while its monetary stance pointed the other way.</p>
+<p>The three failure modes are different, and the difference matters to an operator. Reserve scarcity is a quantity problem the central bank can fix with its everyday tools. Dealer capacity is a market-structure problem that needs a backstop of a scale only the central bank can supply. Hidden leverage is a positioning problem, and finding it before it breaks is the hardest of the three. A liquidity crisis inside an equity decline is how a correction becomes a crash: 2020's equity bear had a liquidity crisis at its centre, and the 1987 crash was, in the plumbing's terms, a forced-selling spiral of the same family as the gilt episode.</p>
+<table>
+<thead>
+<tr>
+<th>Episode</th>
+<th>Failure mode</th>
+<th>What the safe asset did</th>
+<th>The remedy</th>
+<th>How fast</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>September 2019</td>
+<td>Reserve scarcity</td>
+<td>Repo rates spiked</td>
+<td>Overnight repo, then bill purchases</td>
+<td>Same day</td>
+</tr>
+<tr>
+<td>March 2020</td>
+<td>Dealer capacity; a dash for cash</td>
+<td>Treasuries fell with equities</td>
+<td>Facilities, then unlimited purchases</td>
+<td>About two weeks</td>
+</tr>
+<tr>
+<td>September 2022</td>
+<td>Leverage inside a hedge</td>
+<td>Long gilts spiralled</td>
+<td>Targeted temporary purchases</td>
+<td>Three sessions</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 13 — The policy put: what it did, how fast, and what the stack reads</h2>
+<p>Every liquidity crisis in the record ended with a policy response, and the operator's question in one is not whether the response will come but how fast and with how much. The term "policy put" names the market's belief that it will come. It is a dangerous belief, for two reasons. The put is real but conditional, and its conditions change. And a market that relies on it prices less risk, which creates the fragility that will one day need it.</p>
+<p>The record across the three episodes, and across the broader set in the tail-days study, gives four regularities.</p>
+<p><strong>The put is fastest when the problem is the plumbing and the cure is the central bank's own tool.</strong> In 2019 the response came the same day, and in 2022 within three sessions. Both were operations in markets the central bank runs or backstops.</p>
+<p><strong>The put is slower and larger when the problem is a dash for cash across markets.</strong> In 2020 it took about two weeks of escalation, and the market's low coincided with the final, unlimited step, not the first.</p>
+<p><strong>The put works through the funding and Treasury markets, not the equity market.</strong> The tail-days study found that every completed best day of the decade was a policy day or a known mechanical bid, and that in 2020 and in April 2025 the trigger for the response was stress in the Treasury and funding markets, not the fall in equities <em>(the tail-days study's replay of the decade's ten best and ten worst days, 2016–2026; filed with Batch 23, 6 November 2026)</em>. A policymaker watches the plumbing, and an operator who watches only equities will be surprised by the timing.</p>
+<p><strong>The put is unavailable when inflation binds.</strong> The inflation bears of the study — 1973, 1980 and 2022 — are the episodes where policy could not turn, and they are the long ones. The 2022 gilt operation is the instructive exception. The central bank supplied liquidity to one market while tightening the economy, which shows that a financial-stability put and a monetary put are different instruments with different availability.</p>
+<p>The credit speed figures make the timing concrete. Before 9 March 2020, Baa corporate yields less the 10-year Treasury had widened by about half a percentage point in twenty observations. By 16 March they had widened by about one and a quarter points, and by the day before the 24 March bounce by more than two. Before the tariff shock of early April 2025 the widening was a fraction of that <em>(Baa less the 10-year, daily, from the tail-days study's Part 7; filed with Batch 23, 6 November 2026)</em>. Speed, not level, is what precedes a policy response.</p>
+<p><strong>The policy-put panel (item 124d)</strong> is built on those findings. It is one read in plumbing and rates, with two parts. The <strong>triggers</strong> are all rates of change:
+- the 10-year's and the 30-year's three-session changes;
+- swap spreads, and the basis stress of SR-36;
+- the off-the-run spread;
+- the MOVE index;
+- funding spreads (FRA–OIS, SOFR against the interest on reserves) and commercial-paper spreads;
+- the cross-currency basis;
+- high yield above 500 basis points and accelerating;
+- primary-market shutdown days in investment grade;
+- Baa less the 10-year's twenty-observation change, the long-history credit speed trigger.</p>
+<p>The <strong>availability</strong> side reads whether a put can be delivered:
+- the Fed's stance from the scenario matrix;
+- the room inflation leaves;
+- whether the shock is the administration's own policy and therefore reversible;
+- the prediction markets' odds of an emergency meeting.</p>
+<p>The panel prints on any day the volatility-state read is in its top quintile. A "policy-put unavailable" flag conditions the tail base rates when it is set, because a decline with no put available has a different distribution from one with a put on the way.</p>
+<p><strong>The forward TGA path (item 121)</strong> reads a slower plumbing channel that matters at the margin of reserve scarcity. The Treasury's cash account at the Fed drains reserves from the banking system when it rises and returns them when it falls. A rebuild of the account, after a debt-ceiling episode or ahead of heavy issuance, can push reserves toward the floor that broke in 2019. The register's ruling adds a forward row to the net-liquidity attribution. From each quarterly refunding, it reads the account's current balance against the Treasury's assumed end-of-quarter balance; the difference is the reserve add or drain the quarter implies. It prints in plumbing and rates with the refunding date. Its value is that it is forward-looking where the net-liquidity series is backward-looking, so a quarter in which the account is projected to rise sharply is a quarter in which the 2019 failure mode is closer. Which quarter that is now belongs in Appendix B.</p>
+<p>What the operator does differently because of this Part is to read a sharp decline's plumbing before its price. Funding spreads, the Treasury market's own volatility and credit speed say whether a liquidity crisis is inside the decline. The policy-put panel's availability side says whether the rescue can come. A decline with stressed plumbing and an available put has historically been the one to buy late. A decline with stressed plumbing and no put available has been the one to respect.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s6-part-v-emerging-market-crises">
+      <summary class="section-head">
+        <span class="section-title">Part V — Emerging-Market Crises</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 14 — The balance-of-payments template and the dollar-funding channel</h2>
+<p>Emerging-market crises are the most repetitive crises in the record, and the repetition is the reason to learn their template. Mexico in 1994, Thailand, Indonesia and Korea in 1997, Russia in 1998, Argentina in 2001, the "fragile five" in 2013, Turkey and Argentina in 2018: the details differ, and the structure barely does <em>(the episodes as recorded in the IMF's own crisis reviews and the Emerging Markets paper; cited 6 November 2026)</em>.</p>
+<p><strong>The template has five parts.</strong></p>
+<ol>
+<li><strong>A country runs a current-account deficit</strong>, spending more than it earns abroad, and finances the gap with capital from outside.</li>
+<li><strong>The financing is short-dated, foreign-currency or flighty</strong>: short-term dollar loans to banks and companies, dollar-linked government paper, or portfolio money in local bonds and stocks that can leave in a day.</li>
+<li><strong>The exchange rate is defended</strong>, pegged or managed, which encourages the dollar borrowing, since the borrower sees no currency risk, and spends reserves when the money starts to leave.</li>
+<li><strong>A trigger arrives</strong> from outside or inside: a rise in U.S. rates, a fall in a commodity price, a political shock, a neighbour's crisis.</li>
+<li><strong>The financing stops</strong>, the sudden stop. The currency falls, and the dollar debts of the banks and companies grow in local terms by the size of the fall, so a currency crisis becomes a banking crisis and then a recession.</li>
+</ol>
+<p>The resolution is usually a programme from the IMF, a devaluation that resets the current account and years of recovery.</p>
+<p>The template is the banking structure of Chapter 9 at the scale of a country. The loss is the currency's fall applied to dollar debts, and the funding mismatch is a country financed in a currency it cannot print. That is why emerging-market crises spread to their banks and why their banking crises spread to their currencies: they are two views of one balance sheet.</p>
+<p><strong>The dollar-funding channel</strong> is what turns a local template into a global event. The dollar is the world's funding currency. Banks and companies outside the United States borrow in dollars because the market is deepest, and investors everywhere hold dollar assets as the safe asset. When the dollar strengthens or U.S. rates rise, every dollar borrower's burden rises at once, and global lenders pull back from the weakest borrowers first. A strong dollar is therefore a tightening of financial conditions for the world, and the countries that fit the template feel it first and hardest. The channel runs in reverse, too: a weak dollar eases conditions everywhere and invites the borrowing that sets up the next crisis.</p>
+<p>The policy put for this channel is the Federal Reserve's network of dollar swap lines with other central banks, and its repo facility for foreign official holders. They were extended in 2008 and again in March 2020, and in both episodes their extension was among the measures that ended the acute phase <em>(the Federal Reserve's announcements of 2008 and March 2020; cited 6 November 2026)</em>. The countries without a swap line are the ones the IMF lends to.</p>
+<p><strong>Contagion</strong> is the template's most dangerous property for a U.S. operator. A crisis in one country makes lenders look for the next country with the same template, as depositors look for the next bank. The study's 1998 near-miss is a direct line from Thailand in 1997, through Russia, to the near-failure of a U.S. hedge fund and a fall of nearly a fifth in the S&amp;P 500. The register's contagion rule (item 10, below) is written on that sequence. A single-country shock earns a line in the Weekly or the Monthly only if it passes to the basket of emerging markets or to emerging-market spreads within five sessions.</p>
+<table>
+<thead>
+<tr>
+<th>Part of the template</th>
+<th>What it is</th>
+<th>The tell</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Current-account deficit</td>
+<td>Spending more than earning abroad</td>
+<td>The external balance, months ahead</td>
+</tr>
+<tr>
+<td>Short, foreign-currency financing</td>
+<td>Dollar debt; hot money</td>
+<td>Reserves against short-term debt</td>
+</tr>
+<tr>
+<td>A defended exchange rate</td>
+<td>A peg or managed rate</td>
+<td>Reserves falling while the rate holds</td>
+</tr>
+<tr>
+<td>The trigger</td>
+<td>U.S. rates; commodities; politics; a neighbour</td>
+<td>The dollar; commodity prices; the calendar</td>
+</tr>
+<tr>
+<td>The sudden stop</td>
+<td>Financing ends; the currency falls</td>
+<td>The currency's move; EM spreads; contagion</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 15 — The EM shock screen and its AI-chain sub-panel</h2>
+<p><strong>The EM shock screen (item 10)</strong> is the stack's instrument for catching the template's last stage across many countries at once, because no operator can watch a dozen currencies by hand. It has four parts.</p>
+<ul>
+<li><strong>A move screen.</strong> It runs daily over a fixed basket of about ten emerging-market currencies and the matching country funds, flagging any member whose one-day or five-day move passes two and a half standard deviations of its own five-year history, in either direction.</li>
+<li><strong>A dispersion read.</strong> It separates an idiosyncratic shock from a systemic one. One member alone is an event for the narrative register; the basket moving together is the dollar or a global risk-off, and it is already the Monthly's dollar factor's business.</li>
+<li><strong>An EM spread family.</strong> It covers emerging-market corporate and high-yield spreads, with an emerging-market leg on the high-yield acceleration overlay.</li>
+<li><strong>The contagion rule</strong> described above.</li>
+</ul>
+<p>The screen's design follows the template. It watches the currency, where the sudden stop shows first; the spreads, where the banking crisis shows; and the passage from one country to many, which is what makes a local crisis a global turn.</p>
+<p><strong>The AI-chain sub-panel (item 129)</strong> is an amendment to the screen's specification, filed before the screen was built, and it adds a mechanism the template does not cover. Some markets do not trade on their own balance of payments at all. They trade as parts of one global position. The register's ruling names four: the U.S. semiconductor index, Korea, Taiwan and Japan. They share one driver, the AI capital-spending cycle, and their indices are dominated by a handful of companies in its supply chain. A market that is one position cannot be read by a screen that looks for idiosyncratic shocks. When the position moves, all four move together, and the move is the position's, not any country's.</p>
+<p>The sub-panel reads four things:
+- the four indices' one-day and twenty-day returns and their drawdowns from the year's high;
+- the top two constituents' weights in Korea and Taiwan, from the country funds' published holdings;
+- a ledger of circuit breakers and sidecars from the daily news scan;
+- Korea's levered exchange-traded product assets, where a public figure exists, else a gap.</p>
+<p>It prints in the Weekly's equities section and fires the existing EM-shock flag. When the four move together by more than a set threshold, a line in the daily close's "what doesn't fit" reads the transmission, U.S. semiconductors to Asia to U.S. futures. The present state of the four markets is the live case of Part VI, and it belongs in Appendix B.</p>
+<p>What the operator does differently because of this Part is to ask, of any emerging-market move, which of two things it is. One is a country running the template, which matters if it spreads. The other is a market trading as part of a global position, which matters because the position is also in the operator's own book.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s7-part-vi-international-tops">
+      <summary class="section-head">
+        <span class="section-title">Part VI — International Tops</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 16 — When the leading market tops first</h2>
+<p>The episode study is a study of U.S. turning points, and most of the library reads the world through the S&amp;P 500. Turns do not always start there. In several episodes the market that led the cycle's displacement, the purest and often the most levered exposure to it, topped before the U.S. index did. In those episodes, its top was the earliest public sign that the cycle had turned.</p>
+<p>The mechanism is the international version of narrowing breadth. A displacement's purest expressions attract the most speculative capital and the most leverage, so they rise furthest in the boom and are the first to fail when the marginal buyer is exhausted. Within the U.S. market this shows as the speculative tier topping before the index: the study recorded breadth divergence leading valuation tops by months to years, and the speculative tier of 2021 topping eleven months before the index. Across markets it shows as the leading country, sector or region topping first.</p>
+<p>Three patterns in the record are worth separating, because they lead to different reads.</p>
+<p><strong>The leader tops first, and the U.S. follows.</strong> Emerging markets and China's market topped in January 2018, eight months before the U.S. top of the 2018 near-miss. Emerging markets and China's internet stocks topped in February 2021, nearly a year before the U.S. top of January 2022, as the speculative tier did at home <em>(MSCI Emerging Markets and the S&amp;P 500, 2018 and 2021–22; cited 6 November 2026)</em>. In both, the leader's top was a tightening of global liquidity showing first where the money was most marginal. It was a warning, early and imprecise, like the domestic breadth divergence it mirrors.</p>
+<p><strong>The leader and the U.S. top together.</strong> In 2007, China's market peaked within days of the S&amp;P 500. In 2000, technology markets topped together worldwide. When the displacement is global and the money is global, there is no lead to read, and the coincidence itself is the sign that the position is one position.</p>
+<p><strong>The leader tops, and the U.S. does not follow.</strong> Japan's market peaked at the end of 1989 and did not regain that level for more than three decades. The U.S. bear of 1990 that followed had other causes, and the U.S. bull of the 1990s ran for a decade. Japan's top was the end of its own long cycle, and Debt Cycles, Regimes and Environments, Part III, reads it so. As a turning point for a U.S. operator, it is the counter-example that keeps this chapter honest. A foreign top is a warning about the U.S. only when the two share a driver. When they do not, it is a foreign event.</p>
+<p>The rule that follows is narrow. A foreign market's top is information about the U.S. when the foreign market is a purer or more levered expression of the same driver that is carrying the U.S. index. When it is, the foreign top is the domestic speculative tier's top seen from abroad, and it can lead by months. When it is not, it is a foreign event, to be read through the EM template and the dollar channel of Part V.</p>
+<h2>Chapter 17 — The AI chain: four markets as one position</h2>
+<p>The live case of the rule, and the reason this chapter exists, is the AI supply chain. The register's ruling on item 129 treats the U.S. semiconductor index, Korea, Taiwan and Japan as four markets trading as one position. They share one driver, the capital spending of the largest technology companies on AI. Their indices are dominated by the companies that supply it: memory makers in Korea, the leading foundry in Taiwan, equipment and materials makers in Japan, chip designers in the United States. In such a structure, four properties of the position matter for how a turn would show.</p>
+<p><strong>Concentration</strong> decides which market is the purest expression. A national index in which two or three supply-chain companies carry most of the weight is the AI cycle with a country's name on it. It will lead the cycle's top, in the pattern of the previous chapter, because nothing else in the index can offset it.</p>
+<p><strong>Leverage</strong> decides which market breaks first. Where retail margin and levered single-stock products have grown, a fall forces sales that a less levered market would not see. Circuit breakers and trading halts are the visible sign that leverage is unwinding faster than the market can clear.</p>
+<p><strong>Transmission</strong> decides how the turn reaches the U.S. index. A fall in U.S. semiconductors in the U.S. afternoon transmits to Asia in the Asian session and returns to U.S. futures overnight. The cycle repeats each day until one link breaks it. The sub-panel's transmission line in the daily close reads this loop.</p>
+<p><strong>The U.S. index's own exposure</strong> decides how much a turn in the chain is a turn in the S&amp;P 500. The library's Equities paper describes the U.S. index as carrying the AI trade as one position through its largest names, and the concentration of Chapter 8 measures how large that position is. A top in the chain is a U.S. top in proportion to that concentration.</p>
+<p>The body of this paper gives the structure; it does not give the state. Where the four markets stand, how concentrated and how levered each is, and whether the chain has topped are dated facts. They are in Appendix B, as of the paper's date, with no forecast. The structure says what to watch: the purest market's top, the most levered market's halts, the transmission loop, and the U.S. index's concentration in the same names.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>What it decides</th>
+<th>The stack's read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Concentration</td>
+<td>Which market is the purest expression</td>
+<td>Top-two weights in Korea and Taiwan (item 129)</td>
+</tr>
+<tr>
+<td>Leverage</td>
+<td>Which market breaks first</td>
+<td>Korea's levered products; the halt ledger</td>
+</tr>
+<tr>
+<td>Transmission</td>
+<td>How the turn reaches the U.S.</td>
+<td>The close's transmission line</td>
+</tr>
+<tr>
+<td>U.S. exposure</td>
+<td>How much a chain top is a U.S. top</td>
+<td>Concentration (item 31's band); the AI ring drawdown table</td>
+</tr>
+</tbody>
+</table>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s8-part-vii-reading-a-turn-from-inside">
+      <summary class="section-head">
+        <span class="section-title">Part VII — Reading a Turn From Inside</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 18 — The Capitulation Count beside the Top &amp; Bottom composite</h2>
+<p>Every chapter so far has had the advantage of hindsight: the episodes are complete, the stages named, the crises resolved. An operator has none of that. On the day, a decline is a decline, the stage is unknown, and the cause is a candidate list. This Part is about the instruments the system has for that position, and the limits of each.</p>
+<p>The system has three bottom reads, and the register's ruling on item 97 layers them deliberately by clock, so that none feeds another except through the intake queue.</p>
+<p><strong>The Capitulation Count reads days.</strong> It asks whether the selling is exhausted. It is an integer from zero to five, one point for each of five families:
+- volatility above 30, or the VIX above its three-month counterpart (an inverted term structure);
+- the equity-only put/call ratio at 0.8 or higher on a twenty-day basis;
+- net dealer gamma flipped from negative to positive with spot above the flip;
+- short interest in the top fifth of its history while price holds above the decline's low, with the equal-weighted index stronger than the cap-weighted one since the low;
+- equity fund flows turned to sustained inflow, with the share of bearish individual investors having peaked above half and falling.</p>
+<p>Zero or one is "none", two or three "oversold", four or five "surrender". It prints in the close on exception and in the Weekly whenever the S&amp;P 500 is more than five percent below its 52-week high. It has no decimals, no blending, and no direct entry into the T&amp;B composite.</p>
+<p><strong>The false-bottom gate reads weeks.</strong> It asks whether the low is holding. Thirty or so sessions after a trough, it tests the one confirmation element the audit admitted: the equal-weighted index against the cap-weighted after the trough. It is the gate Book A's re-entry passes through in a declared bear (Chapter 8).</p>
+<p><strong>The T&amp;B composite and its overlays read months.</strong> They ask whether the regime is turning. They were built to stay quiet through corrections, and they catch bottoms at the washout (Chapter 3).</p>
+<p>The layering is the design's main idea, and it is the answer to the most common misreading of a capitulation. A count of five says the sellers who had to sell have sold. It does not say the cause of the decline has been repaired, and in a bear whose cause is still at work, the count can reach surrender several times. The SR-8 rallies of Chapter 8 began, typically, from a capitulation. The count marks the start of a rally; the gate and the composite say whether the rally is a recovery.</p>
+<p>The count also has a gap the register named when it adopted it. It omits credit and policy, the two marks the episode study found in six of eight bottoms. It therefore misses bottoms that turn on a macro variable rather than on exhaustion. 2022 turned on the second derivative of inflation with almost none of the washout present. And it runs early in a credit bear: in 2008 its families fired months before the low. For the mechanical declines — 1998, 2018, 2024 and their kind — it is the better instrument, because those declines are about positioning and end when positioning clears. The rule that follows is the operator's: in a decline the composite reads as a credit or policy bear, the count is a Book C instrument only; in a decline it reads as mechanical, the count is the main bottom read.</p>
+<table>
+<thead>
+<tr>
+<th>Read</th>
+<th>Clock</th>
+<th>Its question</th>
+<th>What it catches</th>
+<th>What it misses</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Capitulation Count (item 97)</td>
+<td>Days</td>
+<td>Is selling exhausted?</td>
+<td>Mechanical bottoms; the start of every rally</td>
+<td>2022-type macro bottoms; early in credit bears</td>
+</tr>
+<tr>
+<td>False-bottom gate (SR-8)</td>
+<td>Weeks</td>
+<td>Is the low holding?</td>
+<td>Rallies that fail, by relative breadth</td>
+<td>Only one admitted tell</td>
+</tr>
+<tr>
+<td>T&amp;B composite and overlays</td>
+<td>Months</td>
+<td>Is the regime turning?</td>
+<td>Washout bottoms; three kinds of top by overlay</td>
+<td>Most tops by the composite; 2007 by the composite</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 19 — The opener problem</h2>
+<p>The tail-days study (item 124) examined the decade's ten best and ten worst days, replayed on the box's own data, and found a problem that sits at the start of every turn. Tail days inside an established high-volatility regime were visible beforehand on index volatility. Volatility was already high, the regime was already stressed, and a large move was the expected kind of day. The day that <strong>opens</strong> an episode is different. It arrives from a calm surface.</p>
+<p>The study counted six such "calm-surface openers" since 1990: large down days that arrived with index volatility low, realised volatility low and the volatility curve in contango. The earlier five include 10 October 2018 and 24 February 2020; the five's catalysts are listed as remembered, pending verification. Twenty sessions before the decade's worst days, the median volatility index was about 15, with no large-move days in the window. The sixth opener, 5 November 2026, kept that reading to the day before. It is the first of the six at minus four percent or worse <em>(the tail-days study's replay, 1990–2026, Parts 1 to 7, draft 3 of 5 November 2026; filed with Batch 23, 6 November 2026)</em>.</p>
+<p>The opener problem is that the instruments a turn is read with are calibrated on stressed markets, and the opener arrives before the stress. The volatility-state read, the dealer read and the Capitulation Count all read the day after the opener well and the opener itself badly. The study proposed one candidate, "calm surface, stressed internals": index volatility low while internal measures are extreme, such as rotation speed, the cap-weighted index against the equal-weighted, sector dispersion and price impact. It found that the description fitted 5 November 2026 and none of the five earlier openers. The register's ruling made it a pre-registered out-of-sample test, not a build. The internal-stress read is built only if the test passes, and its pass criterion was fixed before the test was run. A tell that fits one case out of six, chosen after the case, is the shape of a fitted narrative, and the ruling treats it so.</p>
+<p>Three further findings from the study shape how the days after an opener are read, and each corrects a common belief.</p>
+<p><strong>"The best days follow the worst days" is volatility clustering, not reversal.</strong> Raw, a top-decile day follows a bottom-decile day within five sessions far more often than on an ordinary day. Standardised by a volatility forecast, the two-sided clustering falls below a shuffled baseline, about 60 percent against 65, and only a one-way residual of about eight points survives <em>(the tail-days study, Parts 2 and 4; filed 6 November 2026)</em>. The best days cluster near the worst because both come from the same high-volatility state. An operator who buys after a bad day expecting the good one is buying volatility, not a reversal.</p>
+<p><strong>Forward returns after a bottom-decile day are ordinary; only their spread is wider.</strong> Standardised, the average return after the worst days is the baseline, and the dispersion of outcomes is larger <em>(the same study, withdrawing an earlier draft's claim of better-than-baseline returns; filed 6 November 2026)</em>. Sizing after a tail day therefore rests on dispersion, never on drift. The study's ruling makes this the sizing input through its dispersion columns only.</p>
+<p><strong>Volatility-managed exposure is insurance, and it has a price.</strong> Cutting exposure as volatility rises cost between one and a half and two points of return a year against a matched constant mix, and bought about twenty points less maximum drawdown. Its Sharpe ratio, in excess of bills, was slightly lower, not higher <em>(the same study's Part 6, against the published literature on volatility-managed portfolios; filed 6 November 2026)</em>. The insurance is worth buying for a book whose binding constraint is its drawdown, which is most books. It should be bought knowing it is insurance.</p>
+<p>What the operator does differently because of this chapter is to expect the first day of a turn to be a surprise, and to have the response already written. Each book's opener response is a rule, not a judgment (Chapter 21). The day after is when the instruments start to work.</p>
+<h2>Chapter 20 — Base rates, not analogs</h2>
+<p>At every turn a chart circulates that overlays the present on a famous past episode — 1929, 1987, 2000, 2008 — and implies the rest of the path. The analog is the most persuasive instrument in market commentary and among the least reliable. It answers a question nobody asked. It answers "what happened in the one or two episodes that look most like this?" when the question is "what happens, across every episode that met this condition?"</p>
+<p>The analog's failure is selection. The episodes it uses were chosen after the fact because they ended badly, and they were chosen from the ones the reader remembers. The resemblance is judged by eye on the stretch that has already happened. The register's item 130 records a clean specimen. A post argued that the Nasdaq had fallen eleven percent in the first month of a decline, "as in 2000 and 2008", and that in both of those the eventual bottom was more than fifty percent lower. That is two episodes. The first-month declines of 2018, 2020, 2022 and 2025, which met the same condition and did not end fifty percent lower, were left out <em>(the register's item 130, filed with Batch 25, 6 November 2026; the replay confirmed the Nasdaq Composite's −11.9% from its 6 October closing high at the 5 November close)</em>.</p>
+<p>The base rate's answer is to define the condition first and take every episode that meets it. The register's ruling on item 130 adds a row to Base Rates: the distribution of the eventual drawdown, and of the time to the low, conditional on a decline of ten percent or more in the first twenty-one sessions off an all-time high. It covers the Nasdaq Composite since 1971 and the S&amp;P 500 since 1950, computed in the study tool and refreshed by the Annual Structural Review. It is printed beside any "2000 and 2008" narrative the register carries. The row will show, as such rows usually do, that the famous analogs sit in the tail of the distribution, not at its centre. It will also show how wide the distribution is, which is the information a sizing decision needs.</p>
+<p>The analog keeps one honest use. In the AI ring drawdown table the register also ordered, a 2000–02 column of reference drawdowns sits beside the present, labelled "reference". It is there to scale the present, never to forecast it. The rule is the column's label: an analog is a reference, never a path.</p>
+<p>What the operator does differently because of this chapter is to answer every analog with its base rate before reading the analog's chart, and to size on the base rate's spread rather than on the analog's ending.</p>
+<hr />
+      </div>
+    </details>
+
+    <details class="section" id="s9-part-viii-applications-wiring-and-environments">
+      <summary class="section-head">
+        <span class="section-title">Part VIII — Applications, Wiring and Environments</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="section-body">
+<h2>Chapter 21 — Tactical Applications by horizon</h2>
+<p>A turning point is traded differently at each horizon, because each horizon sees a different part of it. The house standard asks each horizon the same questions:
+- what is tradeable at a turn;
+- what the edge is, and who is on the other side and why they transact;
+- why competition has not removed the edge, and what would end it;
+- the expression, the book, and the report section that carries the read.</p>
+<p>This chapter answers them for the five horizons a turn is traded on in this book, from the session to the allocation, plus Book D's opportunistic horizon, which has none. The paragraphs carry the argument, and the cheat sheet at the end reduces them to a line each. None of this is investment advice. The Doctrine owns the rules each horizon trades under, and Portfolio Construction owns its sizes.</p>
+<p><strong>The session (the day-trading tactics layer for Books B and C).</strong> What is tradeable is the opener's aftermath and the capitulation session: the violent intraday reversals that mark a turn's edges. The edge is mechanical. Dealers short gamma below the flip amplify the move, and their hedging reverses when spot recovers through the flip. Levered products rebalance into the close in the direction of the day's move. The counterparties are hedgers who must hedge regardless of price and forced sellers meeting margin calls. Competition has not removed the edge because the flows are obligations, not choices. A change in market structure would end it, for example if dealers' books stopped being short gamma at the lows. The expression is defined-risk, with a resting stop. The read is the 07:00 anchor's dealer levels and the close's Mechanics. The opener rule is that nothing is opened on an opener day that was not on the morning's list, and the first trade waits for the second session's structure.</p>
+<p><strong>One to five days (Book C).</strong> What is tradeable is the capitulation and the first failed rally. The edge is that forced selling overshoots and its exhaustion is measurable: the Capitulation Count and the gamma flip. The counterparties are the forced sellers and the late shorts. The edge persists because no forced seller can wait. A bear whose cause is still at work ends it, because then the capitulation is followed by another. The expression is defined-risk, from the 07:00 list, with the volatile-day protocol's halved size. The read is the close's Capitulation Count line, the vol-event block and the dealer block. Book C takes the rally's mechanical trade and gives it a time stop. It does not hold a capitulation into Book A's horizon.</p>
+<p><strong>One to six weeks (Book B).</strong> What is tradeable is the stage. In a bubble's distress, the relative trade of the leaders against the equal-weighted index. In a bear, the counter-trend rally under the five-session time stop. After a confirmed low, the new leadership. The edge is variant perception about the stage: the market prices the narrative of the last stage while the signposts show the next. The counterparties are the trend-followers and the narrative's holders. The edge persists because stages are only recognisable in aggregate, and most participants read one signpost. A rule that every participant reads the same composite would end it. The expression is the relative pair where possible, the outright with written exits otherwise, and a short only under Doctrine Rule 26's extra confirmation. The read is the Weekly's positioning and flows, the concentration twin, froth breadth and the AI ring drawdown table.</p>
+<p><strong>One to six months (Book A).</strong> What is tradeable is the regime: how much to own across the turn. The edge is that the regime's turn is measurable at bottoms and partly measurable at tops by kind, through the composite at washouts and the overlays at tops. Meanwhile most capital is managed to calendar benchmarks that make it sell late and buy late. The counterparties are capital that must be fully invested, or must de-risk on drawdown rules. The edge persists because institutional constraints are structural. Its end would be the record failing: a turn the instruments should have seen and did not, which Appendix A lists as a falsifier. The expression is the exposure band, held between its floor and ceiling. The read is the Monthly's market-state object, the T&amp;B harness's lines, the bank-stress panel and the policy-put panel. Book A's rule at a turn is the gate. Re-entry after a declared bear waits for the composite and confirmation, and exit before a top waits for the overlay of the top's kind, not for valuation.</p>
+<p><strong>No fixed horizon (Book D).</strong> What is tradeable is convexity and forced flow. The edge is that protection is cheapest when it is least wanted, in euphoria with volatility low, and forced flows are predictable in size and direction. The counterparties are sellers of volatility in calm markets and forced sellers in panics. The edge persists because the volatility risk premium is real and most of the time protection loses money, which discourages holding it. A permanently high volatility premium, so that calm protection were never cheap, would end it. The expression is defined-cost options within the tail budget, and the levered-ETF rebalance and margin unwind with defined risk. The read is the Monthly's fragility panel, the vol-event block and the Digital Assets addendum's froth gauge where crypto leads.</p>
+<table>
+<thead>
+<tr>
+<th>Horizon</th>
+<th>What is tradeable at a turn</th>
+<th>Edge and counterparty</th>
+<th>Ends it</th>
+<th>Expression · Book</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Session</td>
+<td>Opener aftermath; capitulation sessions</td>
+<td>Dealer hedging; forced rebalancing</td>
+<td>Dealers no longer short gamma at lows</td>
+<td>Defined risk, resting stop · B/C tactics</td>
+<td>07:00 anchor; close Mechanics</td>
+</tr>
+<tr>
+<td>1–5 days</td>
+<td>Capitulation; the first failed rally</td>
+<td>Forced sellers' overshoot</td>
+<td>A bear whose cause persists</td>
+<td>Defined risk from the list · C</td>
+<td>Capitulation Count; vol event; dealer block</td>
+</tr>
+<tr>
+<td>1–6 weeks</td>
+<td>The stage</td>
+<td>Variant perception against the narrative's holders</td>
+<td>Everyone reading the same composite</td>
+<td>Relative pair; written exits · B</td>
+<td>Weekly positioning; concentration; froth</td>
+</tr>
+<tr>
+<td>1–6 months</td>
+<td>The regime</td>
+<td>Constrained capital sells and buys late</td>
+<td>A turn the instruments should have seen and missed</td>
+<td>The band between floor and ceiling · A</td>
+<td>Market state; T&amp;B lines; bank stress; policy put</td>
+</tr>
+<tr>
+<td>No fixed horizon</td>
+<td>Convexity; forced flow</td>
+<td>Calm sellers of volatility; forced sellers</td>
+<td>A permanently expensive premium</td>
+<td>Defined-cost options; the tail budget · D</td>
+<td>Fragility panel; vol event; froth gauge</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 22 — Wiring</h2>
+<p>This chapter says which report prints which signpost, as each is specified. Several of the signposts named in this paper are filed and not yet built. Their build status is dated and is in Appendix B; this chapter gives only where each prints.</p>
+<p><strong>The 07:00 anchor</strong> prints the overnight state: the volatile-day flag and its four arms, the dealer levels in ES, the vol-event block on a fired event, and the "rally inside bear" signal line (ST-10). At a turn, the anchor is where the opener's first morning is read.</p>
+<p><strong>The 12:30 slot</strong> opens only on a gate: a volatility rise past its threshold, a bank-stress flag turning on, the funding hooks for the yen unwind and the yuan's devaluation tell. It is the turn's alert, never its analysis.</p>
+<p><strong>The 16:45 close</strong> prints most of this paper's fast signposts:
+- the Capitulation Count, on exception;
+- the sector capitulation divergence line;
+- the bank-stress lines in Plumbing and in The read;
+- the dealer block and the vol-event block in Mechanics;
+- the AI chain's transmission line in "what doesn't fit";
+- the flag lines of the developed-market drawdown and gold events.</p>
+<p><strong>The Weekly</strong> prints the slower ones:
+- the Capitulation Count every Sunday while the S&amp;P 500 is more than five percent off its high;
+- the concentration twin and the peak-band flag in Mechanics;
+- the AI chain sub-panel and the AI ring drawdown table in the equities section;
+- the bank-stress line;
+- trend breadth in positioning and flows;
+- the tail register's lines in Ahead.</p>
+<p><strong>The Monthly</strong> prints the panels and the base rates. In Plumbing and rates: the full bank-stress panel, the policy-put panel (on days the volatility state is in its top quintile) and the forward TGA path. In the slow layers: the fragility panel, froth breadth beside the negative-beta share, and the T&amp;B harness's three lines (the overlays' states, the episode record and the false-positive rate per overlay).</p>
+<p><strong>The Alternative Assets Quarterly</strong> prints the EM chapter, through the Emerging Markets paper's frame, and the overlays' "HY spread acceleration" row.</p>
+<p><strong>Base Rates</strong> carries the tables: item 31's peak-concentration table, item 124a's two-sided tail table with the opener set as its own rows, and item 130's first-month-drawdown row.</p>
+<p><strong>The Top &amp; Bottom report itself</strong>, the composite and its triggers, is specified and not built in this repository. Its methodology is the Top &amp; Bottom Report Manual's, and only the harness's overlays print.</p>
+<p><strong>What the annual review re-verifies.</strong> The Annual Structural Review re-verifies, for this paper, four things:
+- the eight episodes' figures against the store as its histories lengthen;
+- the near-miss rule, against any new decline of fifteen percent or more;
+- the base-rate rows (items 31, 124a and 130), which it refreshes;
+- whether any turn since the last review was one the instruments should have seen and did not.</p>
+<p>The last is the paper's most important falsifier (Appendix A).</p>
+<table>
+<thead>
+<tr>
+<th>Signpost</th>
+<th>07:00</th>
+<th>12:30</th>
+<th>16:45</th>
+<th>Weekly</th>
+<th>Monthly</th>
+<th>Elsewhere</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Valuation (CAPE, forward P/E, ERP)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Slow layers</td>
+<td>Base Rates</td>
+</tr>
+<tr>
+<td>Concentration; item 31's band</td>
+<td></td>
+<td></td>
+<td></td>
+<td>Mechanics</td>
+<td>Mechanics</td>
+<td>Base Rates</td>
+</tr>
+<tr>
+<td>Froth breadth (item 113)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Beside SR-19</td>
+<td></td>
+</tr>
+<tr>
+<td>Leverage (fragility; margin debt)</td>
+<td>Levels read line</td>
+<td></td>
+<td></td>
+<td></td>
+<td>Slow layers</td>
+<td></td>
+</tr>
+<tr>
+<td>Capitulation Count (item 97)</td>
+<td></td>
+<td></td>
+<td>On exception</td>
+<td>Positioning and flows</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Bank stress (item 59)</td>
+<td></td>
+<td>On a flag</td>
+<td>Plumbing; The read</td>
+<td>One line</td>
+<td>Full panel</td>
+<td></td>
+</tr>
+<tr>
+<td>Policy-put panel (item 124d)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Plumbing and rates</td>
+<td></td>
+</tr>
+<tr>
+<td>Forward TGA path (item 121)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Plumbing and rates</td>
+<td></td>
+</tr>
+<tr>
+<td>EM shock screen (item 10)</td>
+<td></td>
+<td></td>
+<td>Tape; what doesn't fit</td>
+<td>Line on contagion</td>
+<td>Line on contagion</td>
+<td>Quarterly EM chapter</td>
+</tr>
+<tr>
+<td>AI chain (item 129)</td>
+<td></td>
+<td></td>
+<td>What doesn't fit</td>
+<td>Equities section</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>T&amp;B overlays (harness)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Three lines</td>
+<td>Quarterly row</td>
+</tr>
+<tr>
+<td>Rally inside bear (ST-10)</td>
+<td>Signal line</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter 23 — Environments</h2>
+<p>The library's eighteen environments are Debt Cycles, Regimes and Environments' to define, and that paper's Part IV maps them against asset classes, signals and participants. This chapter does not re-derive them. It names the environments in which turns of each kind of this paper occur, so that the regime stamp on a decision doubles as a warning of which turn is possible. A fuller mapping onto the eighteen waits until that paper is on main.</p>
+<p><strong>Late expansion with euphoria.</strong> Growth is strong, policy accommodative or only gently tightening, valuation high and rising, concentration rising, issuance and leverage expanding. This is the environment of valuation tops and of the bubble sequence's euphoria. The turn, when it comes, is preceded by narrowing breadth and the leaders' stall, and its trigger is often a rise in rates. The instruments are the concentration overlay, froth breadth and item 31's band. The error the environment invites is shorting it early.</p>
+<p><strong>Tightening into a slowdown.</strong> The central bank is raising rates against inflation while growth is slowing; the curve is flat or inverted. This is the environment of policy and inflation tops: 1973, 1980 and 2022. The turn is driven by the policy bind, the bear is long because policy cannot turn, and the bottom comes on the inflation rate's inflection. The instruments are the Monthly's macro lens and the curve. The error this environment invites is buying the first rally on hope of a pivot that the inflation data forbid.</p>
+<p><strong>Credit contraction.</strong> Lending standards are tightening, spreads widening at an accelerating rate, defaults rising and bank funding under stress. This is the environment of credit tops and banking crises: 2007, and 1990 in part. The turn is invisible to equity valuation and visible to spread acceleration and the bank-stress panel. The error it invites is reading moderate equity multiples as safety.</p>
+<p><strong>Liquidity stress.</strong> Funding spreads are widening, the Treasury market's own volatility rising, dealers constrained, and a forced seller somewhere. This is the environment of the plumbing's failures and of mechanical declines. The turn is fast and is ended by the policy put if one is available. The instruments are the policy-put panel, the forward TGA path and the dealer read. The error it invites is selling the low, when the put has been announced and the forced selling is ending.</p>
+<p><strong>Exogenous shock onto a calm market.</strong> Volatility is low and positioning long when an event arrives that no indicator anticipated. This is the environment of the opener and of exogenous tops. The turn is a surprise by definition. The damage depends on valuation at entry, and the duration on the policy response. The instruments arrive the day after. The error it invites is believing the calm, which is why the protection of Book D is bought in it.</p>
+<p><strong>The dollar squeeze.</strong> The dollar is strengthening, U.S. rates rising, commodity prices falling, and capital leaving the weakest borrowers. This is the environment of emerging-market crises and of international tops that start abroad. The instruments are the EM shock screen, the dollar factor and the contagion rule. The error it invites is reading a foreign crisis as foreign when the dollar channel is carrying it home.</p>
+<p><strong>A global position.</strong> A small number of markets trade on one driver, concentrated and levered. This is the environment of the AI chain. The turn shows first in the purest and most levered market and reaches the U.S. index through the transmission loop and its own concentration. The instruments are the AI-chain sub-panel and the concentration measures. The error it invites is treating the position's markets as diversification.</p>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Kind of turn it hosts</th>
+<th>The lead instrument</th>
+<th>The error it invites</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Late expansion with euphoria</td>
+<td>Valuation top; bubble</td>
+<td>Concentration; froth; item 31's band</td>
+<td>Shorting it early</td>
+</tr>
+<tr>
+<td>Tightening into a slowdown</td>
+<td>Policy and inflation top</td>
+<td>The macro lens; the curve</td>
+<td>Buying the pivot the data forbid</td>
+</tr>
+<tr>
+<td>Credit contraction</td>
+<td>Credit top; banking crisis</td>
+<td>Spread acceleration; bank stress</td>
+<td>Reading moderate multiples as safety</td>
+</tr>
+<tr>
+<td>Liquidity stress</td>
+<td>Plumbing failure; mechanical decline</td>
+<td>Policy-put panel; TGA path; dealer read</td>
+<td>Selling the low after the put</td>
+</tr>
+<tr>
+<td>Exogenous shock onto calm</td>
+<td>The opener; exogenous top</td>
+<td>None ahead; sizing and convexity</td>
+<td>Believing the calm</td>
+</tr>
+<tr>
+<td>The dollar squeeze</td>
+<td>EM crisis; foreign-led top</td>
+<td>EM screen; dollar factor; contagion rule</td>
+<td>Reading a foreign crisis as foreign</td>
+</tr>
+<tr>
+<td>A global position</td>
+<td>Chain top</td>
+<td>AI-chain sub-panel; concentration</td>
+<td>Treating the chain as diversification</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Appendix A — Assumptions and Falsifiers</h2>
+<p><strong>The mechanisms this paper assumes.</strong></p>
+<ul>
+<li><strong>Bubbles.</strong> They form through the Minsky–Kindleberger sequence, with credit, belief and price feeding on each other, and the sequence's stages leave traces in valuation, concentration, issuance, leverage and froth.</li>
+<li><strong>Banking crises.</strong> They need a loss meeting a funding mismatch, and they resolve by guarantee.</li>
+<li><strong>Liquidity crises.</strong> They are failures of the plumbing's ability to turn safe assets into cash, and they resolve through the central bank when it is able to act.</li>
+<li><strong>Emerging-market crises.</strong> They follow the balance-of-payments template and propagate through the dollar-funding channel.</li>
+<li><strong>Tops.</strong> They differ by kind, and only some kinds leave a trace in advance.</li>
+</ul>
+<p><strong>The regularities, with their samples, and what would falsify each.</strong></p>
+<ul>
+<li><strong>Tops are idiosyncratic; bottoms rhyme.</strong> Sample: the eight bears and six near-misses since 1970, and the harness's thirteen episodes <em>(Tops and Bottoms, May 2026; the calibration of 3 September 2026)</em>. Falsifier: a point-in-time harness, once the store holds the histories, that classifies tops as reliably as bottoms with one composite. That would mean the overlay architecture is unnecessary.</li>
+<li><strong>Corrections become bears only with a recession or a credit event.</strong> Sample: the same fourteen declines. Falsifier: a bear of twenty percent or more with neither, other than a 1987-type mechanical crash, or a near-miss followed by one of the two that still resolves within months.</li>
+<li><strong>Credit tops are read in the rate of change of spreads, not their level.</strong> Sample: 2007, and the silences of 1987, 2018, 2020 and January 2022. Falsifier: a credit top that spread acceleration missed, or the overlay's false-positive rate, once the harness measures it, too high to act on. The harness's pre-registered false-positive ledger is the test.</li>
+<li><strong>Peak concentration clusters near two-fifths of the market.</strong> Sample: five historic bubbles, with baskets defined after the fact <em>(item 31, filed 15 October 2026)</em>. Falsifier: the post-peak ledger the register asked for showing no difference in the leaders' path after a forty-percent share from paths after lower shares.</li>
+<li><strong>The policy put works through the funding markets and is fastest for plumbing failures.</strong> Sample: 2019, March 2020, the 2022 gilt episode and the tail-days decade. Falsifier: a plumbing failure in which the central bank, able to act, did not, or acted only after the equity market's low.</li>
+<li><strong>The Capitulation Count marks exhaustion, not the end of the cause.</strong> Sample: the register's analysis of 2008 and 2022 <em>(item 97, filed 26 October 2026)</em>. Falsifier: the count's pre-registered ledger, at the thirteen episode lows and the near-misses, showing that four or five of five marked durable lows as often in credit and policy bears as in mechanical ones.</li>
+<li><strong>Calm-surface openers are not visible on index volatility.</strong> Sample: six openers since 1990 <em>(item 124, filed 6 November 2026)</em>. Falsifier: the internal-stress read's pre-registered test passing, which would make the opener partly visible. The paper would welcome being wrong here.</li>
+<li><strong>The best days follow the worst because of volatility clustering, not reversal.</strong> Sample: the decade's tail days, standardised <em>(item 124)</em>. Falsifier: the standardised two-sided clustering exceeding its shuffled baseline in the annual refresh.</li>
+<li><strong>Analogs mislead; base rates inform.</strong> Sample: item 130's case <em>(filed 6 November 2026)</em>. Falsifier: the first-month-drawdown row showing that the famous analogs sit at the centre of the distribution, not in its tail.</li>
+</ul>
+<p><strong>The paper's central falsifier.</strong> At each Annual Structural Review, the question is whether any turn since the last review was of a kind this paper says the instruments can see, and the instruments did not see it. One such turn is information. Two of the same kind mean the paper's account of that kind is wrong.</p>
+<p><strong>The standing-register items that touch this paper.</strong></p>
+<ul>
+<li>Item 31, peak concentration, with item 113's froth-breadth amendment.</li>
+<li>SR-8, bear-market rallies, and the false-bottom gate.</li>
+<li>Item 59, the bank-stress panel.</li>
+<li>Item 97, the Capitulation Count, and its divergence line.</li>
+<li>Item 10, the EM shock screen, and item 129's AI-chain sub-panel.</li>
+<li>Item 121, the forward TGA path.</li>
+<li>Item 124, the tail-days study, with its sub-items: 124a, the tail base rates; 124c, the volatility-state read and the internal-stress test; 124d, the policy-put panel.</li>
+<li>Item 130, the first-month-drawdown row and the AI ring drawdown table.</li>
+<li>Item 128's deleveraging flag on the fragility panel.</li>
+</ul>
+<p><strong>The dated figures and their series.</strong></p>
+<ul>
+<li><strong>The episode figures</strong> are Tops and Bottoms' (May 2026), from Shiller's data, FRED, the S&amp;P 500's index record, NBER dating and Cboe's indices, hand-compiled for that study and now being read point in time by the harness.</li>
+<li><strong>The calibration figures</strong> are the report's of 3 September 2026, through the Top &amp; Bottom Report Manual.</li>
+<li><strong>The literature and history</strong> (Minsky, Kindleberger, Greenwood–Shleifer–You, and the crisis histories of Parts III to V) are cited from the published sources and were not re-read in this session. Each is to be re-verified at the operator's read.</li>
+<li><strong>The tail-days figures</strong> are the study's draft 3 of 5 November 2026, filed with Batch 23, whose own verify items stand.</li>
+</ul>
+<h2>Appendix B — Dated: The 2026 episode as it stands (as of 6 November 2026)</h2>
+<p><em>This appendix is the paper's only present-tense content. It records the state of the episode at the as-of date from the filed orders and the box's replay. It makes no forecast, and a figure marked unverified is quoted as filed, not checked. It is replaced, not amended, by the next edition.</em></p>
+<h3>B.1 — The opener (as of 6 November 2026)</h3>
+<p><strong>5 November 2026 opened the episode from a calm surface.</strong> It is the sixth calm-surface opener since 1990 and the first at minus four percent or worse. On the S&amp;P 500 it ranks eleventh-worst of the decade, and tenth on Morningstar's index. The day before, the volatility index closed at 16.61, twenty-day realised volatility was 12.9 percent and the volatility curve was in contango.</p>
+<p><strong>The internals were extreme.</strong> The equal-weighted index against the cap-weighted read at the 100th percentile, QQQ against SPY at the 2nd, sector dispersion at the 99th, and SPY's price impact at the 100th percentile of one year and the 72nd of three. None of the five earlier openers showed internals like these. That is why the internal-stress read is a pre-registered test and not a build.</p>
+<p><strong>The Nasdaq Composite closed 5 November 11.9 percent below its 6 October closing high</strong>, confirmed by the replay <em>(the tail-days study and its filing, Batch 23, 6 November 2026; item 130's replay check)</em>.</p>
+<h3>B.2 — Credit and the policy put (as of 6 November 2026)</h3>
+<p><strong>Aggregate credit gave no warning before 5 November, and no credit trigger of the policy-put panel was near firing.</strong></p>
+<ul>
+<li><strong>Baa less the 10-year</strong> stood at 152 basis points, widened six in twenty observations. Its post-1990 median is 213, and its 90th percentile 315.</li>
+<li><strong>The excess bond premium</strong> for October was −0.27.</li>
+<li><strong>High-yield option-adjusted spread</strong> was 332 basis points on 4 November in the box's store.</li>
+</ul>
+<p><strong>The store's history of the ICE BofA spreads begins in May 2023</strong>, so long-window credit reads move to Baa less the 10-year (item 124i) <em>(the tail-days study's Part 7 and item 130's check; filed 6 November 2026)</em>.</p>
+<h3>B.3 — The AI chain (as of 6 November 2026)</h3>
+<p><strong>The four markets — the U.S. semiconductor index, Korea, Taiwan and Japan — fell together in the first days of November.</strong> These claims are as filed and unverified (V-108a):</p>
+<ul>
+<li><strong>Korea</strong> was at a drawdown from its peak reported at 44 or 48 percent, with a circuit-breaker halt reported for 6 November.</li>
+<li><strong>Japan</strong> had a session of minus seven percent.</li>
+<li><strong>Taiwan</strong> had its largest point drop.</li>
+</ul>
+<p><strong>Concentration, as cited.</strong> Samsung Electronics and SK Hynix carry more than half of Korea's index and about seventy percent of its 2026 gains, and the leading foundry about 41 percent of Taiwan's. Korea had at least eight circuit breakers in 2026 by late July.</p>
+<p><strong>Leverage, as press-cited.</strong> Korea's levered exchange-traded product complex was reported at about $50bn of net assets in June and $26bn by early November, with "roughly 75% of the deleveraging complete".</p>
+<p><strong>The U.S. semiconductor index was 26 percent below its 22 June high on 23 October</strong>, the post's figure, unverified (V1 of item 97). The register's AI-chain sub-panel, which would read all of this from stored data, is filed and not yet built <em>(items 129 and 97, filed 6 November and 26 October 2026)</em>.</p>
+<h3>B.4 — Concentration, froth and the bottom reads (as of 6 November 2026)</h3>
+<ul>
+<li><strong>Concentration.</strong> BofA's "AI Big 10" stood at about 42 percent of U.S. market capitalisation, inside the historic peak band of item 31's table <em>(BofA Global Investment Strategy, via secondary reporting, filed 15 October 2026)</em>.</li>
+<li><strong>Froth breadth.</strong> BofA's bubble-risk indicator counted 15 S&amp;P 500 stocks above its threshold, about 2.2 percent of index weight. At the dot-com peak the count was fifty to a hundred stocks and twenty to forty percent of weight. Rotation was pushing defensive sectors toward the threshold <em>(item 113, BofA's reading of 23 October 2026, relayed)</em>.</li>
+<li><strong>The Capitulation Count.</strong> On 23 October, by the post's own reading, it stood at one of five: "panic is concentrated in semis, the index hasn't surrendered" <em>(item 97, unverified, V1)</em>.</li>
+<li><strong>The T&amp;B harness.</strong> Its first edition is "insufficient" on the box's store, so no point-in-time overlay reading of the episode exists.</li>
+</ul>
+<h3>B.5 — The plumbing (as of 6 November 2026)</h3>
+<p><strong>The Treasury's cash account stood at $1.040tn on 29 October.</strong> On the Treasury's August assumption of an $850bn end-December balance, its run-down would return about $190bn of reserves before year-end; that assumption awaits confirmation (V-103a). The register names the first quarter of 2027 as the quarter to watch: its borrowing estimate, its share of bills and the cushion left in the reverse repo facility <em>(item 121, filed with Batch 22, 5 November 2026)</em>.</p>
+<h3>B.6 — What is built and what is filed (as of 6 November 2026)</h3>
+<p><strong>Built and printing:</strong>
+- the bank-stress panel (item 59);
+- the T&amp;B harness's overlay lines;
+- the vol-event block (item 52);
+- the fragility panel (item 71);
+- the concentration twin (GTM-3);
+- the developed-market drawdown screen.</p>
+<p><strong>Filed and not yet built:</strong>
+- the Capitulation Count and its feeds (item 97);
+- froth breadth (item 113);
+- the forward TGA path (item 121);
+- the tail-days sub-items (item 124), with Tranche 0 merging 9 November;
+- the EM shock screen (item 10) with its AI-chain sub-panel (item 129);
+- the first-month-drawdown row and the AI ring drawdown table (item 130);
+- the deleveraging flag (item 128).</p>
+<p>The Top &amp; Bottom report's composite is specified and not built in this repository.</p>
+      </div>
+    </details>
+
+  <footer>Built from docs/whitepapers/turning-points-bubbles-and-crises-whitepaper.md by tools/build_paper_html.py &mdash; the Markdown is canonical</footer>
+</div>
+
+<script>
+document.querySelectorAll('.section-body table').forEach(function (t) {
+  if (t.parentElement && t.parentElement.classList.contains('tablewrap')) return;
+  var w = document.createElement('div'); w.className = 'tablewrap';
+  t.parentNode.insertBefore(w, t); w.appendChild(t);
+});
+function setAll(open) {
+  document.querySelectorAll('details.section').forEach(function (d) { d.open = open; });
+}
+document.getElementById('expandAll').addEventListener('click', function () { setAll(true); });
+document.getElementById('collapseAll').addEventListener('click', function () { setAll(false); });
+// A table-of-contents link into a collapsed accordion has to open it first,
+// or the browser scrolls to a closed strip and nothing appears to happen.
+function openTarget() {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  var el = document.getElementById(id);
+  while (el) {
+    if (el.tagName === 'DETAILS') el.open = true;
+    el = el.parentElement;
+  }
+  var t = document.getElementById(id);
+  if (t) t.scrollIntoView();
+}
+window.addEventListener('hashchange', openTarget);
+openTarget();
+</script>
+</body>
+</html>

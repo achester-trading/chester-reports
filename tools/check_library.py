@@ -59,6 +59,11 @@ REGISTRY = {
     "XIX": "systematic-book", "XX": "base-rates", "XXI": "international-equities",
     "XXII": "options-expression", "XXIII": "evidence-inference", "XXIV": "earnings",
     "XXV": "price-time-and-edge",
+    # Markets shelf, Draft 1 (L-7, B132, 6 Nov 2026; R-2 and R-8 of the
+    # library programme, D59). It succeeds X, whose file at its old path is a
+    # forward pointer to the archived study; X's numeral is retired, never
+    # reused (D8), and stays registered only for that pointer.
+    "XXVI": "turning-points-bubbles-and-crises",
     # System shelf. XXVI-XXXII are reserved by Audit 2's approved roster
     # (Markets XXVI-XXX, the Top & Bottom manual XXXI, the Annual Structural
     # Review XXXII), so the next free numeral was XXXIII.
