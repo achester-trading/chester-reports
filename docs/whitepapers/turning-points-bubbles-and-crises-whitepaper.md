@@ -216,3 +216,74 @@ The system's response is a gate. Once the Top & Bottom top side has fired and pr
 |---|---|---|---|---|
 | Item 31, peak concentration | The leaders' share at historic bubble peaks, about 36–63%, most near 40% | Late euphoria | Baskets defined after the fact; measures differ | Peak-band flag on the concentration overlay's input; no new weight |
 | SR-8, bear-rally structure | Five rallies of 12–45% inside a 78% decline | Panic and revulsion | One market, one bear | Re-entry gate; rallies are Book C material |
+
+---
+
+# Part III — Banking Crises as a Mechanism
+
+## Chapter 9 — The common structure
+
+Banking crises look different on the surface — a technology lender in 2023, the shadow banks of 2008, an oil-lending money-centre bank in 1984, the banks of a whole currency union in 2011 — and they share one structure underneath. **A bank crisis happens when a loss on the asset side meets a funding mismatch on the liability side.** Either alone is survivable. A bank with a large loss and stable, patient funding can earn its way out over years, and many did after 1990. A bank with flighty funding and no loss is never run, because nobody has a reason to run. Put the two together, and a loss that is not yet large enough to make the bank insolvent can still make it illiquid. Illiquidity, through forced sales, can then make the loss large enough to make it insolvent.
+
+The loss comes in two kinds, and the kind decides how visible the crisis is beforehand. **A duration loss** comes from holding long-dated assets — bonds, fixed-rate mortgages — funded by short-dated liabilities when rates rise. It is the slow kind: visible in public data quarters before it matters, because unrealised losses are reported. It is easy to ignore, because accounting lets a bank hold the assets at cost if it does not sell. **A credit loss** comes from borrowers not repaying. It is the opaque kind: it sits in loan books and structured securities whose value nobody outside can see, and it is recognised late, in lumps.
+
+The funding mismatch also comes in two kinds. **Uninsured deposits**, large balances above the guarantee, belong to depositors who have every reason to leave at the first doubt and, in the age of the mobile banking app, the means to leave within hours. **Wholesale funding** — repo, commercial paper, interbank loans, deposits placed by other institutions — is short-dated, priced daily and withdrawn by professionals who watch each other.
+
+The run is the mechanism that turns the combination into a crisis. It is a coordination problem. Each depositor is safe if the others stay and ruined if they leave first, so a credible rumour is self-fulfilling. That is why banking crises are sudden even when their causes are slow, and why the resolution is almost always a guarantee, a promise that makes running pointless, rather than a fix of the loss.
+
+**The contagion channel** is what makes a bank crisis a market event. Investors and depositors look for the next bank with the same combination: the same loss or the same funding. The market sells it before the run arrives. Bank equity indices therefore lead the funding data in a bank crisis, and the regional-bank index against the broad financial index is one of the fastest tells the stack has (Chapter 11).
+
+What the operator does differently because of this chapter is to ask two questions of any bank failure: is the loss specific to this bank or common to many, and is the funding that fled specific or common? A specific loss with specific funding is an idiosyncratic failure. A common loss with common funding is a crisis.
+
+## Chapter 10 — Four cases
+
+**Continental Illinois, 1984.** The seventh-largest bank in the United States had grown fast by buying energy loans, many originated by a small Oklahoma bank, Penn Square, which failed in 1982 when oil prices fell. The credit loss was large and concentrated. The funding was the mismatch: Continental had little retail deposit base and financed itself mostly in the wholesale and foreign deposit markets, from professional lenders with no insurance and no loyalty. In May 1984, rumours of its insolvency produced a run by those lenders that withdrew a large share of its funding in days. The regulators' response was to guarantee all depositors and creditors, not just the insured ones, and to take ownership of the bank. The phrase "too big to fail" entered the language in the congressional hearings that followed *(the FDIC's history of the banking crises of the 1980s; cited 6 November 2026)*. Continental is the template for every later wholesale run, and the first modern case of the guarantee as resolution.
+
+**2008.** The global financial crisis was a banking crisis whose banks were not all banks. The credit loss sat in mortgage securities held by banks, broker-dealers and off-balance-sheet vehicles. The funding mismatch was in the shadow banking system: asset-backed commercial paper, the repo market and money-market funds, short-term wholesale funding on a scale Continental could not have imagined. The run came in stages. Asset-backed commercial paper froze in August 2007, the month a large European bank suspended redemptions from funds holding U.S. mortgage securities. Repo lenders raised their haircuts on mortgage collateral through 2007 and 2008, which was a run conducted by margin rather than by withdrawal. Bear Stearns lost its repo funding in March 2008. Lehman Brothers failed on 15 September, a money-market fund broke its one-dollar value the next day, and a run on money funds followed.
+
+The policy response escalated over a year: discount-window facilities from December 2007, a primary-dealer facility in March 2008, a guarantee of money funds and capital injections into banks in the autumn, and the stress tests of 2009. The equity market's bottom came with the stress tests, when the guarantee finally became credible. The study's record that credit-driven bears bottom on the scale of the policy response is the 2008 record. The 2007 top was the credit top that no equity composite could see, and that the bank-stress tells of Chapter 11 and the spread acceleration overlay were built to see *(the episode and its sequence; Tops and Bottoms, May 2026, and the run-on-repo literature; cited 6 November 2026)*.
+
+**2023's regional run.** Silicon Valley Bank had taken in a flood of deposits from technology companies in 2020 and 2021 and invested them in long-dated Treasury and agency securities at the low yields of the time. When rates rose through 2022, the securities lost much of their value: a pure duration loss, published quarter by quarter in the bank's filings and in the FDIC's industry-wide figures for unrealised losses. The funding was the mismatch: the great majority of its deposits were uninsured, held by a concentrated and networked client base. On 8 March 2023 the bank announced a loss on securities sales and a capital raise. On 9 March its depositors withdrew roughly a quarter of its deposits in a single day, organised in part through group chats, and on 10 March it was closed. Signature Bank failed two days later. On 12 March the regulators guaranteed all deposits at both banks and created a facility lending against Treasury and agency collateral at par, which neutralised the duration loss for funding purposes. The regional-bank index fell by about a third over the month. A large Swiss bank was merged into its rival a week later, and First Republic failed on 1 May *(the FDIC's and the Federal Reserve's reviews of the March 2023 failures; cited 6 November 2026)*.
+
+The equity market as a whole barely registered it. The S&P 500's decline in March 2023 was single digits. The episode is the clearest modern case of a banking crisis that stayed a sector event, because the guarantee came within four days and the loss, though large, was a duration loss the guarantee could neutralise.
+
+**The sovereign–bank loop.** The eurozone crisis of 2010 to 2012 added a mechanism the other three lack: the state and its banks bring each other down. Banks hold their own government's bonds, so a fall in the sovereign's credit is a loss on the banks' asset side. The government stands behind its banks, so a loss in the banks is a liability of the sovereign. In Ireland, a blanket guarantee of bank liabilities in 2008 turned the banks' property losses into the state's debt, and the state needed a bailout by 2010. In Greece, the sovereign's insolvency wiped out the banks that held its bonds. In Spain and Italy, each side's weakness raised the other's funding cost, and the loop tightened through 2011. Inside a currency union, neither the government nor the banks could print the currency that would have broken it.
+
+The loop was broken by the central bank. The European Central Bank's three-year lending operations of December 2011 and February 2012 funded the banks, and its president's commitment of July 2012 to do "whatever it takes", backed by a bond-purchase programme, removed the tail on the sovereigns *(the episode as recorded in the ECB's own publications; cited 6 November 2026)*. The 2011 U.S. near-miss of Chapter 2 sat inside this loop, which is why it resolved when Europe's tail was removed.
+
+The four cases share the structure of Chapter 9 and differ in its parts, which is the point of laying them side by side.
+
+| Case | The loss | The funding that fled | How fast | What ended it |
+|---|---|---|---|---|
+| Continental Illinois, 1984 | Credit: energy loans | Wholesale and foreign deposits | Days | A guarantee of all creditors |
+| 2008 | Credit: mortgage securities | Repo, commercial paper, money funds | Over a year, in stages | Escalating facilities; capital; stress tests |
+| 2023 regional run | Duration: long securities | Uninsured, concentrated deposits | Hours | A guarantee of all deposits; lending at par within four days |
+| Sovereign–bank loop, 2010–12 | Sovereign credit, both ways | Interbank and wholesale | Months | Central-bank funding; a commitment to the sovereigns |
+
+## Chapter 11 — The tells the bank-stress panel prints
+
+The stack's bank-stress panel (item 59) was built to see the structure of Chapter 9 from public data. It prints each series with its percentiles over its own history, two flags, and a classifier, and it opens the 12:30 slot only on the session a flag turns on. Its members map onto the two halves of the structure.
+
+**The loss side** has three members. The FDIC's quarterly unrealised losses on banks' securities are the duration-loss tell, the one that was visible quarters before 2023. The Federal Reserve's senior loan officer survey reads lending standards, which tighten as lenders see credit losses coming; Credit describes it as the cycle's lead. The financial stress indices — the St. Louis Fed's and the Office of Financial Research's — are composites that read both halves at once.
+
+**The funding side** has six members, and they are the faster tells:
+
+- **SOFR less the interest on reserves**, with SOFR's 99th percentile. It is the price of overnight funding against the floor the Fed pays, and it rises when someone needs cash badly.
+- **Financial commercial paper less the bill.** It is the price of unsecured funding to financial firms, the market that froze in 2008.
+- **The discount window and other credit.** It records borrowing from the Fed, which banks avoid unless they must.
+- **The Federal Home Loan Banks' advances.** This is the lender of next-to-last resort, whose surge preceded both 2023 failures.
+- **Deposits at small banks against large.** The series records where the money is going.
+- **Retail money-market fund assets.** They record where it is going when it leaves banks altogether.
+
+**The equity side** has one member: the regional-bank index against the broad financial index. It leads the funding data in a crisis, because the market sells the next bank before the run arrives.
+
+The panel's two flags are the structure's two halves made into rules. **Funding stress** is any two of four funding members above their 95th percentile at once. **Deposit flight** is small-bank deposits falling while money-market funds rise, over four weeks. The **correction-or-crisis classifier** prints only when the regional-bank index has fallen ten percent or more over twenty sessions, and asks which side of the structure the decline is on. Its credit-default-swap and bail-in-bond arm is not tracked.
+
+What the panel cannot see is worth naming. It cannot see a credit loss in a loan book until it is recognised, which is why 2008's loss was invisible to it until the funding moved. It cannot see the shadow banks' funding directly, beyond commercial paper and repo rates. And it cannot see a sovereign–bank loop outside the United States; the EM screen of Part V and the European spreads in the Monthly carry that. The panel catches the 2023 kind early and the 2008 kind late. That is the right way round for a panel built from public data, and the operator should not expect more of it.
+
+| Half of the structure | The panel's members | Tell it gives | Speed |
+|---|---|---|---|
+| Duration loss | FDIC unrealised losses | Quarters ahead | Slow |
+| Credit loss | Lending standards; stress indices | When lenders see it | Slow to medium |
+| Funding mismatch | SOFR–IORB; financial CP; discount window; FHLB advances; deposits by size; money funds | Days to weeks | Fast |
+| The market's verdict | Regional banks against financials | Before the run | Fastest |
