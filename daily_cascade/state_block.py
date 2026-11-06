@@ -378,7 +378,7 @@ def state_table(payload: dict) -> str:
             f'<td style="{TDL}">{esc(d["state"])}</td>'
             f'<td style="{TD}">{pctf(d.get("percentile"))}'
             + (f' ({esc(d["window_label"])})'
-               if "held" in str(d.get("window_label") or "") else "")
+               if "stored" in str(d.get("window_label") or "") else "")
             + f'</td>'
             f'<td style="{TD}">{esc(d.get("direction"))}</td>'
             f'<td style="{TDL}">{esc(d.get("confidence"))}</td>'

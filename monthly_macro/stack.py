@@ -1591,7 +1591,7 @@ def triple(st, key: str, now: str, window_days: int = 1825,
         return None
     lr = derived.long_run_average(key, now, store=st, instrument=instrument)
     # THE WINDOW THROUGH derived.window_label (item 124 T0, step 1): "5y" when the
-    # store covers it, "5y asked, 3.4y held" when it does not; the n stays.
+    # store covers it, "5y asked, 3.4y stored" when it does not; the n stays.
     pct_win = (f"{derived.window_label(window_days, f.get('window_actual_days'))}, "
                f"n={f['n']:,}")
     # NO PERCENTILE BELOW THE MINIMUM SAMPLE (T3.3 item 7): one Damodaran print

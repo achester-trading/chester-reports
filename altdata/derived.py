@@ -90,12 +90,12 @@ DEFAULT_WINDOW_DAYS = 1826
 # a bit is a claim about two years the store does not have: HY OAS on FRED is
 # three years deep, and its lens said "5y" all the same. Every percentile that
 # prints a window prints it through window_label(): the asked window alone when
-# the held span covers it, and both when it does not -- "5y asked, 3.4y held",
+# the stored span covers it, and both when it does not -- "5y asked, 3.4y stored",
 # or in a compact cell "3.4y/5y" (the caller adds the parentheses).
 # tools/validate_item_124_t0.py fails on a percentile window label built
 # anywhere else.
 # ---------------------------------------------------------------------------
-# A held span within a month of the asked one covers it: a five-year window
+# A stored span within a month of the asked one covers it: a five-year window
 # whose first observation fell on a holiday is still five years.
 HELD_TOLERANCE_DAYS = 31
 
@@ -123,7 +123,8 @@ def window_label(asked: Any, held_days: Optional[float] = None, *,
     h = max(0.0, float(held_days))
     if compact:
         return f"{_years_text(h)}/{_years_text(a)}"
-    return f"{_years_text(a)} asked, {_years_text(h)} held"
+    # "stored", never "held": "held" is a dealer flag word (D65, 6 Nov 2026).
+    return f"{_years_text(a)} asked, {_years_text(h)} stored"
 
 # ---------------------------------------------------------------------------
 # DELTA SEMANTICS BY `units`. Rule 2.

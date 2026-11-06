@@ -52,15 +52,21 @@ sign_flip: [calc.core_cpi_pce_gap]
 # D60). FRED serves the ICE BofA OAS series three years deep, so HY's and IG's
 # 20-year percentile was three years under a 20-year label. The credit family's
 # long read is Baa less the 10-year (calc.baa_less_10y, daily from 1986; 6i-3):
-# the members keep their own 5-year lens, its held span printed
+# the members keep their own 5-year lens, its stored span printed
 # (derived.window_label), and their long column reads the proxy's level against
 # the proxy's own 20 years, named as the proxy wherever it prints.
+# THE WHOLE FAMILY (D65, 6 Nov 2026): every ICE BofA OAS series the registry
+# carries, not HY and IG alone. AAA's and euro HY's registry long_window "full"
+# (their three stored years) is superseded here for the long column, through the
+# same path; their 5-year lens is their own.
 # ---------------------------------------------------------------------------
 credit_long_window:
   series: calc.baa_less_10y
   label: "Baa less the 10-year"
   years: 20
-  members: [fred.hy_oas, fred.ig_oas]
-  basis: "the credit family's long window is Baa less the 10-year (D60, 6 Nov 2026)"
+  members: [fred.hy_oas, fred.ig_oas, fred.bb_oas, fred.ccc_oas, fred.aa_oas,
+            fred.aaa_oas, fred.bbb_oas, fred.em_corp_oas, fred.em_hy_oas,
+            fred.euro_hy_oas]
+  basis: "the credit family's long window is Baa less the 10-year (D60 and D65, 6 Nov 2026)"
 # A D20 form: the change over the last 20 stored observations, in bp (D60).
 d20_forms: [calc.baa_less_10y]

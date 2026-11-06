@@ -698,7 +698,7 @@ def group_e() -> None:
           and not res["ten_beyond"]["ten_year_leg"] and not res["ten_beyond"]["supply_shock"],
           "and not a hair beyond it: either leg off turns the signature off")
     line = tr.oil_shock_line(o)
-    check("20y asked, " in line and "y held" in line and f"n={o['n_windows']:,}" in line
+    check("20y asked, " in line and "y stored" in line and f"n={o['n_windows']:,}" in line
           and "supply-shock signature is ON" in line,
           "the line names a history shorter than 20 years, with its n of windows")
     with open_store(store([r for r in oil_rows() if r[0] != "fred.brent"])) as st:
@@ -893,7 +893,7 @@ def group_h() -> None:
     check(g["lens"]["n"] == 2 and g["lens"]["same"],
           "July's cap has no gold close within five days and is not used: n=2")
     line = tr.gold_equity_line(g)
-    check("(n=2; 10y asked, " in line and "y held)" in line,
+    check("(n=2; 10y asked, " in line and "y stored)" in line,
           f"the percentile prints its real window and n ({line[-70:]})")
     with open_store(store(rows[1:])) as st:
         a = tr.gold_equity(st, NOW, cfg2)
@@ -947,7 +947,7 @@ def group_i() -> None:
     lines = tr.diffusion_lines(d)
     check(len(lines) == 2 and "100.94" in lines[1] and "50.2" in lines[1]
           and "Report-only until its lead is ledgered" in lines[1]
-          and re.search(r"\(n=\d+; 10y asked, [\d.]+y held\)", lines[0]),
+          and re.search(r"\(n=\d+; 10y asked, [\d.]+y stored\)", lines[0]),
           "the lines: the index with its percentile's n, the CLI and the PMI at the lead, "
           "report-only")
     al = tr.ahead_line(d)

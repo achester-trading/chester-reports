@@ -64,8 +64,8 @@ def _signed(x: Any, dp: int = 2) -> str:
 
 def _window(f: dict, tag: str, short: bool) -> Any:
     """The window through derived.window_label (item 124 T0, step 1): the asked
-    window, and the held span beside it when the store holds less. A lens computed
-    before the held span was recorded prints the label it carried."""
+    window, and the stored span beside it when the store holds less. A lens computed
+    before the stored span was recorded prints the label it carried."""
     if (tag + "_window_asked") not in f:
         return f.get(tag + "_window")
     from altdata import derived                                 # noqa: PLC0415

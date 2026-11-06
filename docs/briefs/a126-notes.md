@@ -240,3 +240,74 @@ The daily official pass picks `fed_ebp` up from then on, with no new timer.
 4. **The OAS family's other members.** BB, CCC, AA, BBB and the EM OAS series also
    hold three years on FRED. They now print their honest spans, but their long
    column still reads their own short history. The paste named HY and IG only.
+
+## A126b (6 Nov 2026): D65's three fixes
+
+Base `1c8e15a1`; paste committed first as `docs/pastes/A126b.md`. D65 answered the
+four needs-you above: (1) section 6 read against the branch, nothing missing; (2) the
+long column stays as built.
+
+**(a) The label says "stored".** `derived.window_label`'s long form is now "5y asked,
+3.4y stored"; the compact "3.4y/20y" is unchanged. Changed with it:
+- `altdata/derived.py` (the label and its comments);
+- `daily_cascade/lens_cells.py` (docstring);
+- `daily_cascade/state_block.py` (the dimension table prints the label when it
+  says "stored");
+- `monthly_macro/stack.py` (comment);
+- the gates whose expected strings carried "held": `validate_st_r5_rates`,
+  `validate_st_r5_t1_rest` (three checks), `validate_item_124_t0`;
+- CLAUDE.md's sentence ("with the stored span printed").
+
+The other A126 re-wordings (`st_r5_index`, `batch14_a1`, `batch14_b1`,
+`batch15_2`, `monthly_stack`, `b59`) never carried "held" and are unchanged.
+
+**(b) The exemption is gone.** `daily_cascade/dealer_block.py` `FLAG_WORD`,
+`monthly_macro/dealer.py` `_FLAG_WORD` and `tools/validate_vol_event.py`'s pattern
+were restored from main (`bfd7e149`), byte for byte: the audits are as they were
+before A126. `validate_dealer_block` (both audits) 134/0, with its "The call wall
+held on Wednesday." case caught; `validate_vol_event` 50/0; `validate_secondary_notes`
+88/0. `validate_item_124_t0` gains two checks: no window label carries a flag word,
+and both audits catch "held" again, after a year count too.
+
+**(c) The whole family.** `credit_long_window.members` is every ICE BofA OAS series
+the registry carries, ten: `fred.hy_oas`, `ig_oas`, `bb_oas`, `ccc_oas`, `aa_oas`,
+`aaa_oas`, `bbb_oas`, `em_corp_oas`, `em_hy_oas`, `euro_hy_oas`. The gate holds the
+list to the registry. Each keeps its own 5-year lens, stored span printed; its long
+column reads Baa-10y over 20 years, named; the 5y/long flag is withheld across
+series. The lens table and the Monthly v2 pillar tables pick it up through the
+existing path. **No special case was built.** One thing to know: `fred.aaa_oas` and
+`fred.euro_hy_oas` carry a registry `long_windows: full` override (their three stored
+years, Batch 6). The credit window supersedes it for the long column through the same
+code; the registry lines are left as they are, and the gate shows euro HY's long column
+reading Baa-10y.
+
+CLAUDE.md's lens sentence now names the ICE BofA OAS lenses (D60 and D65), not HY
+and IG alone.
+
+### Gates, one at a time
+
+| Gate | Result |
+|---|---|
+| `validate_item_124_t0` | 45/0 |
+| `validate_lenses` | 49/0 |
+| `validate_regime` | 524/0 |
+| `validate_dealer_block` | 134/0 |
+| `validate_vol_event` | 50/0 |
+| `validate_secondary_notes` | 88/0 |
+| `validate_batch12` | 57/0 |
+| `check_registry` | OK |
+| `check_library` | 27 papers, 0 failures, 0 warnings |
+| `validate_stack --group A` | 13/0 |
+
+Also: `st_r5_rates` 72/0, `st_r5_t1_rest` 103/0, `st_r5_index` 58/0, `batch14_a1` 30/0,
+`batch14_b1` 68/0, `batch15_2` 60/0, `b59` 83/0, `monthly` 388/0. Counts unchanged
+(no gate added).
+
+### The Monday box step, after the merge, inside a window (the operator's)
+
+```
+python -m altdata.sources.fed_ebp --backfill
+```
+
+Once: the history under source `fed:backfill`, available at the pull instant, as
+A126 built it. The daily official pass takes it from there.

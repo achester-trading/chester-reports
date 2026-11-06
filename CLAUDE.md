@@ -332,8 +332,8 @@ YoY, 3-month annualized and the revision line for a release; direction for a
 quantity; dual percentiles with n wherever a level is placed), point-in-time,
 and the Monthly v2 pillar tables print them. A monthly release never shows a
 20-session change. The credit family's long window is Baa less the 10-year
-(`calc.baa_less_10y`; D60, 6 Nov 2026); HY and IG OAS lenses are 5-year with the held
-span printed (`derived.window_label`). `tools/validate_lenses.py` holds it.
+(`calc.baa_less_10y`; D60 and D65, 6 Nov 2026); the ICE BofA OAS lenses are 5-year
+with the stored span printed (`derived.window_label`). `tools/validate_lenses.py` holds it.
 
 **6e, the rest (16 Oct 2026): macro completeness and the bound lenses.**
 `altdata/macro_6e.py` writes, in the market_features pass, the architecture's

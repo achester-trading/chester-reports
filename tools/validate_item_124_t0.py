@@ -5,7 +5,7 @@ Item 124, Tranche 0 (the tail-days order's 106i; ruled 6 Nov 2026, D60; A126).
     python tools/validate_item_124_t0.py
 
   A  THE ONE WINDOW LABEL. derived.window_label prints the asked window alone when
-     the held span covers it, "5y asked, 3.4y held" when it does not, "3.4y/5y" in a
+     the stored span covers it, "5y asked, 3.4y stored" when it does not, "3.4y/5y" in a
      compact cell. The lens forms, lens_cells' cells, derived_forms,
      delta_percentile, the regime's dimensions and session move, stack.triple,
      st_r5_rates and vol_event go through it. A source scan fails on a percentile
@@ -136,23 +136,33 @@ def scanned_files() -> list[Path]:
 
 
 def group_a() -> None:
-    head("A. derived.window_label: the asked window, and the held span when shorter")
+    head("A. derived.window_label: the asked window, and the stored span when shorter")
     from altdata import derived
     from daily_cascade import lens_cells
     W = derived.window_label
     check(W(1826, 1826) == "5y" and W(1826, 1800) == "5y",
           f"a covered window prints alone ({W(1826, 1826)!r}; within a month: {W(1826, 1800)!r})")
-    check(W(1826, 1250) == "5y asked, 3.4y held",
+    check(W(1826, 1250) == "5y asked, 3.4y stored",
           f"a short one says both: {W(1826, 1250)!r}")
     check(W(7305, 1250, compact=True) == "3.4y/20y",
           f"the compact form: {W(7305, 1250, compact=True)!r}")
     check(W("full", None, start="1986-01-02") == "full history from 1986-01-02",
           "the full history is never short")
+    # D65: the label says "stored", and the flag-word audits are as they were
+    from daily_cascade import dealer_block
+    from monthly_macro import dealer as mdealer
+    labels = [W(1826, d_) for d_ in (100, 400, 1250, 1800)] + [W(7305, 1250, compact=True)]
+    check(not any(dealer_block.FLAG_WORD.search(x) or mdealer._FLAG_WORD.search(x)
+                  for x in labels),
+          f"no window label carries a flag word ({labels[2]!r})")
+    check(all(rx.search(s_) for rx in (dealer_block.FLAG_WORD, mdealer._FLAG_WORD)
+              for s_ in ("The call wall held on Wednesday.", "5y asked, 3.4y held")),
+          "both flag-word audits catch 'held' again, after a year count too (no exemption)")
     # the lens forms on a three-year series
     s = [(d.isoformat(), 3.0 + (i % 9) * 0.01)
          for i, d in enumerate(bdays(dt.date(2023, 7, 3), END))]
     p = derived._pct_in_window(s, 3.05, END, 5)
-    check(p["window"].startswith("5y asked, 3.") and p["window"].endswith("y held")
+    check(p["window"].startswith("5y asked, 3.") and p["window"].endswith("y stored")
           and p["window_compact"].endswith("/5y") and p["n"] == len(s),
           f"a percentile of five years over three: {p['window']!r}, n={p['n']}")
     f = {"pctile_5y": 40.0, "pctile_5y_ordinal": "40th", "pctile_5y_n": p["n"],
@@ -308,6 +318,9 @@ def group_d() -> None:
 # ---------------------------------------------------------------------------
 # E. The long-window credit series
 # ---------------------------------------------------------------------------
+OAS_FAMILY = ("fred.hy_oas", "fred.ig_oas", "fred.bb_oas", "fred.ccc_oas", "fred.aa_oas",
+              "fred.aaa_oas", "fred.bbb_oas", "fred.em_corp_oas", "fred.em_hy_oas",
+              "fred.euro_hy_oas")
 CSV = ("date,gz_spread,ebp,est_prob\n"
        "1973-01-01,1.13,-0.05,0.18\n"
        "2026-09-01,0.93,-0.38,0.09\n"
@@ -350,9 +363,15 @@ def group_e() -> None:
     lc = derived.lens_config()
     clw = lc.get("credit_long_window") or {}
     check(clw.get("series") == "calc.baa_less_10y" and int(clw.get("years")) == 20
-          and set(clw.get("members") or []) == {"fred.hy_oas", "fred.ig_oas"}
+          and set(clw.get("members") or []) == set(OAS_FAMILY)
           and "calc.baa_less_10y" in (lc.get("d20_forms") or []),
-          "config/metric_lenses.yaml: the credit family's long window is calc.baa_less_10y (20y)")
+          "config/metric_lenses.yaml: the credit family's long window is calc.baa_less_10y "
+          "(20y), for all ten ICE BofA OAS series (D65)")
+    from altdata import config as acfg
+    reg_oas = sorted("fred." + s.key for s in acfg.FRED_PULL_SERIES
+                     if s.fred_id.startswith("BAML") and s.key.endswith("_oas"))
+    check(reg_oas == sorted(OAS_FAMILY),
+          f"the members are every ICE BofA OAS series the registry carries ({len(reg_oas)})")
     tb = yaml.safe_load((REPO / "config/tb_episodes.yaml").read_text(encoding="utf-8"))
     tbi = tb.get("inputs") or {}
     check((tbi.get("baa_10y") or {}).get("key") == "calc.baa_less_10y",
@@ -364,6 +383,7 @@ def group_e() -> None:
         rr.append(row("calc.baa_less_10y", d, 200.0 + (i % 60)))
     for i, d in enumerate(bdays(dt.date(2023, 7, 3), END)):
         rr.append(row("fred.hy_oas", d, 3.0 + (i % 30) * 0.01))
+        rr.append(row("fred.euro_hy_oas", d, 3.5 + (i % 30) * 0.01))
     st.write_many(rr)
     hy = derived.lens_forms("fred.hy_oas", GATE_NOW, store=st)
     F = hy["forms"]
@@ -374,6 +394,11 @@ def group_e() -> None:
           and "percentiles_disagree" not in hy["flags"],
           f"HY's long column reads Baa-10y over 20 years, named "
           f"({F.get('pctile_long_ordinal')}, n={F.get('pctile_long_n')})")
+    eu = derived.lens_forms("fred.euro_hy_oas", GATE_NOW, store=st)["forms"]
+    check(eu.get("pctile_long_series") == "calc.baa_less_10y"
+          and eu.get("pctile_long_window") == "20y" and "y stored" in str(eu.get("pctile_5y_window")),
+          "euro HY (registry long_window 'full'): its long column reads Baa-10y too; its "
+          "5-year lens is its own, the stored span printed (D65)")
     cell = lens_cells._pct_cell(F, "pctile_long", False) or ""
     check("of Baa less the 10-year" in cell, f"the long cell names the series: {cell!r}")
     baa = derived.lens_forms("calc.baa_less_10y", GATE_NOW, store=st)

@@ -477,7 +477,7 @@ def group_f() -> None:
     check(not m["absent"] and m["week"] == NOW_DAY and m["yoy_pct"] == -12.0
           and m["wow_pct"] == -3.0 and m["lens"]["n_full"] == 110,
           "the latest survey's changes and its year-on-year history (n=110)")
-    check("n=110" in ln and "5y asked," in ln and "y held" in ln and "since" in ln
+    check("n=110" in ln and "5y asked," in ln and "y stored" in ln and "since" in ln
           and "weekly survey" in ln,
           f"the percentile prints its real window and n: {ln[60:170]}")
     # By hand: 100 at the first week after the gap, then x 1.015 = 101.5,
