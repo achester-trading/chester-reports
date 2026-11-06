@@ -15,7 +15,7 @@ source, if built, enters first as a report-only Alpha Lab hypothesis.*
 |---|---|---|
 | 1 | Google News RSS, article counts per narrative | **FAILS** |
 | 2 | GDELT: the DOC and GEO APIs and the raw event files | **PASSES WITH LIMITS** (the raw files; the DOC API throttled the laptop; the GEO API's v2 path is gone) |
-| 3 | Google Patents public data and Google Trends through BigQuery | **FAILS the keyless test as it stands**; on Ari's yes to a Google account, PASSES WITH LIMITS |
+| 3 | Google Patents public data and Google Trends through BigQuery | **FAILS the keyless test as it stands**; on the operator's yes to a Google account, PASSES WITH LIMITS |
 | 4 | NOAA CPC degree days, US population-weighted | **PASSES** |
 | 5 | A Chinese AI model-release watch (Hugging Face's API; GitHub release feeds) | **PASSES** (Hugging Face); GitHub releases add little |
 
@@ -85,7 +85,7 @@ source, if built, enters first as a report-only Alpha Lab hypothesis.*
 
 - **Verdict: FAILS the keyless test as it stands.** Both live only in BigQuery,
   which needs a Google account and an authenticated client. Under the standing
-  rule, friction is a gap, not a key. **On Ari's yes to an account, PASSES WITH
+  rule, friction is a gap, not a key. **On the operator's yes to an account, PASSES WITH
   LIMITS**, with the two limits below.
 - **What the account needs** (https://docs.cloud.google.com/bigquery/docs/sandbox,
   read 24 Oct 2026):
@@ -208,7 +208,7 @@ source, if built, enters first as a report-only Alpha Lab hypothesis.*
   model count, SMH underperforms SPY more often than in other weeks."
 - **Hours to build:** about 3.
 
-## Rulings for Ari
+## Rulings for the operator
 
 | # | Source | Ruling sought | Recommendation |
 |---|---|---|---|

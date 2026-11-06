@@ -191,7 +191,7 @@ mkdir -p ~/chester-data/ledgers
 - **Bring the box editions back** with `scp 'vps:~/chester-data/ledgers/st-r6.6*' 'vps:~/chester-data/ledgers/st-r6.7*' docs/ledgers/`, and ask a session to commit them.
 - **The voices scan** reads Carson Group's feed at its next 06:15 run; nothing to run by hand.
 - **The EOD pass** runs `speed_attribution resolve` from the next pull of main after the merge; no unit changes.
-- **The Monthly's dry run** stays Ari's, as always.
+- **The Monthly's dry run** stays the operator's, as always.
 
 ## Files shared with other branches
 

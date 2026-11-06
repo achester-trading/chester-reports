@@ -290,7 +290,7 @@ What would let it run sooner without moving the gate: run the blinded pass in sh
 
 ---
 
-## 7. DECISIONS FOR ARI
+## 7. DECISIONS FOR THE OPERATOR
 
 **1. Build 2.1 first.** Options: (a) 2.1 first, then 2.6 and the corpus; (b) the forecasters first; (c) all seven in parallel. **Recommend (a).** Every later addition is judged by 2.1's line, so building it first means each later one arrives with its own yardstick. It needs no model call and no new sample. The forecasters (b) would start scoring before anything could say whether the system as a whole is improving.
 

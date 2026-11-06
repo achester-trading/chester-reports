@@ -66,7 +66,7 @@ ABSENT (`validate_st_t5_render.NAME_RX`, `validate_batch15_1.PEOPLE` and its
 `\bAri\b` check, the people patterns in `validate_batch14_a1`, `_b2` and
 `validate_batch15_2`); they must keep the names they look for.
 
-**The operator's name: 65 lines in 46 files, each "Ari" made "the operator".**
+**The operator's name: 65 lines in 46 files, each use of the operator's first name made "the operator".**
 
 | Where | Lines |
 |---|---|
@@ -79,7 +79,7 @@ ABSENT (`validate_st_t5_render.NAME_RX`, `validate_batch15_1.PEOPLE` and its
 | `scripts/rclone_crypt_env.sh` | 2 comments |
 | `tools/` | `assign_families.py` (2), `calibration/os6_positioning.py` (the docstring and the ledger's printed line), `figures/master_guide.py` (2, and "his touches" made "the operator's touches"), `massive_flatfiles_backfill.py` (2), `seed_security_master.py`, `validate_a55_box_fixes.py`, the check messages of `validate_alpha`, `validate_by_hand_audit`, `validate_secondary_notes`, `validate_security_master` and `validate_systemd_units` (a comment), and `validate_digital_addendum`'s pin of the appendix line, which follows the printed string |
 
-Kept: `validate_by_hand_audit.py:197`'s pinned quotation `"weights stay Ari's" in text`.
+Kept: `validate_by_hand_audit.py:197`'s pinned quotation, which named the operator (B109 later made it `"weights stay the operator's" in text`).
 It checks the Warsh-matrix document under `docs/`, a filed text, which keeps its words.
 
 **Other people's names: 9 lines.**

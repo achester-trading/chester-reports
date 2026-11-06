@@ -1518,7 +1518,7 @@ is files only: chester-reports writes exports/security_master.json (through
 writes drop/. No code, migration, stash or commit of ours goes into
 ../chester-meme, and reading it is the most a session here does. A change
 chester-meme needs from this side goes through the contract and a change order
-here. A change on its side is printed for Ari to hand to the chester-meme
+here. A change on its side is printed for the operator to hand to the chester-meme
 session. This rule was added after uncommitted restriction code and an applied
 migration were left there on 15 Oct.
 
