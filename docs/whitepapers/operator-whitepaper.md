@@ -204,3 +204,87 @@ The Doctrine's Part III traces its rules to the Market Wizards literature and to
 | Recency | Sizing for the regime that just ended | Doing nothing is a position | Doctrine Rule 10; the Transition states of the dials |
 | Anchoring | Exits set from entry price or round numbers | Edge before signal | Stops from structure; the packet's fields |
 | Narrative fallacy | Positions that share one story | Edge before signal | Doctrine Rule 6; the narrative register; the heat cap |
+
+---
+
+# Part III — The System's Answer
+
+## Chapter 13 — Rules that constrain execution, not direction
+
+The system's answer to Parts I and II has one design principle, and it is worth stating before the parts. **The rules constrain how a view is executed. They never constrain what the view is.** The operator may be long or short, early or late, contrarian or with the crowd. No rule in the Doctrine, the register or the day-trading order says what to think about the market. Every rule says something about what happens after the thinking: how large, how far, how long, how often, and with what written down first.
+
+The principle comes from the literature in Part II. The behavioral mechanisms do not, in the main, make views wrong. They make the handling of views wrong: the exit taken by the P&L, the size set by the week, the re-entry made out of pique. A rule that tried to correct views would be a second research system competing with the first, and the operator would rightly ignore it. A rule that corrects handling leaves the operator's judgment intact and removes the specific moments at which judgment is known to fail. This is also why the rules can be tested. A rule that constrains execution has a counterfactual that the register can compute (Appendix A).
+
+The answer has four layers, and each is owned elsewhere. This chapter describes what each does to the behavior of Part I; the rules themselves are in the Operating Doctrine and the order that holds them.
+
+**The Doctrine.** The Operating Doctrine's twenty-nine rules are the frame. For the four failure modes, a handful do most of the work:
+
+- **Size.** The tier test and its calculator set size (Doctrine Rule 14). The kill-switch ladder stops trading after a bad day, week or month and allows re-entry only at the next scheduled session (Doctrine Rules 1 and 2).
+- **Exits.** The exit is written before entry (Doctrine Rule 5). No add is made to a loser (Doctrine Rule 4). A counter-trend position carries a five-session time stop (Doctrine Rule 27).
+- **Volatile days.** The protocol halves everything and allows action only from the list (Doctrine Rule 3).
+- **Packets.** The edge questions are required (Doctrine Rule 6), and no trade happens without a packet (Doctrine Rule 18).
+- **Changing the rules.** A rule changes only at its sitting, never in a drawdown (Doctrine Rule 20).
+
+Each answers a mechanism named in Part II. The Doctrine's own Part VIII ties each rule to its Wizard origin and to the operator's history. This paper adds only the behavioral mechanism the rule interrupts, and Chapter 12's table carries the mapping.
+
+**The register.** The register is the record that makes behavior countable. Its Decision Packets are immutable once written. They carry the regime stamp, the tier, the edge family and the written exit, and the Doctrine's Section 9.2 adds the fields this paper needs: the six post-mortem categories, the rule-break flag, the time written and the time executed, machine-drafted or operator-written, the volatile-day flag, and the reason for any pass. The register enforces what can be enforced at write time. A packet missing a required field is blocked; an exceptional tier the stamps do not support is refused. It records everything else for the post-mortem. Its behavioral function is the one Chapter 1 named: it moves the record of the gap out of the trader's head, where the story is written by the mind that made the decision, and into a ledger, where it is written before the outcome is known.
+
+**The day-trading order's rules.** The Day-Trading Layer (DTH-1) is a tactics layer for Books B and C, not a fifth book (the Doctrine's Section 10.3). The rules filed with it on 6 November 2026, as Addendum A to Amendment #5, are the most behavioral rules the system has, because they act at the shortest horizon, where the mechanisms of Part II act fastest. As the brief for this paper lists them, they are five.
+
+- **A resting stop.** It is placed in the market at entry, not held in the head. Chapter 8 gave the reason: an open loss keeps the old reference point alive, and a resting stop realises the loss before the break-even effect can fight it.
+- **A one-line thesis.** It is written before entry. One line is short enough that it cannot be revised into a different thesis after an adverse move, which is Chapter 3's tell of attachment.
+- **The 1% and 2% loss limits.** They are read here as a day's and a week's limits, the shape the Card already gives Book C; the order's own text governs their exact terms. They are the break-even effect's circuit breaker.
+- **No flip inside thirty minutes.** A stopped-out long cannot be turned straight into a short. This is the rule aimed most directly at overtrading in chop and at the pique trade after a stop-out.
+- **The view line.** Chapter 15 takes this one up.
+
+The 07:00 anchor already prints the day-trade checklist as text, never with a price or a size. Since 27 October 2026 the order's manual ledger has lived outside the public repository, and the Weekly prints only its aggregates: counts, R, the rule-broken share and the largest loss in R, never a currency figure or a row (D41).
+
+**The scorecards.** Several measures turn the record into a score, and each is designed to be read before the week's P&L.
+
+- **The Card's scoreboard.** It prints the rolling thirteen-week expectancy in R by book and by the regime stamped at entry, with n and an interval, "accruing" below its minimum sample, and the count of rule breaks.
+- **The DTH-1 ledger reader.** It prints the trades of the week and to date, the share with no rule broken, the mean and median R, the win rate and the largest loss in R.
+- **The dealer scorecard and the ES ledger.** They grade the reports' own levels and leans, so the operator can see whether the read was right before asking whether the trade was.
+- **Decision quality and the error corpus.** They decompose the forecasts' Brier score and collect the graded misses, and the post-mortem file each Saturday puts one miss at a time in front of the operator with the Doctrine's questions blank.
+
+What the scorecards share is that they measure process and outcome apart. The rule-break count is printed above the result for exactly the reason Chapter 1 gave: the account cannot tell a moved stop from a wrong thesis, and the count can.
+
+## Chapter 14 — What the rules cannot do
+
+A paper that described only what the rules do would be making the Doctrine's case. This chapter is the other half, because a trader who believes the system has solved the behavioral problem has acquired a new narrative and with it a new failure mode. Six limits are real.
+
+**The rules cannot make a view right.** They cap the cost of a wrong view; they do not reduce the number of wrong views. A book whose reads are no better than chance will lose its costs under perfect compliance. The rules then make the loss slow and measurable, which is worth a great deal, but it is not profit. Edge is the reports' job and the operator's. The rules only stop edge being thrown away.
+
+**The rules cannot see a decision that is not recorded.** The register catches what passes through a packet. A trade placed outside the system — on a phone, in another account, "just to test something" — leaves no mark, and the behavioral failure modes are exactly the states in which such trades are placed. The execution layer's gates narrow this where the broker integration reaches. They do not close it, and no rule can. The defence is the operator's own commitment, and the measure is indirect: a gap between the account's result and the register's is a sign that decisions are happening off the books.
+
+**The rules cannot prevent a rule from being argued away.** Every rule has a respectable-sounding exception: this stop is in a bad place; this volatile day is not really volatile; this add is not an add because the thesis changed. The Doctrine answers with the change ladder (Doctrine Rule 20): rules change at their sitting, never in a drawdown. That works only if the operator treats an exception argued mid-session as a rule break, logged as one, rather than as a judgment call. Narrative capture's most dangerous target is the rulebook itself.
+
+**The rules cannot fix the incentive set by the target.** The Doctrine states the operator's aspiration openly and then refuses to let it drive sizing, because sizing to a P&L goal makes the position largest when the edge is weakest. No rule can stop a target from being felt. The thirteen-week score and the benchmark test against Book A alone and the 60/40 are the system's attempt to replace the target as the thing the operator watches. Whether it succeeds is a behavioral question, and Draft 2 should be able to answer it from the pass log and the size ratio of Chapter 2.
+
+**The rules cannot bind a person who is not present.** Most of the operator's day is spent away from the screen, and the Doctrine treats that as the book's most valuable structural fact (its Section 2.3). The volatile-day protocol, the brackets at entry and the prepared list exist so that the decisions are taken when the operator is calm and executed when the operator is absent. A rule that requires judgment in the moment fails when the moment arrives during a meeting. The design answer is to move judgment earlier, not to add rules.
+
+**The rules cannot measure what they prevent.** A trade not taken because the attention budget deferred it is graded as an abstention. A trade not taken because the operator felt the temptation and declined it leaves nothing. The system sees the restraint it imposes, not the restraint the operator supplies, and the second is probably the larger. That asymmetry matters for Draft 2. A falling rule-break count could mean better behavior or fewer temptations noticed, and the register alone cannot tell them apart. The pass log's one-line reasons are the only window, which is why the Doctrine asks for them.
+
+**What the operator does differently.** The operator treats compliance as necessary and never as sufficient: a month with zero rule breaks and negative expectancy is information about the edge, not a success. The operator logs exceptions argued in the moment as breaks, and treats a gap between the account and the register as a red flag.
+
+## Chapter 15 — The view line
+
+Most of what an experienced trader knows is never written down. It arrives as a feeling about the tape — this rally is tired, this dip will be bought, the open will fade — and it is acted on or ignored without a record. If acted on, it is graded only through the trade, and the trade carries size, timing and exit decisions that blur the grade. If ignored, it is never graded at all. The gut is the one forecaster in the system with no scorecard, and Chapter 9's overconfidence literature says that an ungraded forecaster drifts toward overconfidence, because the memory of the calls that worked outlasts the memory of the ones that did not.
+
+The view line is the day-trading order's answer, and this paper reads it as the most important behavioral instrument the system has added. In this paper's reading of the order, it is a dated, one-line directional call with a horizon — the instrument, the direction and the time by which it should be true — written before the session and graded against the stored bars **whether or not a trade follows**. Three properties make it work, and each is a counter to a mechanism in Part II.
+
+**It is written before the outcome.** Hindsight cannot rewrite a call already in the ledger, so the narrative fallacy's habit of remembering a vague feeling as a precise prediction is closed off. A line written at 08:15 that says "ES lower by the close" is either right or wrong at 16:00.
+
+**It is separated from the trade.** Because the view is graded without a position, its grade carries no size, timing or exit error. The view line is the only place in the system where the operator's raw read is measured alone. Its grade answers the question Chapter 1 said the account could not: is the gap between the read and the trade, or is the read itself the problem?
+
+**It is cheap.** A line costs seconds, so the sample grows at the rate of the operator's opinions, not the rate of trades. A trader who takes three day trades a week may hold a dozen views. The view-line ledger reaches a usable sample several times faster than the trade ledger, and Evidence and Inference's arithmetic says that this matters more than anything else about it.
+
+The view line also supplies the comparison Part I needs most. Set its hit rate and calibration beside the trade ledger's results on the same days, and the difference is the gap itself. If the views are right and the trades lose, the problem is execution, and the rules of Chapter 13 should bind harder. If the views are no better than chance and the trades still win, the profit came from structure — the dealer read, the setup list — and the gut should be trusted less. If both are weak, the edge is absent and no rule will create it.
+
+**What the view line cannot do.** It cannot grade a view held too loosely to write down, and it invites a quiet form of gaming: lines written only on confident days. The defence is to write a line every session, including "no view", and to count the no-view lines, which are themselves a record of restraint. The view line is a diagnostic, not a signal. Nothing in the system trades it, and no rule cites its record until the change ladder admits it.
+
+| Instrument | What it grades | What it cannot see |
+|---|---|---|
+| The trade ledger | The read, timing, size and exit together | Which of them made the result |
+| The view line | The read alone, every session | Views not written down |
+| The rule-break count | Compliance with written rules | Restraint the operator supplies unprompted |
+| The pass log | Declined packets and their reasons | Temptations never drafted |
