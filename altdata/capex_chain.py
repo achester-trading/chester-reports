@@ -148,6 +148,18 @@ def capex_growth(st, cutoff: str, cfg: dict) -> dict:
             "names": names, "key": key, "gap": gap}
 
 
+def guidance(st, cutoff: str, cfg: dict) -> dict:
+    """The hyperscalers' capex guidance beside the filed capex (A66): each name's
+    newest 10-Q or 10-K guidance sentence, read from the stored records
+    (altdata/sources/edgar_guidance.py). Report only."""
+    names = list((cfg.get("relative") or {}).get("capex_names") or [])
+    try:
+        from .sources import edgar_guidance                     # noqa: PLC0415
+        return edgar_guidance.guidance_line(st, cutoff, names)
+    except Exception as exc:                                    # noqa: BLE001
+        return {"lines": [], "footnotes": [], "fault": f"{type(exc).__name__}: {exc}"}
+
+
 def relative(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     """Each bucket's basket against the benchmark over the window, ranked lead to
     lag; buckets without history are listed with their reason."""
@@ -160,6 +172,7 @@ def relative(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
     out: dict[str, Any] = {"window_months": months, "benchmark": bench_key,
                            "bench": bench, "buckets": [], "absent": [],
                            "capex": capex_growth(st, cutoff, cfg),
+                           "guidance": guidance(st, cutoff, cfg),
                            "report_only": True}
     for bid, p in (cfg.get("proxies") or {}).items():
         if bid == "memo":
@@ -210,7 +223,23 @@ def relative_lines(r: dict) -> list[str]:
     else:
         out.append(f"Against it, the hyperscalers' filed capex: not stored "
                    f"({c['reason']}). {c['gap'][0].upper()}{c['gap'][1:]}.")
+    g = r.get("guidance") or {}
+    parts = g.get("lines") or []
+    if g.get("fault"):
+        out.append(f"Their capex guidance from the filings: not read ({g['fault']}).")
+    elif parts and all(p.endswith(" not stored") for p in parts):
+        out.append(f"Their capex guidance from the filings (10-Q, 10-K): not stored "
+                   f"for {', '.join(p[:-len(' not stored')] for p in parts)}.")
+    elif parts:
+        out.append("Their capex guidance from the filings: " + "; ".join(parts)
+                   + ". Report only; each figure is extracted from the filing's own "
+                     "sentence, its URL in the notes.")
     return out
+
+
+def relative_notes(r: dict) -> list[str]:
+    """The guidance's footnotes: each filing's form, date, accession and URL."""
+    return [f"Guidance source, {n}" for n in ((r.get("guidance") or {}).get("footnotes") or [])]
 
 
 def main(argv: Optional[list[str]] = None) -> int:

@@ -68,8 +68,10 @@ FIMA_KEYS = ("tic.fima_repo", "tic.fima_repo_weekavg")
 
 
 def config(path: Optional[Path] = None) -> dict:
+    """Batch 3's config, its "price:" references resolved (A96)."""
+    from . import price_sources                                 # noqa: PLC0415
     with open(path or CONFIG_PATH, encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
+        return price_sources.resolve_tree(yaml.safe_load(fh) or {})
 
 
 def _pts(st, key: str, cutoff: str, instrument: Optional[str] = None

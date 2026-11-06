@@ -70,14 +70,31 @@ def _usd_bn(v: Optional[float]) -> str:
 
 
 # ---------------------------------------------------------------------------
-def attribution_subsection(st, now: str, cfg: Optional[dict] = None) -> dict:
-    return _prose(_attribution(st, now, cfg), now)
+def attribution_subsection(st, now: str, cfg: Optional[dict] = None,
+                           then: Optional[str] = None,
+                           month_aligned: bool = False) -> dict:
+    return _prose(_attribution(st, now, cfg, then, month_aligned), now)
 
 
-def _attribution(st, now: str, cfg: Optional[dict] = None) -> dict:
-    """ST-R4.21b and ST-R4.26a, where the attribution prints."""
+def _attribution(st, now: str, cfg: Optional[dict] = None,
+                 then: Optional[str] = None, month_aligned: bool = False) -> dict:
+    """ST-R4.21b and ST-R4.26a, where the attribution prints.
+
+    A103 (W3, the Weekly Letter of w/e 30 Oct): WITH `then`, THE TERM PREMIUM'S
+    CHANGE IS PLUMBING'S. The table printed the change on the prior print while
+    Plumbing's table printed the change since the last edition, so one series
+    showed two weekly changes. Given the edition's `then`, the change cell is
+    the one computation Plumbing reads (weekly_stack.change_over, the same
+    cutoffs and, in the Monthly, the same month-aligned prior)."""
     cfg = cfg or batch5.config()
     tp = batch5.term_premium(st, now, cfg)
+    if then and not tp.get("absent"):
+        from . import weekly_stack as ws                         # noqa: PLC0415
+        x = ws.change_over(st, tp["key"], now, then, month_aligned=month_aligned)
+        if x is not None:
+            tp["change_bp"] = x.get("change")
+            tp["prior_as_of"] = x.get("prior_observed_at")
+            tp["change_window"] = "since the last edition"
     fb = batch5.fiscal_bark(st, now, cfg)
     rows, lines = [], []
     years = [int(y) for y in (cfg.get("term_premium") or {}).get("windows_years") or (5, 20)]
@@ -116,6 +133,15 @@ def _attribution(st, now: str, cfg: Optional[dict] = None) -> dict:
             lines.append(f"The quoted 10-year (FRED DGS10) moved {fb['quoted_bp']:+.0f} bp "
                          f"over the same months; the split is ACM's of its own fitted "
                          f"yield.")
+    # ITEM 26's CAPEX-GUIDANCE REVISIONS (A66), beside the flag: the change in each
+    # hyperscaler's filed guidance between its two newest 10-Q or 10-K filings.
+    # Report only; the flag does not read it.
+    try:
+        rv = batch5.capex_guidance_revisions(st, now, cfg)
+        lines.append("Hyperscaler capex-guidance revisions (item 26; from their own "
+                     "filings, the same fiscal year only): " + "; ".join(rv["lines"]) + ".")
+    except Exception:                                           # noqa: BLE001
+        log.warning("item 26's capex-guidance revisions faulted", exc_info=True)
     # BATCH 14 ITEM 70 (a56): the nominal-growth anchor, beside SR-43's
     # twin-deficit fit as a fair-value range. Report only.
     try:
@@ -173,10 +199,12 @@ def _net_liquidity(st, now: str, cfg: Optional[dict] = None) -> dict:
 
 
 def plumbing_subsections(st, now: str, then: str, cadence: str = "weekly",
-                         cfg: Optional[dict] = None) -> list[dict]:
+                         cfg: Optional[dict] = None,
+                         month_aligned: bool = False) -> list[dict]:
     cfg = cfg or batch5.config()
     out = []
-    for fn in (lambda: attribution_subsection(st, now, cfg),
+    # A103 (W3): the attribution's term-premium change is Plumbing's own.
+    for fn in (lambda: attribution_subsection(st, now, cfg, then, month_aligned),
                lambda: net_liquidity_subsection(st, now, cfg)):
         try:
             out.append(fn())

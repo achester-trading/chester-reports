@@ -10,7 +10,7 @@ months. Enters the T&B overlay intake queue (top-side input) only after the
 ledger is written." Rights: "Flag now; overlay via the queue after the ledger."
 It states NO pass rule.
 
-THE STUDY BEING REPLICATED (Dashiell, Schwab, as the order records it): since
+THE STUDY BEING REPLICATED (Schwab's, as the order records it): since
 2000, 12 instances of the watch tier; the VIX higher within 1-3 months in 10 of
 12; the S&P lower at 3 months in 9 of 12; at the strong tier every case
 negative; misses in 2003 and 2009.

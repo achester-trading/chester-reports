@@ -73,7 +73,7 @@ unwind_watch:
   # close, cumulated) at -2 sigma on five years -- a rising-yield move carried
   # overnight. Hooked by name; its settings are config/batch5_tranche_1b.yaml's.
   # It COUNTS toward min_cosignals like the other four (session-set: listed for
-  # Ari in docs/briefs/st-r4-tranche-1b-notes.md).
+  # the operator in docs/briefs/st-r4-tranche-1b-notes.md).
   overnight: {module: altdata.batch5b, function: cosignal}
 
 # THE FRAME'S FENCE: the directional reading the order rejects. Any of these in a

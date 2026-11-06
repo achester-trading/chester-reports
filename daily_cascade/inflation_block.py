@@ -291,6 +291,12 @@ def ppi_panel(st, cutoff: str) -> Optional[dict]:
             "data": {"ppi_lenses": pp}}
 
 
+def _ai_ppi_panel(st, cutoff: str) -> Optional[dict]:
+    """Batch 14 item 65 (ST-R6.65b; a57): the AI-bottleneck PPI line."""
+    from . import batch14_b1_block                               # noqa: PLC0415
+    return batch14_b1_block.ai_ppi_panel(st, cutoff)
+
+
 SHELTER_NAMES = {"fred.cpi_shelter": "shelter", "fred.cpi_rent": "rent",
                  "fred.cpi_oer": "owners' equivalent rent"}
 
@@ -302,10 +308,12 @@ PANELS: list[tuple[str, Optional[Callable]]] = [
     ("decomposition", decomposition_panel),   # Batch 7 item 46
     ("cpi_lenses", cpi_lenses_panel),         # Batch 7 item 48, lenses 7-11
     ("ppi", ppi_panel),                       # Batch 7 Group B, lenses 12-14
+    ("ai_ppi", _ai_ppi_panel),                # Batch 14 item 65, the AI bottleneck
 ]
 # Panels the Monthly prints and the Weekly does not (ruling 5 of 18 Oct 2026: the
-# PPI panel is Monthly-only; the close keeps its release-day read line).
-MONTHLY_ONLY = frozenset({"ppi"})
+# PPI panel is Monthly-only; the close keeps its release-day read line). Item 65's
+# PPI line is monthly as ruled.
+MONTHLY_ONLY = frozenset({"ppi", "ai_ppi"})
 
 
 def subsections(st, cutoff: str, cadence: str = "monthly") -> list[dict]:

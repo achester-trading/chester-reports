@@ -255,7 +255,7 @@ ninety-nine code gates (ninety-six Python), recounted from the Makefile.
 Read once, with `gh run list --branch st-t5-render --limit 3`. Both runs were
 queued when read; the numbers are in the session's closing report.
 
-## Box commands, for Ari
+## Box commands, for the operator
 
 Run these inside a window, after Thursday's merge, dry run first. Nothing here
 was run.

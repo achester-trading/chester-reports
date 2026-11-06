@@ -129,7 +129,13 @@ altdata/                  Shared ingestion package — used by every report
                           (Group B, the PPI and GDP lenses); 1 in
                           FRED_NOTES_SERIES (the open note's retail sales);
                           10 in FRED_BANK_STRESS_SERIES (item 59's panel);
-                          FRED_PULL_SERIES, 277, is the union the
+                          1 in FRED_HOUSEHOLDS_SERIES (item 68's
+                          per-household deflator);
+                          4 in FRED_BATCH14_B1_SERIES (items 65 and 71);
+                          1 in FRED_BATCH15_A_SERIES (item 73's Nikkei 225);
+                          1 in FRED_6I_SERIES (the Quarterly's OVX);
+                          2 in FRED_6I3_SERIES (6i-3's Baa proxy);
+                          FRED_PULL_SERIES, 286, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -145,7 +151,7 @@ altdata/                  Shared ingestion package — used by every report
     _base.py              http_get_json: timeout, retry w/ backoff, FetchError
                           (4xx surfaces immediately; 5xx retries)
     fred.py               Pulls every config.FRED_SERIES into the store
-    yfinance_source.py    124 market symbols -> store keys yfinance.mkt_<sym>
+    yfinance_source.py    127 market symbols -> store keys yfinance.mkt_<sym>
   market_features.py      calc.* series: breadth, trend, realized vol — and the
                           macro transforms that were monthly_macro/compute.py
                           (Sahm, the YoY family, 2s10s, r-vs-g, net liquidity).
@@ -239,7 +245,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and thirty-three code gates (one hundred and thirty Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and sixty-seven code gates (one hundred and sixty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -252,6 +258,15 @@ stops at the first failure for a tight edit loop. The list lives in the
 and a local run cannot hold different lists — which is how four validators
 drifted out of CI while still passing locally. Adding a gate means adding one
 line to the Makefile.
+
+**A gate pins its clock to its fixture's date.** A gate that must read today
+says so in a comment and names the day it will next need attention. The pin is
+a `GATE_NOW` constant and a `pin_clock()` run first in `main()`, which fixes
+`session.utc_now` (and any module-level `_now` on the gate's path) for the
+gate's run only. This rule came from B106 (2 Nov 2026), after five gates went
+red on the calendar between 28 Oct and 2 Nov: A88, B101, B101b and B106 pinned
+them. `docs/briefs/b106-notes.md` holds the inventory, and the code under test
+that reads the clock directly rather than through `altdata.session`.
 
 `make` is absent on a stock Windows box, so **`scripts/make.sh` is the same
 targets for a machine without make** — `bash scripts/make.sh validate`,
@@ -273,8 +288,10 @@ paper that now exists.
 
 **Reports read the market-state object; no report recomputes regime.** `regime.py`
 computes one object per session day from the declared rules in
-`config/market_state.yaml` — eight dimensions, three dials and an eight-row
-contradiction table — and the 16:45 close pass is its only writer. Every report
+`config/market_state.yaml` — fifteen dimensions, three dials and an eight-row
+contradiction table (v2, 6f: thirteen of the dimensions computed, two declared not
+buildable; plus the report-only horizons, tail families and debt-cycle branch) —
+and the 16:45 close pass is its only writer. Every report
 reads it through `regime.latest()`: the 07:00 morning anchor does not recompute,
 because an anchor computing its own object could disagree with the close report's,
 and then the system holds two regimes with no way to say which one a decision was
@@ -299,8 +316,9 @@ The Monthly's long form is the same renderer's (T2.7): `stack_render.page_html` 
 `stack_render.markdown` print a whole edition at any cadence; at "monthly" a
 sub-section carries its own charts and notes, a Reading entry's stored summary
 prints verbatim (escaped, never polished, audited or trimmed; in the reading time,
-never in the budget), and `stack.trim_to_budget` cuts paragraphs to the 10,000
-words (T3.1 item 22; 7,000 before). A section declared at one cadence only (Reading) is skipped at the others
+never in the budget). The Monthly's 10,000 words (T3.1 item 22; 7,000 before) are
+a target: since D19/D20 (24 Oct 2026) nothing is cut to fit, and an edition over
+its reading target prints one foot line (`stack.target_line`). A section declared at one cadence only (Reading) is skipped at the others
 (`stack.section_ids`).
 
 **Each family of metrics is measured its own way (6e, the metric lenses; ruled
@@ -465,8 +483,8 @@ the Weekly (`weekly_digital_<ending>.html` and `.pdf`, its edition JSON and its
 appendix line) and attaches it to the Weekly's own email as a second PDF (ruled
 17 Oct 2026); the Weekly prints one line naming
 it, and a failed addendum costs only the addendum. A Sunday before the first edition (the Weekly of 1 Nov 2026) builds it as a dry run under `reports/dryrun/` only. Nine code-written sections in
-the ruling's order (`config/digital_addendum.yaml`, its budgets session-set: five
-minutes, 1,100 words, two charts); every Batch 4 Tranche A cell prints "awaiting
+the ruling's order (`config/digital_addendum.yaml`, its targets, never caps:
+about seven minutes, about 1,500 words, two charts; D19/D20, 24 Oct 2026); every Batch 4 Tranche A cell prints "awaiting
 Tranche A" until its key has a row; the read is one paragraph through the
 existing narrative step and its audits, from the page's figures only. The X
 pilot's ledgers and digests are read from the box's inbox, which the nightly
@@ -543,8 +561,9 @@ panels read Tranche A by key:
 - an absent series prints "awaiting the first pull", "not tracked" or "awaiting
   EL-12".
 
-The page holds Phase 1's 52-line budget, and the read's audits gain a flag-word
-check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
+Phase 1's 52-line budget is retired (D19/D20, 24 Oct 2026): items 77 and 78 print
+in the incidents section's body with their tables, and a page over its target prints
+one foot line. The read's audits gain a flag-word check. `python -m altdata.sources.treasury show` reads mNAV for the MSTR/MSCI
 watch, read-only.
 
 `altdata/derived.py` is the one place a delta, a percentile or a z-score is
@@ -783,6 +802,162 @@ ruled 20 Oct 2026 with F1-F8; b52-batch14-a2, 21 Oct 2026).** Report only.
 
 `tools/validate_batch14_a2.py` holds it.
 
+**The Quarterly's readers, tranche 1 (b69-quarterly-readers-1, 25 Oct 2026; ruling
+D34; merges after the 1 Nov Monthly).** Ten official writers fill the Alternative
+Assets Quarterly's unfilled rows from the sources B67's checks passed
+(`docs/briefs/quarterly-source-checks-2026-10-25.md`), each honouring its stated
+limit in code, all report-only and barred from the market-state object:
+- **oil and energy:** `eia_buffers` (the SPR, refinery utilisation, gas storage,
+  LNG exports), `portwatch` (IMF PortWatch's four chokepoints, one request a day,
+  "IMF PortWatch" in every row's source) and OVXCLS through the FRED pull
+  (`FRED_6I_SERIES`; Cboe's copyright, own use);
+- **agriculture:** `esmis_wasde` (WASDE through USDA's release service, each
+  release its own vintage, a projection never sharing an instrument with an
+  estimate), `esmis_crop_progress`, `cpc_oni` and `cftc_grains`;
+- **currencies:** `boc_valet`, `riksbank` (one request a day), `snb_sight`
+  (attributed, non-commercial) and `mof_intervention` (PDL 1.0, cited on every row).
+
+`altdata/sources/_quarterly_common.py` reads robots.txt at every pull (401, 403,
+404 or 410 as no rules) and keeps the one-a-day guard. `tools/validate_quarterly_readers_1.py`
+holds it.
+
+**The Quarterly's readers, tranche 2 (b70-quarterly-readers-2, 25 Oct 2026; D34;
+after the 1 Nov Monthly).** Four external writers, report-only:
+- `ishares_holdings`: IBIT's and ETHA's AUM and shares, "level, not flow";
+- `llama_breadth`: DefiLlama TVL by category and by layer-2 chain, stored and
+  never republished, the AERO merge convention in code;
+- `edgar_bdc`: five BDCs' filed investments at fair value and NAV per share,
+  through the SEC contact, with OCSL refused by the blocklist;
+- `blockscout_supply`: a field check, PENDING while Blockscout's public stats
+  carry no burn or issuance field.
+
+The sources B67 refused are registered `refused`, and their rows print "not
+tracked" with the reason and the check date (`status_extra: not_yet_sourced`):
+PJM, LBNL, MOEA, TSMC, Circle, Tether, Thailand's current account and the
+construction index. The Yahoo rows (GDX, SIL, the grain fronts) print "pending
+D33". `tools/validate_quarterly_readers_2.py` holds it.
+
+**Batch 14, Part B2: the CMA table, the PEG note and the per-household line (items
+62, 67 and 68; b55-batch14-b2, 23 Oct 2026). Merges after the 1 Nov Monthly.**
+Report only.
+- **Item 62.** HSBC AM's Capital Market Assumptions and Vanguard's Capital Markets
+  Model forecasts join the reading shelf. Each house's edition is a scan file,
+  `docs/scans/cma-<house>-<YYYY>q<N>.md`, written by the chat-side publication
+  watch, its reference table one row per asset with the row's own URL; the scans
+  ingest stores it. `altdata/cma_table.py` (`config/cma_table.yaml`) computes each
+  asset's median, high less low and count across the current editions (older than
+  15 months dropped and counted), and the Monthly's slow layers print it
+  (`daily_cascade/batch14_b2_block.py`); a house with nothing stored prints "no
+  edition stored". Item 30's Book A line in the allocation block reads the US
+  median. No number is entered by hand.
+- **Item 67.** PEG and LTEG are listed gaps (F3) and print nowhere; item 60's
+  lines end on one gap line pointing at the LTEG overshoot note,
+  `docs/base-rate-notes/lteg-overshoot-2026-10.md`, which is cited. The
+  proposal `market_cheap_on_peg` is seeded PROPOSED with its caveat.
+- **Item 68.** Redfin's pending sales per 1,000 households (FRED TTLHHM156N,
+  `fred.households`) print beside the raw level in item 36's housing block, with
+  dual percentiles, single-source. NAR's 66.0 print is a dated record in
+  `docs/dated-appendix-queue.md`.
+
+`tools/validate_batch14_b2.py` holds it.
+
+**The one-day 10-year trigger and three new sources (rulings of 24 Oct 2026, D15
+and D26; b59-trigger-sources). Merges after the 1 Nov Monthly.** Report only;
+nothing enters a composite or the market-state object.
+- **D15.** `altdata/oneday_10y.py` (`config/oneday_10y.yaml`) fires when DGS10's
+  one-day change passes the five-year 97.5th percentile of absolute one-day
+  changes (either sign, at least 1,000 of them). It runs the speed flag's
+  attribution over one session, "awaiting" any model not yet stored. Its ledger
+  `rates.oneday_event_ledger` is written by the close and resolved in the EOD pass.
+  The pre-registration is `docs/ledgers/oneday-10y-preregistration-2026-10.md`,
+  held by SHA-256. The laptop first edition is INSUFFICIENT, n 67. The close prints
+  the flag line in the event area; the Weekly and the Monthly print the block in
+  Mechanics.
+- **D26.** Each reader was registered first as an Alpha Lab hypothesis
+  (`alpha/research/hypotheses-2026-10-24-b59-sources.yaml`, committed alone before
+  the readers). All three are keyless steps of the crypto basket's 17:25 run, on
+  the freshness roster:
+  - `altdata/sources/gdelt.py`: the 15-minute exports, the geopolitical families'
+    conflict counts, share and tone, and the articles per story. A failed export
+    marks the day STALE and fills nothing. The DOC API is not read.
+  - `altdata/sources/cpc_degree_days.py`: NOAA CPC's population-weighted degree
+    days, the 1991-2020 normal on read.
+  - `altdata/sources/hf_releases.py`: new public model repositories per week for
+    the declared organisations, counts and dates only.
+- **Placement.** GDELT: the Weekly's tail register, both narratives sections and
+  the Monthly's Factor III. Degree days: beside natural gas in Mechanics. Model
+  releases: the Weekly's narratives and the Monthly's Factor I-b
+  (`daily_cascade/b59_block.py`).
+
+`tools/validate_b59.py` holds it.
+
+**Trend breadth is our own cross-asset signal, a report (Batch 16 item 89(b),
+written as round 7's 82(b); ruled 26 Oct 2026; B76).** `altdata/trend_breadth.py`
+(`config/trend_breadth.yaml`) reads sixteen markets from their stored closes only:
+the Treasury 2-, 10- and 30-year, the Bund and JGB 10-year, SOFR, ES and NQ's
+front settles, copper, oil and gold, the dollar index, EUR/USD, USD/JPY, AUD/USD
+and BTC. A market with no stored key prints "not stored" and leaves n.
+- **The signal is declared, not fitted.** The sign at 20, 60, 120 and 250 sessions
+  is the close against its lookback mean. A market is trending when all four
+  agree, reversing when the 20-session sign has flipped against the 250-session
+  inside five sessions, mixed otherwise.
+- **Stored:** `trend.<market>.<lookback>`, `trend.flips_week` and
+  `trend.reversing_share`. The features pass computes recent days; the history
+  is `python -m altdata.trend_breadth backfill` (dry run first). All are barred
+  from the market-state object.
+- **Where it prints:** a table in the Weekly's Positioning & flows, which the
+  Monthly reads too (`daily_cascade/trend_breadth_block.py`), with no paragraph;
+  nothing in the daily close.
+- **The ledger:** `docs/ledgers/trend-breadth-2026-10-26.md`, pre-registered at
+  its head and held by SHA-256, reads the reversing share against the S&P 500's
+  and the Nasdaq-100's +5 and +20 returns. It grants nothing until Audit #5 or a
+  sitting reads it. Only then may the signal enter the Top & Bottom intake queue,
+  first of the three positioning series.
+
+`tools/validate_trend_breadth.py` holds it.
+
+**Batch 15, session B: positioning, the lab ledger, cyber pressure and protocol
+breadth (items 74, 75, 77 and 78; b56-batch15-2, 23 Oct 2026). Merges after the
+1 Nov Monthly (G4).** Report only.
+- **Item 74.** The TFF pull adds ES and NQ. `altdata/hf_positioning.py`
+  (`config/hf_positioning.yaml`) prints leveraged funds' net in each, with the
+  net short share's dual percentiles, in the Weekly's Positioning & flows. The
+  squeeze-risk flag pairs ES's net short at or above its 90th with item 71's
+  Amihud stand-in at or above its 90th; it prints there and as a context line
+  in item 45's levels read. FINRA's share of float and a performance proxy are
+  listed gaps; the prime-book figures are a dated record. The ledger, ST-R6.74b,
+  is pre-registered (`docs/ledgers/short-extremes-preregistration-2026-10.md`,
+  held by SHA-256), reads stored history only, and its laptop first edition is
+  INSUFFICIENT (n 0: no ES rows stored yet).
+- **Item 75.** `docs/ledgers/ai-lab-financials-ledger.md` is the template, its
+  first row the provisional, WSJ-reported draft S-1. `altdata/ai_lab_ledger.py`
+  computes the ratios; Factor I's lines print item 47's unit-economics line,
+  SR-16's commitments entry ("no ledger entry" otherwise) and the mega-IPO watch
+  ("not yet public").
+- **Item 77.** `altdata/cyber_pressure.py` stores CISA KEV additions and NVD's
+  critical CVEs per week (a Saturday step of the crypto basket's run) and prints
+  them, with their joint flag, in the Weekly's Ahead as the tail register's cyber
+  line, never a tripwire.
+- **Item 78.** `altdata/protocol_breadth.py` stores DefiLlama's active-protocol
+  count daily from its first pull (the endpoint serves today's list only) for the
+  Monthly's digital chapter. Items 77 and 78 cross-reference in the addendum's
+  incidents footnote. The base rate is
+  `docs/base-rate-notes/crypto-winters-protocol-shutdowns-2026-10.md`.
+
+`tools/validate_batch15_2.py` holds it.
+
+**Batch 16, the midterm table and its Ahead row (items 80(b) and 90, round 7, filed
+26 Oct 2026 with H1-H7; a78-batch-16-midterm).** Base-rate rights only.
+`tools/calibration/midterm_base_rate.py` computes every midterm year since 1950 from
+the store (`yfinance.mkt_gspc`, `fred.usrec`; a key not stored prints "not stored")
+into a dated ledger whose computation is printed at its head with its SHA-256. The
+Weekly's Ahead prints the claims register's midterm date as a named row
+(`register_event_rows` in `config/weekly_ahead.yaml`): its own class and tier, the
+House and Senate odds from the stored prediction markets as its consensus, "odds
+not stored" without them, and the ledger's headline COPIED into config beside its
+channel, since a live row never reads a ledger. A new edition is copied in by the
+session that files it. `tools/validate_batch16_midterm.py` holds it.
+
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store
 read-only after each pull and lists three things: an outlier (a price's or a FRED
@@ -854,6 +1029,34 @@ absent with its reason; every read is as of. The settings are
 to H-008 in the Alpha Lab, so no report says a level will hold or a node will be
 crossed. `tools/validate_volume_profile.py` holds it on fixtures; the definition
 is `docs/volume-profile.md`.
+
+**Top & Bottom is calibrated through its overlays, never a composite (6i, 26 Oct
+2026).** `altdata/tb_harness.py` reads the 3 Sep episodes and the flagged extended
+set from `config/tb_episodes.yaml` through the three overlays of the
+architecture's Part 23, each input as of its decision date's close from a read-only
+store, and writes only its dated ledger, `docs/ledgers/tb-harness-<date>.md`, under
+the pass rule pre-registered in that config. A series before it exists reads "not
+existent". No `top_bottom` composite is stored or registered (the 6i brief's
+decision 3). Disruptive Themes' Stage 1 panels (`daily_cascade/themes_block.py`,
+`config/themes_panels.yaml`) join the Alternative Assets Quarterly through a hook
+file after its family chapters, unscored, every unstored input a GAP cell with its
+reason; Stages 2 to 4 are 6i-6. `tools/validate_tb_harness.py`,
+`validate_quarterly_rows_6i.py` and `validate_themes_panels.py` hold them.
+
+**The harness's credit leg has two proxies, and its false-positive rate is
+pre-registered (6i-3 and 6i-4, A79, 26 Oct 2026).** DBAA and BAA are in the FRED
+pull so that `calc.baa_less_10y` (daily, from 1986) and `calc.baa_less_10y_m`
+(monthly, from 1962) reach every episode; HY OAS reaches none before 2023 on FRED.
+Both are registered and barred from the market-state object. The Baa proxy is an
+overlay beside HY Spread Acceleration (`proxy_of`), printed with its own window and
+never counted in the calibration's record. `python -m altdata.tb_harness fpr`
+scores every stored S&P 500 session by the rule in
+`docs/ledgers/tb-harness-fpr-2026-10-26.md`, whose head was committed before the
+code and whose hash `config/tb_episodes.yaml` must match. The Monthly prints three
+lines through `config/stack_hooks/monthly-slow-tb-harness.yaml`: the overlays'
+states, the episode record and the rate per overlay with n. The Quarterly's "HY
+spread acceleration" row reads the overlay. `tools/validate_tb_harness_fpr.py`
+holds it.
 
 **The dealer block is a view of the exposure JSON (6b part 1, brief v2 ratified
 16 Oct 2026).** `daily_cascade/dealer_block.py` prints T1 with its quality panel,
@@ -1115,10 +1318,69 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
-**The scheduled roster is 33 official writers, 37 external writers and 7
+**The scheduled roster is 43 official writers, 41 external writers and 7
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
+
+**Is it getting better: decision quality and the error corpus (Learning Loop v2,
+LL-1 and LL-3; B73, ruled 25 Oct 2026).** Report only, no model call, no right.
+`altdata/decision_quality.py` computes at read, from the stored ledger and grades:
+Murphy's decomposition of the Brier score (reliability, resolution, uncertainty and
+the within-bin term, ten bins of 0.1) by source family and horizon bucket,
+"accruing (n=k of 100)" below 100 resolved rows a cell; the counterfactual ledger
+per book (taken, declined, draft, one grade a decision); the Weekly stance's implied
+book against Book Z; and the one line, the system Brier and the expectancy in ruled
+R over 13 and 52 weeks against the windows before. The Monthly appends it to the Lab
+report attachment (`with_lab_report`, outside `alpha/`); `python -m
+altdata.decision_quality pack` prints the Doctrine pack's section; the Weekly reads
+none of it. `altdata/error_corpus.py` writes the append-only `error_corpus` table:
+one row per graded miss (a ledger row past the coin's Brier, a grade below zero R)
+with what was said, what happened, the margin, and what was missing at emission --
+the object's absent dimensions and legs, and the ledger's new `missing_inputs`
+column, written once by every source's `record`. It prints nowhere; the critic
+(LL-5) reads it. `tools/validate_decision_quality.py` and
+`tools/validate_error_corpus.py` hold it.
+
+**Which missing input costs the most, and the post-mortem file (Learning Loop v2,
+LL-2 and LL-4; A80, ruled 25 Oct 2026).** `altdata/value_of_information.py` computes at read, by source family and
+horizon, the mean Brier of the resolved rows missing an input at emission (the
+row's `missing_inputs` united with the object's absent dimensions and legs held
+then; NULL with no object is unrecorded, never compared) less that of the rows that
+had it, with n, a percentile bootstrap interval (seed 20261025, 2,000 resamples)
+and the share missing; an input is ranked from 30 affected rows. It is the scans'
+and source checks' search order, the operator's to adopt; the Monthly's Lab report
+prints it after decision quality and `python -m altdata.value_of_information pack`
+prints the Doctrine pack's section. Book B's candidate rows record their unread
+legs. `tools/validate_value_of_information.py` holds it. `python -m
+altdata.postmortem week` writes, the Saturday before the Sunday session, one file
+per graded miss of the week from its corpus row (`docs/postmortems/<saturday>/<id>.md`:
+what was said, what happened, the margin, what was missing, the decision it fed) with
+the Doctrine's six 9.2 questions, the seventh field and the note blank for the
+operator; it never rewrites a file. A model may only shorten it (`--shorten`, off by
+default, through `model_meter`), and a paragraph naming a cause or a figure the rows do
+not hold is withheld (R-4). `python -m altdata.redteam_shadow run` is Red Team v1 in
+shadow: one blinded call per material packet (evidence shown, thesis withheld) to
+`docs/redteam/shadow/<date>-<packet>.md` only, the register opened `mode=ro`, so never
+`review_changed`; EL-9's gate stands. `tools/validate_postmortems.py` holds both.
+
+**The gold spine, Tranche A (signal-triage Batch 16 items 87 and 88(a), (c), (d);
+round 7's 80 and 81; ruled 25-26 Oct 2026; B75).** Report rights only.
+`altdata/gold_attribution.py` fires on a gold move past 2 sigma on the move screen's
+own sigma and window, and decomposes it into five stored lenses, side by side and
+never weighted: the real yield, the breakeven, the dollar, liquidation (the
+correlation with the S&P 500 and QQQ for the Nasdaq-100; the squeeze flag "not
+stored"), and the official bid (the operator's dated records in
+`config/gold_official_bid.yaml`, "no record" otherwise). Beside it, the 60-day beta
+to the real yield; `gold.attr.<lens>` and `gold.beta_real_60d` are stored by the close
+and barred from the object. The exhaustion checklist's four tells are a
+pre-registered ledger (`docs/ledgers/gold-exhaustion-preregistration-2026-10.md`)
+with no rights. `daily_cascade/gold_block.py` prints the close's gold line only on a
+fired day or a flipped tell, and the Weekly's `gold` section between Plumbing & rates
+and Positioning & flows from 8 Nov (header-only before), with chart W13 inside the
+cap. GLD gets its own nightly exposure file as a declared exception to the 13-ticker
+hold (`config/exposure_universe.yaml`). `tools/validate_gold_attribution.py`,
+`validate_weekly_gold_block.py` and `validate_gld_exposure.py` hold it.
 
 **Bank stress is a panel, two flags and a classifier, never a regime (Batch 12 item
 59, 20 Oct 2026).** `altdata/bank_stress.py` reads `config/bank_stress.yaml`'s
@@ -1149,6 +1411,52 @@ flag turns on. Item 60's forward-EPS legs are listed gaps while
 both branches). The hyperscaler P/E dispersion (`altdata/pe_dispersion.py`)
 prints with the Monthly's index decomposition. `tools/validate_batch12.py` holds
 it.
+
+**The speed flag's attribution and the fragility flag are reports and a flag, never
+a regime (Batch 14 items 65 and 71, a57, 23 Oct 2026; merges after the 1 Nov
+Monthly).** On a day SR-35's 10-year companion prints, `altdata/speed_attribution.py`
+splits the 10-year's move into expected short rates and the term premium by KW and
+ACM, each read only when its input for the day is stored (F5: "awaiting"
+otherwise). The close prints it in Mechanics after item 52's block and stores
+`rates.speed_event_ledger`; the EOD pass's `resolve` writes the attribution and
+the outcomes as they land. `altdata/ai_trade.py` carries:
+- the AI-bottleneck PPI line, in item 46's inflation block (Monthly);
+- AIQ against SPXT, labelled proxy, after item 31's concentration table;
+- the AI-credit gap beside SR-16's neocloud line.
+
+`altdata/fragility.py` is item 71's panel (`config/fragility.yaml`):
+- SPY's Amihud measure and range per volume, with ES depth "not tracked";
+- margin debt and its share of Z.1's equity market value;
+- the leveraged-ETF rebalance over ProShares' seven;
+- 6b's stored dealer gamma.
+
+Its flag is the Amihud stand-in at its 90th with forced flow above its 90th: flag
+rights only. Its lens is a report-only row in item 52's table, and its line sits
+in item 45's levels read. `daily_cascade/batch14_b1_block.py` lays both out.
+Both ledgers are pre-registered:
+- ST-R6.65a: INSUFFICIENT, n 28;
+- ST-R6.71d: FAIL, n 2965.
+
+`tools/validate_batch14_b1.py` holds it.
+
+**Gold and developed-market events are flags with their own ledgers; gold-ETF
+ownership is a report (Batch 15 items 72, 73 and 76, a58, 23 Oct 2026; merges after
+the 1 Nov Monthly).** `altdata/gold_event.py` fires on gold's (GC=F) one-day move of
+2.5% or a five-day move beyond its 95th percentile on five years, and attributes it
+to the real 10-year, DXY and Brent ("awaiting" until each lands), the IMF IFS
+central-bank trend and a residual line that fits nothing; ETF flows are not tracked
+(WGC is login-gated). `altdata/dm_drawdown.py` extends SR-46's screen to Nikkei 225
+(FRED NIKKEI225) and the KOSPI and TAIEX ETF proxies, on a 10- or 20-session
+drawdown beyond its 95th percentile; TOPIX, DAX, CAC 40 and FTSE 100 are listed gaps.
+The close prints their flag lines in the event area and stores `gold.event_ledger` and
+`equity.dm_drawdown_ledger`; the EOD pass resolves both; the Weekly and Monthly print
+the blocks. `altdata/gold_13f.py` counts 13F holders of GLD and IAU from SEC's keyless
+data sets (fetch on the box through CHESTER_SEC_CONTACT, then load) for the Monthly's
+slow layers beside item 38. Item 76's DTCC protection-demand line is a listed gap
+(per-name volumes are a subscription; the site's terms forbid automated extraction);
+its CDS levels and the AI borrowing figure are dated records.
+`daily_cascade/batch15_a_block.py` lays them out; `tools/validate_batch15_1.py` holds
+them.
 
 **Feed freshness has two words, STALE and PENDING, and they are `altdata/feeds.py`'s
 (T2.6).** Stale: due and not current, or never written by a writer that failed.
@@ -1210,7 +1518,7 @@ is files only: chester-reports writes exports/security_master.json (through
 writes drop/. No code, migration, stash or commit of ours goes into
 ../chester-meme, and reading it is the most a session here does. A change
 chester-meme needs from this side goes through the contract and a change order
-here. A change on its side is printed for Ari to hand to the chester-meme
+here. A change on its side is printed for the operator to hand to the chester-meme
 session. This rule was added after uncommitted restriction code and an applied
 migration were left there on 15 Oct.
 
@@ -1400,6 +1708,27 @@ pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
 crypto_carry, reversion, intraday_dealer, all candidates until they pass); a promoted grammar
 rule is named by its register id in `alpha.db`. No gate reads the live store.
 
+**The paper executor is outside the lab, paper only, and ships off (A98; D43,
+ruled 31 Oct 2026).** `paper_exec/` is the thin IBKR executor on `ib_async`
+(client id 21) that Gate 2 will use, built so no rule is a convention. It
+connects only to a paper port, and aborts unless every account the gateway
+reports begins "DU" before any order object exists. It ships `enabled: false`
+(nothing connects; `status` prints "paper executor off") and `dry_run: true`
+(every bracket built and logged, nothing sent), and sends only when the
+operator sets both flags in `config/paper_exec.yaml`. An entry leaves only as a
+whole bracket, through one send path; it trades MES only (ES refused by
+contract), conid from the Security Master; size is the config's ceiling, the
+governor's and the Doctrine's heat cap. A sticky kill file stops sending within
+one loop. Its own fills come into `alpha.db`'s `fills` (`source = paper_exec`,
+the venue's order id and fill time) before reconciliation, which stops sending
+on any mismatch. D43's two safeguards: the edge-decay pause
+(`paper_exec/pause.py`; the last 20 paper trades two standard errors below
+`validated_metrics.expectancy`; never clears itself) and "why this could fail"
+(`alpha_proposer/critic.py` makes one metered call per hypothesis, on its text
+and rule only, budget 0 shipped; `alpha/critique.py` stores it, written once).
+No timer and no unit: it runs by hand on the box. Its `run`, `clear-kill` and
+`resume` are denied to sessions. `tools/validate_paper_exec.py` holds it.
+
 ### Known cleanup
 
 Resolved: the root-level `compute.py` (a misplaced copy of
@@ -1506,7 +1835,7 @@ would otherwise reach it.
 |---|---|
 | `systemctl --user stop`, `disable`, `restart`, `kill`, `mask` — in any composition, local or over ssh | **Asymmetric cost.** The worst case of refusing is a printed command; the worst case of acting is the Gateway down mid-session with a position open. An unattended process should never be able to choose the second. `make deploy` therefore prints the exact `restart` command and **exits 3** so a human runs it — the one case where handing the job back is the correct outcome rather than a limitation. |
 | `rm` against `~/state`, `data/`, `chester.db`, `pin_log`, `~/backups`, `~/chester-data`, `~/.chester`; `git clean -fdx` | **These are the irreplaceable files.** `~/state` holds the heartbeats whose age *is* the outage clock; `data/` holds the captured chains and the pin log, which are a market at an instant and cannot be re-fetched; `chester.db` holds the register, the grades and the probability ledger. Losing any of them loses evidence, not configuration. AUD-2 (14 Oct 2026) adds `~/backups` (the EOD zips the restore runbook falls back on), `~/chester-data` (the live CSV store and the inboxes) and `~/.chester` (the wrappers' status and locks), and `git clean -fdx`, which deletes every untracked file in the checkout -- `data/` and `.env` among them -- in one command. |
-| `decide.py record`, `decide.py set-status`, `decide_remote.sh` with either, `migrate_register.py import`, `altdata.narratives confirm` / `reject`, `altdata.mechanism_watch promote` / `reject`, `alpha.promote retire`, `alpha.governor resume` | **Register writes stay the operator's.** The register is the record against which the system is graded, and a grader that could also write the decisions it grades is a system marking its own homework. This is the same reason `derived_grade` and `derived_probability` have an empty `allowed_reports`. The narrative register (6c-2) is written by the sessions -- seeds, rule-driven transitions, model proposals -- with ONE human gate, confirming or rejecting a proposal, and that gate is denied here on the same argument. The mechanism watch's promote and reject (ST-15) are the same kind of gate and are denied with their verbs whole (ruling 5, 19 Oct 2026); its read-only review stays open to sessions. The Alpha Lab's retirement of an engine by ruling (X-2.6) is the operator's for the same reason: the loop retires by the kill rule alone. So is lifting the lab's -15% halt (ruling 6, 14 Oct 2026): `python -m alpha.governor resume --reason` writes the one event that lifts it. |
+| `decide.py record`, `decide.py set-status`, `decide_remote.sh` with either, `migrate_register.py import`, `migrate_alignment_weekly.py --apply`, `altdata.narratives confirm` / `reject`, `altdata.mechanism_watch promote` / `reject`, `alpha.promote retire`, `alpha.governor resume` | **Register writes stay the operator's.** The register is the record against which the system is graded, and a grader that could also write the decisions it grades is a system marking its own homework. This is the same reason `derived_grade` and `derived_probability` have an empty `allowed_reports`. The narrative register (6c-2) is written by the sessions -- seeds, rule-driven transitions, model proposals -- with ONE human gate, confirming or rejecting a proposal, and that gate is denied here on the same argument. The mechanism watch's promote and reject (ST-15) are the same kind of gate and are denied with their verbs whole (ruling 5, 19 Oct 2026); its read-only review stays open to sessions. The Alpha Lab's retirement of an engine by ruling (X-2.6) is the operator's for the same reason: the loop retires by the kill rule alone. So is lifting the lab's -15% halt (ruling 6, 14 Oct 2026): `python -m alpha.governor resume --reason` writes the one event that lifts it. |
 | `sudo`, in any position — privilege escalation | **Nothing here needs root.** Every unit is a `--user` unit, every path is under `$HOME`, and the one documented `sudo` (`loginctl enable-linger`, `apt install xvfb`) is a one-time install step a human does once. Privilege escalation in an unattended path is a category error before it is a risk: if a deploy appears to need root, the deploy is wrong, not under-permissioned. |
 | `placeOrder`, `place_order`, `bracketOrder`, `submit_order`, `order_router`, `ibkr_orders`, `execution_framework`, `reqGlobalCancel`, `--allow-live` | **Named now so Gate 3 is already blocked when it exists.** There is no order path in this repo today — `validate_ibkr_portfolio.py` proves the source contains none, and the architecture puts live-with-approval at Gate 3 behind months of paper dwell. These patterns are pre-emptive on purpose: the moment an order entry point is written it must arrive already denied, rather than relying on somebody remembering to add a rule in the same session they gain the capability. `--allow-live` is included because it is the flag that selects the live port; an unattended process has no business reading the live account, let alone trading it. |
 | `cat`/`tail` of `.env`, `config.ini`, `rclone.conf`, anything under `/.ssh/`, any `environ`, and any literal key name (`ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `FRED_API_KEY`, `CHESTER_STATE_TOKEN`, `MASSIVE_API_KEY`, `FLASHALPHA_API_KEY`, `NASDAQ_DATA_LINK_API_KEY`, `OPENAI_API_KEY`, and from 19 Oct 2026 (R1) `MASSIVE_FLATFILES_ACCESS_KEY_ID`, `MASSIVE_FLATFILES_SECRET_ACCESS_KEY`, `BITCOIN_DATA_API_KEY`, `CHESTER_RCLONE_CRYPT_PASSWORD`, `CHESTER_RCLONE_CRYPT_SALT`) | **`ssh vps cat *` is allowed, which would otherwise permit reading `.env`.** The standing rule is that a key reaching a transcript is a leaked key that must be rotated, so the deny closes the hole the broad read rule opens. This one was added rather than requested: an allowlist that permits an unattended secret read contradicts the repo's own invariant. |

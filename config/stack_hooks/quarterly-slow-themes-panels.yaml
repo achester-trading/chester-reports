@@ -1,0 +1,13 @@
+# 6i-5 (A77, 26 Oct 2026): Disruptive Themes' Stage 1 instrument panels, a slow
+# layer of the Alternative Assets Quarterly after its eleven family chapters (the
+# 6i brief's decision 4, ruled 25 Oct 2026). Quarterly only: the Monthly and the
+# Weekly never run it.
+id: quarterly-slow-themes-panels
+cadence: quarterly
+section: slow
+after: inline:family_chapters
+module: daily_cascade.themes_block
+function: quarterly_section
+args: [st, now, end]
+requires: [st, now, end]
+returns: one

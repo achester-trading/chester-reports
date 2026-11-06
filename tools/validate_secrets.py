@@ -32,6 +32,8 @@ produced identical output.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import os
 import re
 import sys
@@ -438,7 +440,10 @@ SEC_UA_CALLERS = {
     "altdata/sources/fundamentals.py",   # EDGAR submissions (data.sec.gov)
     "altdata/sources/voices_scan.py",    # sec_user_agent: 13F and the CIK lookup
     "altdata/sources/edgar_xbrl.py",     # the XBRL frames (data.sec.gov; GTM-4)
+    "altdata/sources/edgar_guidance.py",  # 10-Q/10-K guidance (data.sec.gov, www.sec.gov; A66)
+    "altdata/sources/edgar_bdc.py",      # the BDCs' concepts and CIKs (data.sec.gov, www.sec.gov; b70, D42.14)
     "altdata/sources/treasury.py",       # Strategy's share count (data.sec.gov; item 49)
+    "altdata/gold_13f.py",               # the 13F data sets (www.sec.gov; Batch 15 item 72)
 }
 UA_NAME = re.compile(r"(^|_)(UA|USER_AGENT|HEADERS)($|_)", re.I)
 

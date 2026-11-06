@@ -44,4 +44,5 @@ def priced_subsection(st, now: str, cfg: Optional[dict] = None) -> Optional[dict
         log.warning("the capex-chain relative line faulted", exc_info=True)
         return None
     return {"title": TITLE_LINE, "lines": cc.relative_lines(r), "paragraph_wanted": False,
+            "notes": cc.relative_notes(r),
             "data": {"capex_chain_relative": r}}

@@ -360,6 +360,14 @@ def _vix_map(db: observations.ObservationStore) -> dict[str, float]:
 def pull(run_id: Optional[str] = None,
          store: Optional[observations.ObservationStore] = None,
          months: int = PULL_CONTRACTS, behind: int = 1) -> dict:
+    # HELD (D45, 31 Oct 2026; paste B95): Cboe's terms forbid storage in a
+    # retrieval system. Declared in source_registry.yaml (`cboe`); no request,
+    # no write -- the probe included -- and the stored rows are kept.
+    from ..sources import _publication as pub                  # noqa: PLC0415
+    h = pub.held(SOURCE, run_id, db=store,
+                 keys=(SETTLE_KEY, *SLOT_KEYS, SLOPE_KEY, RATIO_KEY, BASIS_KEY))
+    if h:
+        return h
     own = store is None
     db = store or observations.open_writer(__name__)
     try:

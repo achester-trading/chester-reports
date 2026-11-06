@@ -90,7 +90,9 @@ def releases_block(day: str, cutoff: str, db_path=None, rels=None) -> dict:
                     continue
                 pts = [p for p in st.as_of(key, cutoff) if p.get("value_num") is not None]
                 pts.sort(key=lambda p: str(p["observed_at"]))
-                got = ws.headline_form([p["value_num"] for p in pts], form)
+                # A95 (M6): by date, so a month never published is not skipped.
+                got = ws.headline_form([p["value_num"] for p in pts], form,
+                                       [str(p["observed_at"])[:10] for p in pts])
                 if not got:
                     continue
                 naive = _naive(st, key, str(pts[-1]["observed_at"]), cutoff)

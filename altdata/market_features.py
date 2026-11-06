@@ -156,6 +156,7 @@ YOY_TOLERANCE_DAYS = 45      # how far from 365 a "a year ago" observation may s
 YOY_MIN_MONTHS = 12          # how much history a first YoY reading needs
 SAHM_AVG_MONTHS = 3          # the 3-month average Sahm is defined on
 SAHM_LOOKBACK_MONTHS = 12    # and the trailing window its low is taken over
+BAA_MONTH_MIN_SESSIONS = 15  # a month's mean 10-year needs this many sessions (6i-3)
 
 # key -> (upstream fred key, description). One entry per transform, so adding a
 # series is a line rather than a function.
@@ -186,6 +187,12 @@ MACRO_FEATURES = {
         f"{SAHM_LOOKBACK_MONTHS} months, in percentage points",
     "calc.yield_curve_2s10s":
         "the 10-year yield less the 2-year, in basis points",
+    "calc.baa_less_10y":
+        "Moody's Baa yield (DBAA) less the 10-year Treasury yield, same session, "
+        "in basis points: the T&B harness's long credit proxy (6i-3)",
+    "calc.baa_less_10y_m":
+        "Moody's monthly Baa yield (BAA) less the month's mean 10-year yield, in "
+        "basis points: the proxy before DBAA exists (6i-3)",
     "calc.real_wages_yoy":
         "average hourly earnings year-over-year less CPI year-over-year, in "
         "percentage points. Negative means real wages are falling",
@@ -453,6 +460,28 @@ def macro_rows(db: observations.ObservationStore,
         emit("calc.yield_curve_2s10s", day,
              (y10[day][0] - y2[day][0]) * 100.0,
              [(y10[day][1], y10[day][2]), (y2[day][1], y2[day][2])])
+
+    # --- BAA LESS THE 10-YEAR (6i-3) ----------------------------------------
+    # The T&B harness's long credit proxy (decision 6). Daily: same session only,
+    # as 2s10s. Monthly: BAA is a monthly AVERAGE, so it is set against the
+    # month's mean DGS10 (FRED's GS10 is that mean) rather than one day's yield;
+    # the row is knowable only when both the BAA print and the month's last
+    # DGS10 are, which the max over its inputs' available_at gives.
+    baa_d, baa_m = load("dbaa"), load("baa")
+    for day in sorted(baa_d):
+        if day in y10:
+            emit("calc.baa_less_10y", day, (baa_d[day][0] - y10[day][0]) * 100.0,
+                 [(baa_d[day][1], baa_d[day][2]), (y10[day][1], y10[day][2])])
+    by_month: dict[str, list[str]] = {}
+    for day in sorted(y10):
+        by_month.setdefault(day[:7], []).append(day)
+    for day in sorted(baa_m):
+        days = by_month.get(day[:7]) or []
+        if len(days) < BAA_MONTH_MIN_SESSIONS:
+            continue
+        emit("calc.baa_less_10y_m", day,
+             (baa_m[day][0] - _mean([y10[d][0] for d in days])) * 100.0,
+             [(baa_m[day][1], baa_m[day][2])] + [(y10[d][1], y10[d][2]) for d in days])
 
     # --- THE YEAR-OVER-YEAR FAMILY -----------------------------------------
     yoy_cache: dict[str, dict[str, float]] = {}
@@ -1125,9 +1154,20 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         except Exception as exc:                                 # noqa: BLE001
             log.warning("funding-currency features failed", exc_info=True)
             fcr = {"error": f"{type(exc).__name__}: {exc}"}
+        # BATCH 16 ITEM 89(b)'S TREND BREADTH (B76), after ST-5's: the signs over
+        # its own recent days (its full history is `python -m
+        # altdata.trend_breadth backfill`). Never fatal.
+        try:
+            from . import trend_breadth                          # noqa: PLC0415
+            tbr = trend_breadth.compute(
+                as_of=as_of, first_day=trend_breadth.default_first_day(db, as_of),
+                store=db, dry_run=dry_run)
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("trend breadth failed", exc_info=True)
+            tbr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
                 "dry_run": dry_run, "correlation": corr, "absorption": absr,
-                "funding_currency": fcr}
+                "funding_currency": fcr, "trend_breadth": tbr}
     finally:
         if own:
             db.close()

@@ -153,9 +153,12 @@ def state_block(payload: dict) -> str:
         f'published by <strong>{_dash(ts.get("published_by"))}</strong>: '
         f'{_dash(ts.get("published_state"))}<br>'
         f'champion <code>{_dash(ch.get("metric"))}</code> '
-        f'<strong>{_dash(ch.get("state"))}</strong> '
-        f'ratio {num(ch.get("ratio"), 4)}, pctile {num(ch.get("percentile"), 1)}<br>'
-        f'challenger <code>{_dash(cl2.get("metric"))}</code> '
+        + (f'{esc(ch.get("absent_reason"))}<br>'
+           if str(ch.get("absent_reason") or "").startswith("not tracked: held")
+           else f'<strong>{_dash(ch.get("state"))}</strong> '
+                f'ratio {num(ch.get("ratio"), 4)}, pctile '
+                f'{num(ch.get("percentile"), 1)}<br>')
+        + f'challenger <code>{_dash(cl2.get("metric"))}</code> '
         f'<strong>{_dash(cl2.get("state"))}</strong> '
         f'ratio {num(cl2.get("ratio"), 4)}, pctile '
         f'{num(cl2.get("percentile"), 1)}<br>'
@@ -165,7 +168,9 @@ def state_block(payload: dict) -> str:
         f'dual run to {_dash(ts.get("dual_run_until"))}'
         + (f'<br>basis {num((ts.get("basis") or {}).get("value"), 2)} vol points, '
            f'pctile {num((ts.get("basis") or {}).get("percentile"), 1)}'
-           if (ts.get("basis") or {}).get("value") is not None else '')
+           if (ts.get("basis") or {}).get("value") is not None else
+           f'<br>basis (VX1 less VIX): {esc((ts.get("basis") or {}).get("absent_reason"))}'
+           if (ts.get("basis") or {}).get("held") else '')
         + f'<p style="{NOTE}">The quarter\'s question is a COUNT of disagreeing '
           f'sessions, not an opinion, and this is where it accumulates.</p></div>')
     return "".join(parts)

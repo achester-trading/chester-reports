@@ -797,7 +797,7 @@ def seed(path: Any, db_path: Optional[str] = None, *, dry_run: bool = False,
                            horizon_date=r["measurable"]["date"],
                            resolution_criterion=r["criterion"],
                            scenario_set=r["scenario_set"], emitted_at=written,
-                           emitted_by="operator")
+                           emitted_by="operator", missing_inputs=[])  # LL-3
                 result["recorded"] += 1
         for r in rows:
             em = r["emission"]

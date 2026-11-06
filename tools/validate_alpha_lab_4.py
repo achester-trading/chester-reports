@@ -47,6 +47,8 @@ live store, fetches or calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import math
 import os
@@ -321,11 +323,14 @@ def group_a() -> None:
         try:
             out = manifest.register(lg, st, roster, as_of="2014-12-01T15:05:00+00:00")
             hid = out["registered"]["E-6"]
-            v0 = lg.variant_count("reversion")
+            # B98: E-6 counts under its family_ref (KS §10.3), not "reversion".
+            from alpha import families as _fam                  # noqa: PLC0415
+            k6 = _fam.count_key(hyp.Register(lg).get(hid))
+            v0 = lg.variant_count(k6)
             r = workbench.run(lg, st, hid, late)
             cov = (r.get("result") or {}).get("coverage") or {}
             check(r["status"] == "insufficient_history" and v0 == 1
-                  and lg.variant_count("reversion") == v0
+                  and lg.variant_count(k6) == v0
                   and hyp.Register(lg).get(hid)["status"] == "registered"
                   and "GLD:- open: horizon 5 sessions" in " | ".join(cov.get("lines", [])),
                   f"registered by manifest, the harness waits on the sample and counts "

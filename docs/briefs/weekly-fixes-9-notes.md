@@ -161,7 +161,7 @@ inflation anchor. The anchor goes absent for want of ten years of CPI, so
 
 `validate_crypto_basket` is 93/0.
 
-**For Ari, read-only:**
+**For the operator, read-only:**
 - `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.catalogue show llama.mcap_aave | head -30'`
 - `ssh vps 'systemctl --user list-timers | grep crypto-basket'`
 - `ssh vps 'tail -60 ~/logs/crypto-basket-2026-10.log'` (the wrapper's `LOG`,
