@@ -84,3 +84,55 @@ it 167/164.
 
 B114, the names sweep of the merged main, needs `validate_names`. So whichever you
 choose has to land before B114.
+
+## B113b: b109 merged (6 Nov 2026; ruling D64, option (a))
+
+**Base:** `origin/chain-12` at `64829bd7`. The paste was committed first as
+`docs/pastes/B113b.md`. **Merge: `12cbfeea`**, chain-12 #4 (A105 step 25),
+`origin/b109-names-gate` at `46da3bb5` (B109 and B111 Part 4), one merge commit.
+
+**What b109 changed in `tools/validate_alpha.py`.**
+`git diff 422ea697 origin/b109-names-gate -- tools/validate_alpha.py` shows one
+hunk, one line in group V: "engine 3 holds no contracts until <the operator's
+name> confirms" became "until the operator confirms". Ours (main's, through
+chain-11) already reads "until the operator confirms" and adds b98's group W and
+B99's changes below it. So ours stands, and no b109 hunk was re-applied.
+`validate_alpha` is 271/0.
+
+**The other sixteen conflicts were the recorded set, resolved as A105 recorded.**
+- **Ours**, where each b109 hunk was its names wording against a later edit:
+  - CLAUDE.md and the Makefile (b109's one-line addition to the old list, which S1
+    replaced; `validate_names` joins by its `GATE_KIND = "code"`);
+  - `basis_proxy.yaml`, `listing_exchanges.yaml` and `prediction_markets.yaml`;
+  - `doctrine-2-proposals-st-l.md`, the appendix queue, `master-guide.md` and
+    `chat-tasks.yaml`;
+  - `tools/figures/master_guide.py`, Figure 2 and `validate_digital_addendum.py`
+    (98/0).
+- **`registry-check.yml`:** one `env:` block holding S1 part 6's `GATE_ARGS` and
+  B109's `CHESTER_NAMES_DENYLIST`, with B109's comment above it. It parses.
+- **`validate_by_hand_audit.py`:** ours, with b109's test string ("weights stay
+  the operator's"), because b109's change to the document text merged clean.
+  Ours still held the old name in that string. 17/0.
+- **The two html files** (`master-guide`, `rates-liquidity`) were rebuilt from the
+  `.md`. `appendix_queue_index --write` left the queue unchanged (7 entries) and
+  `--check` agrees.
+
+**Counts, by `stitch_counts --write`: one hundred and sixty-seven code gates (one
+hundred and sixty-four Python, three shell) and eight data gates.** That is main's
+166 plus `validate_names`. `--check` agrees on all 62 counts.
+
+**Gates, one at a time:**
+
+| Gate | Result |
+|---|---|
+| Must-runs | `validate_lenses` passed, `check_registry` OK, `yaml_section_check` on `12cbfeea` against both parents: no key moved section (23 YAML files touched on both sides), the three stitch tools' `--check` clean |
+| `validate_alpha` | 271/0 |
+| `validate_names` | self-test 15/0; no denylist, scan skipped |
+| `validate_by_hand_audit` | 17/0 |
+| `validate_gates` | 32/0 |
+| `validate_deploy` | 155/0 |
+| `check_master_guide` | 14/0, 1 warning (the Guide's as-of, 29 Oct, older than the 1 Nov order; refreshed at the next chain merge) |
+| `check_library` | 27 papers, 0 failures, 0 warnings |
+
+The names list was never set.
+
