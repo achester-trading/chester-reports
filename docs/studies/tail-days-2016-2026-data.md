@@ -1,6 +1,6 @@
 # Tail days 2016–2026: data replay
 
-**Generated** 2026-11-05 23:00 ET from data pulled 2026-11-05 22:12 ET by `tools/studies/tail_days.py` (branch `study/tail-days`). Companion to `docs/studies/tail-days-study-2026-11-05.md`. Study output only: no store, regime or report code was read or written.
+**Generated** 2026-11-06 08:12 ET from data pulled 2026-11-05 22:12 ET by `tools/studies/tail_days.py` (branch `study/tail-days`). Companion to `docs/studies/tail-days-study-2026-11-05.md`. Study output only: no store, regime or report code was read or written.
 
 ## 0. Sources and coverage
 
@@ -499,6 +499,182 @@ Context: BAA10Y since 1990 has median 213bp, 90th percentile 315bp; its last obs
 | BAMLH0A0HYM2 | FRED fredgraph CSV, pulled 2026-11-05 22:12 ET | 2023-11-06 | 2026-11-04 | 786 |
 | BAMLC0A0CM | FRED fredgraph CSV, pulled 2026-11-05 22:12 ET | 2023-11-06 | 2026-11-04 | 785 |
 | BAA10Y | FRED fredgraph CSV, pulled 2026-11-05 22:58 ET | 1986-01-02 | 2026-11-04 | 10,211 |
+
+## Part 8. Internal-stress test (106c(ii), pre-registered in the study's §5)
+
+Source: ^GSPC (Yahoo Finance via `altdata.sources.yfinance_source`, 1927-12-30 to 2026-11-05); FRED VIXCLS (FRED fredgraph CSV, 1990-01-02 to 2026-11-04); ^VIX3M (Yahoo Finance via `altdata.sources.yfinance_source`, 2006-07-17 to 2026-11-05); ^VVIX (Yahoo Finance via `altdata.sources.yfinance_source`, 2007-01-03 to 2026-11-05); SPY (Yahoo Finance via `altdata.sources.yfinance_source`, 1993-01-29 to 2026-11-05); RSP (Yahoo Finance via `altdata.sources.yfinance_source`, 2003-05-01 to 2026-11-05); QQQ (Yahoo Finance via `altdata.sources.yfinance_source`, 1999-03-10 to 2026-11-05); SPHB (Yahoo Finance via `altdata.sources.yfinance_source`, 2011-05-05 to 2026-11-05); SPLV (Yahoo Finance via `altdata.sources.yfinance_source`, 2011-05-05 to 2026-11-05); XLB (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLC (Yahoo Finance via `altdata.sources.yfinance_source`, 2018-06-19 to 2026-11-05); XLE (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLF (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLI (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLK (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLP (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLRE (Yahoo Finance via `altdata.sources.yfinance_source`, 2015-10-08 to 2026-11-05); XLU (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLV (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05); XLY (Yahoo Finance via `altdata.sources.yfinance_source`, 1998-12-22 to 2026-11-05). Data pulled 2026-11-05 22:12 ET (cache `~/.cache/chester-study/tail_days`).
+
+Sample: every ^GSPC session from 2003-05-01 to 2026-10-22 with a complete t+1..t+10 window, n = 5,908. Out of sample: 2008-01-02 to 2026-10-22, n = 4,732, of which 3,049 with VIXCLS < 20 at t. No new series was fetched; every input was read from the cache.
+
+Features, each as of the close of t. **S** (vol state): VIXCLS (as-of, at most 5 days); RV20 (annualised stdev of the 20 daily ^GSPC log returns ending t, %); VIX − RV20; VIXCLS ÷ ^VIX3M (from 2006-07-17, else gap); ^VVIX (from 2007-01-03, else gap); sessions with |ret| > 2% among the 20 ending t; drawdown from the 252-session closing high, %. **I** (internals): RSP − SPY 20-session total-return difference (pp) and its expanding percentile; QQQ − SPY 20-session difference; sector-SPDR dispersion (Part 5.3); SPY Amihud as a percentile of its trailing 252 and 756 values; SPHB/SPLV total-return ratio's 20-session change, % (from 2011-06, else gap); SPY's return less SPHB/SPLV's on day t, pp.
+
+Targets over t+1..t+10 (^GSPC): (a) log of the annualised stdev of the ten daily log returns; (b) any |ret| ≥ 2%; (c) any ret ≤ −3%. Models: OLS for (a), logistic regression (Newton–Raphson, 1e-6 ridge for numerical stability only) for (b) and (c). Features standardised on the training rows; a missing value takes the training mean (0 after standardising) and a missing flag joins the model wherever the flag varies in training; a feature with no variance in training is left out of that fit. Refit at each year-end from 2007 on the expanding window from 2003-05-01, applied to the following year. Training rows are those whose target window had closed by the fit date (t + 10 sessions ≤ the year's last session), so no label is used before it is known.
+
+Out-of-sample R² for (a) is 1 − Σ(y − ŷ)² / Σ(y − ȳ_train)², ȳ_train the training mean of the fit that made the prediction. AUC is the Mann–Whitney statistic; Brier is the mean of (p − y)² (lower is better). Intervals: 500 moving-block bootstrap draws of the out-of-sample series, 21-session blocks (seed 20261105), the VIX < 20 subset taken within each draw; 5th to 95th percentile of S+I minus S.
+
+Base rates out of sample: (b) any 2% day: 34.7% of all sessions, 15.6% with VIX < 20; (c) any −3% day: 9.9% and 2.8%.
+
+### Part 8.1 Out-of-sample results, S against S+I
+
+| Subset | Target | Metric | S | S+I | S+I − S | 90% interval |
+|---|---|---|---|---|---|---|
+| all sessions | (a) log RV t+1..10 | R2 | 0.4730 | 0.0345 | -0.4385 | -0.7820 to -0.1139 |
+| all sessions | (b) any \|ret\| ≥ 2% | AUC | 0.8383 | 0.8333 | -0.0050 | -0.0139 to +0.0053 |
+| all sessions | (b) any \|ret\| ≥ 2% | Brier | 0.1501 | 0.1515 | +0.0014 | -0.0055 to +0.0071 |
+| all sessions | (c) any ret ≤ −3% | AUC | 0.6785 | 0.6330 | -0.0455 | -0.1039 to -0.0050 |
+| all sessions | (c) any ret ≤ −3% | Brier | 0.0884 | 0.1157 | +0.0274 | +0.0103 to +0.0489 |
+| VIX < 20 at t | (a) log RV t+1..10 | R2 | 0.3773 | 0.3307 | -0.0465 | -0.0776 to -0.0222 |
+| VIX < 20 at t | (b) any \|ret\| ≥ 2% | AUC | 0.6483 | 0.6460 | -0.0023 | -0.0295 to +0.0290 |
+| VIX < 20 at t | (b) any \|ret\| ≥ 2% | Brier | 0.1355 | 0.1383 | +0.0028 | -0.0033 to +0.0087 |
+| VIX < 20 at t | (c) any ret ≤ −3% | AUC | 0.6276 | 0.5670 | -0.0606 | -0.1550 to +0.0281 |
+| VIX < 20 at t | (c) any ret ≤ −3% | Brier | 0.0285 | 0.0325 | +0.0039 | +0.0014 to +0.0072 |
+| sensitivity: all sessions, 2009–2026 | (a) log RV t+1..10 | R2 | 0.4765 | 0.4193 | -0.0572 | -0.0827 to -0.0367 |
+| sensitivity: all sessions, 2009–2026 | (b) any \|ret\| ≥ 2% | AUC | 0.8238 | 0.8189 | -0.0049 | -0.0147 to +0.0064 |
+| sensitivity: all sessions, 2009–2026 | (b) any \|ret\| ≥ 2% | Brier | 0.1497 | 0.1510 | +0.0013 | -0.0056 to +0.0074 |
+| sensitivity: all sessions, 2009–2026 | (c) any ret ≤ −3% | AUC | 0.7916 | 0.7558 | -0.0357 | -0.0711 to -0.0040 |
+| sensitivity: all sessions, 2009–2026 | (c) any ret ≤ −3% | Brier | 0.0648 | 0.1013 | +0.0364 | +0.0214 to +0.0572 |
+| sensitivity: VIX < 20 at t, 2009–2026 | (a) log RV t+1..10 | R2 | 0.3743 | 0.3315 | -0.0429 | -0.0751 to -0.0182 |
+| sensitivity: VIX < 20 at t, 2009–2026 | (b) any \|ret\| ≥ 2% | AUC | 0.6437 | 0.6413 | -0.0023 | -0.0308 to +0.0296 |
+| sensitivity: VIX < 20 at t, 2009–2026 | (b) any \|ret\| ≥ 2% | Brier | 0.1319 | 0.1344 | +0.0025 | -0.0036 to +0.0086 |
+| sensitivity: VIX < 20 at t, 2009–2026 | (c) any ret ≤ −3% | AUC | 0.5790 | 0.5356 | -0.0434 | -0.1292 to +0.0551 |
+| sensitivity: VIX < 20 at t, 2009–2026 | (c) any ret ≤ −3% | Brier | 0.0252 | 0.0295 | +0.0043 | +0.0018 to +0.0078 |
+
+**Pre-registered criterion (106c(ii)): FAIL.** On the VIX < 20 subset, S+I minus S is -0.0465 on the (a) R² (90% interval lower bound -0.0776) and -0.0023 on the (b) AUC (lower bound -0.0295); the criterion needs both differences and both lower bounds above zero.
+
+The sensitivity rows are not the pre-registered test. They drop 2008, whose predictions come from the first fit (2003-05 to 2007-12, a calm window): 2008's RV20 reached about 19 training standard deviations, and the linear models extrapolate from there, S+I much further than S. The verdict above is read from the pre-registered rows only.
+
+### Part 8.2 The internal features' coefficients
+
+Standardised coefficients (per training standard deviation) of the I features in the S+I model of the final fit (through 2025-12-31, applied to 2026): log-vol units for (a), log-odds for (b) and (c). Signs: positive / negative across the 19 refits (2008–2026); a refit in which the feature had no variance is not counted. Missing-flag coefficients are not shown.
+
+| Feature | (a) final | (a) + / − | (b) final | (b) + / − | (c) final | (c) + / − |
+|---|---|---|---|---|---|---|
+| RSP-SPY 20d | +0.048 | 19 / 0 | +0.432 | 19 / 0 | -0.333 | 0 / 19 |
+| RSP-SPY pctl | -0.053 | 0 / 19 | -0.453 | 0 / 19 | +0.692 | 19 / 0 |
+| QQQ-SPY 20d | -0.014 | 3 / 16 | +0.023 | 13 / 6 | +0.177 | 18 / 1 |
+| sector disp. | +0.040 | 18 / 1 | +0.100 | 15 / 4 | +0.056 | 18 / 1 |
+| Amihud 1y pctl | +0.045 | 18 / 1 | +0.710 | 19 / 0 | +0.527 | 17 / 2 |
+| Amihud 3y pctl | -0.043 | 2 / 17 | -0.407 | 0 / 19 | +0.016 | 7 / 12 |
+| HB/LV 20d | -0.026 | 1 / 14 | +0.070 | 13 / 2 | +0.034 | 15 / 0 |
+| SPY - HB/LV 1d | +0.020 | 15 / 0 | +0.033 | 12 / 3 | +0.142 | 15 / 0 |
+
+### Part 8.3 The looser opener class
+
+Source: ^GSPC (Yahoo Finance via `altdata.sources.yfinance_source`, 1927-12-30 to 2026-11-05); FRED VIXCLS (FRED fredgraph CSV, 1990-01-02 to 2026-11-04). Data pulled 2026-11-05 22:12 ET (cache `~/.cache/chester-study/tail_days`).
+
+Definition: a Part 5 bottom-1% day (^GSPC since 1990-01-02, threshold ≤ -3.11%) with FRED VIXCLS below 25 at the prior close and at most one session with |ret| ≥ 2% among the 20 before T. 93 bottom-1% days; **11 in the looser class** (Part 5's strict class: VIX < 20 and none).
+
+| # | Date | ^GSPC ret | VIX at T-1 | 2% days in prior 20 | in Part 5's strict class? |
+|---|---|---|---|---|---|
+| 1 | 1991-11-15 | -3.66% | 13.96 | 0 | yes |
+| 2 | 1997-10-27 | -6.87% | 23.17 | 0 | no |
+| 3 | 2000-01-04 | -3.83% | 24.21 | 0 | no |
+| 4 | 2007-02-27 | -3.47% | 11.15 | 0 | yes |
+| 5 | 2010-02-04 | -3.11% | 21.60 | 1 | no |
+| 6 | 2015-08-21 | -3.19% | 19.14 | 1 | no |
+| 7 | 2016-06-24 | -3.59% | 17.25 | 0 | yes |
+| 8 | 2018-02-05 | -4.10% | 17.31 | 1 | no |
+| 9 | 2018-10-10 | -3.29% | 15.95 | 0 | yes |
+| 10 | 2020-02-24 | -3.35% | 17.08 | 0 | yes |
+| 11 | 2026-11-05 | -4.36% | 16.61 | 0 | yes |
+
+**Internals at T-1 (Part 5.3's table).** 
+Each value is as of T-1's close and its percentile is the share of the series' own values on or before T-1 that are at or below it (expanding history from the series' first observation; Amihud over the trailing 252 and 756 values). RSP-SPY and QQQ-SPY: 20-session total-return difference, pp (RSP from 2003, QQQ from 1999). Sector dispersion: cross-sectional standard deviation of the sector SPDRs' 20-session total returns, pp, computed when at least 9 sectors have 20 sessions of history (9 until XLRE in 2015, 11 from XLC in 2018). Amihud: SPY's 20-session mean of |ret| ÷ dollar volume (100 = least liquid).
+
+| Opener | T-1 | RSP-SPY pp | pctl | QQQ-SPY pp | pctl | sector disp. pp | pctl | n sectors | Amihud 1y pctl | Amihud 3y pctl |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1991-11-15 | 1991-11-14 | gap | gap | gap | gap | gap | gap | gap | gap | gap |
+| 1997-10-27 | 1997-10-24 | gap | gap | gap | gap | gap | gap | gap | 10 | 3 |
+| 2000-01-04 | 2000-01-03 | gap | gap | +18.39 | 99 | 7.10 | 94 | 9 | 6 | 2 |
+| 2007-02-27 | 2007-02-26 | +1.89 | 96 | +1.24 | 63 | 3.02 | 42 | 9 | 2 | 1 |
+| 2010-02-04 | 2010-02-03 | +0.35 | 56 | -2.11 | 26 | 3.38 | 51 | 9 | 4 | 45 |
+| 2015-08-21 | 2015-08-20 | +0.82 | 77 | -1.61 | 24 | 4.09 | 75 | 9 | 73 | 58 |
+| 2016-06-24 | 2016-06-23 | +0.64 | 71 | -1.42 | 26 | 1.84 | 17 | 10 | 3 | 13 |
+| 2018-02-05 | 2018-02-02 | -1.02 | 11 | +1.27 | 66 | 2.99 | 56 | 10 | 78 | 30 |
+| 2018-10-10 | 2018-10-09 | -1.23 | 8 | -1.61 | 23 | 3.28 | 63 | 11 | 5 | 3 |
+| 2020-02-24 | 2020-02-21 | -0.91 | 14 | +2.00 | 76 | 2.60 | 44 | 11 | 76 | 82 |
+| 2026-11-05 | 2026-11-04 | +7.38 | 100 | -7.34 | 2 | 8.24 | 99 | 11 | 100 | 72 |
+
+**Aftermath (Part 5.4's table).** 
+T+1: close T to close T+1, and that session's high-low range ÷ close T. T+1..T+5: close T to close T+5, and the highest high less the lowest low over the five sessions ÷ close T. Top decile is Part 2's full-sample threshold (≥ 1.05%), looked for in T+1..T+5. "gap" where the sessions have not happened yet.
+
+| Opener | ret T | ret T+1 | range T+1 | ret T+1..5 | range T+1..5 | top-decile day within 5? |
+|---|---|---|---|---|---|---|
+| 1991-11-15 | -3.66% | +0.68% | 1.49% | -1.69% | 2.84% | no |
+| 1997-10-27 | -6.87% | +5.12% | 7.73% | +7.07% | 9.55% | yes |
+| 2000-01-04 | -3.83% | +0.19% | 2.54% | +2.80% | 6.19% | yes |
+| 2007-02-27 | -3.47% | +0.56% | 1.38% | -0.26% | 3.00% | yes |
+| 2010-02-04 | -3.11% | +0.29% | 2.13% | +1.44% | 3.34% | yes |
+| 2015-08-21 | -3.19% | -3.94% | 4.98% | +0.91% | 6.42% | yes |
+| 2016-06-24 | -3.59% | -1.81% | 1.95% | +3.22% | 5.74% | yes |
+| 2018-02-05 | -4.10% | +1.74% | 4.08% | +0.27% | 7.36% | yes |
+| 2018-10-10 | -3.29% | -2.06% | 3.04% | +0.84% | 3.82% | yes |
+| 2020-02-24 | -3.35% | -3.03% | 3.97% | -4.21% | 12.13% | yes |
+| 2026-11-05 | -4.36% | gap | gap | gap | gap | gap |
+
+A top-decile day followed within 5 sessions after **9 of 10** days in the looser class.
+
+The two named near-misses:
+
+| Date | ^GSPC ret | bottom 1%? | VIX at T-1 | 2% days in prior 20 | in the looser class? |
+|---|---|---|---|---|---|
+| 2018-02-05 | -4.10% | yes | 17.31 | 1 | yes |
+| 2024-08-05 | -3.00% | no | 23.39 | 1 | no — return above the -3.11% threshold |
+
+## Part 9. Vol-managed variants priced as premium and recovery (106g(i)), ^GSPC since 1990
+
+Source: ^GSPC (Yahoo Finance via `altdata.sources.yfinance_source`, 1927-12-30 to 2026-11-05); FRED VIXCLS (FRED fredgraph CSV, 1990-01-02 to 2026-11-04); FRED DTB3 (FRED fredgraph CSV, 1954-01-04 to 2026-11-04). Data pulled 2026-11-05 22:12 ET (cache `~/.cache/chester-study/tail_days`).
+
+1990-01-03 to 2026-11-05, n = 9,279 (from 1990-01-03, the first session with a prior-close VIXCLS for C, so A here differs from Part 6 by one day). Exposure is set at each close and held over the next session; the rest of the book is in, or borrowed at, FRED DTB3 at T-1 (carried at most 5 days, compounded to a 252-day year). Costs: 2bp × |Δexposure| each day for the variants, 2bp × the drift back to target for the constant mixes. RV20 and RV60: annualised sample stdev of the last 20 and 60 daily log returns; D averages the two vols, then applies A's formula. C reads VIXCLS at the close (carried at most 5 rows over FRED's holiday gaps for the backtest). Each variant's constant mix holds that variant's own average exposure. Price return, no dividends, as Parts 3 and 6. Premium = CAGR(mix) − CAGR(variant). Recovery = the drawdown avoided, |max drawdown(mix)| − |max drawdown(variant)|, in points (positive: the variant's drawdown is shallower).
+
+| Strategy | CAGR | Ann. vol | Sharpe (excess of DTB3) | Max drawdown | Worst 20-session | Avg exposure | Ann. turnover | Premium | Recovery |
+|---|---|---|---|---|---|---|---|---|---|
+| Buy and hold | 8.54% | 17.96% | 0.40 | -56.8% | -30.9% | 1.00 | 0.0x | — | — |
+| A. Part 3's rule (12% target, RV20, 0.25–1.5) | 6.42% | 12.01% | 0.36 | -33.0% | -11.0% | 0.90 | 9.5x | +1.69pp | +19.5pp |
+| — constant mix 0.90 | 8.11% | 16.21% | 0.40 | -52.6% | -28.2% | 0.90 | 0.2x | | |
+| B. A with a 0.5 floor | 7.04% | 13.37% | 0.38 | -36.0% | -16.9% | 0.95 | 8.3x | +1.30pp | +18.9pp |
+| — constant mix 0.95 | 8.34% | 17.14% | 0.40 | -54.8% | -29.7% | 0.95 | 0.1x | | |
+| C. VIX-based, (12 / VIX)², 0.25–1.5 | 5.34% | 7.03% | 0.39 | -20.2% | -9.0% | 0.54 | 10.6x | +0.92pp | +14.1pp |
+| — constant mix 0.54 | 6.26% | 9.76% | 0.40 | -34.3% | -17.6% | 0.54 | 0.5x | | |
+| D. A on the mean of RV20 and RV60 | 6.32% | 11.60% | 0.36 | -27.1% | -13.0% | 0.87 | 6.5x | +1.64pp | +24.1pp |
+| — constant mix 0.87 | 7.96% | 15.66% | 0.40 | -51.2% | -27.3% | 0.87 | 0.2x | | |
+| E. A with a 10% target | 5.64% | 9.77% | 0.34 | -23.7% | -9.2% | 0.73 | 9.7x | +1.62pp | +20.6pp |
+| — constant mix 0.73 | 7.26% | 13.09% | 0.40 | -44.3% | -23.1% | 0.73 | 0.4x | | |
+
+### Part 9.1 Exposure on 5 Nov 2026
+
+"Held" was set at the 4 Nov close and carried through 5 Nov; "set" is the exposure each rule sets at the 5 Nov close for 6 Nov. C's set value needs VIXCLS for 5 Nov, which FRED had not published when the cache was pulled (last VIXCLS observation 2026-11-04): gap, not carried.
+
+| Variant | held on 2026-11-05 | set at the 2026-11-05 close |
+|---|---|---|
+| A. Part 3's rule (12% target, RV20, 0.25–1.5) | 0.86 | 0.35 |
+| B. A with a 0.5 floor | 0.86 | 0.50 |
+| C. VIX-based, (12 / VIX)², 0.25–1.5 | 0.52 | gap |
+| D. A on the mean of RV20 and RV60 | 1.04 | 0.49 |
+| E. A with a 10% target | 0.60 | 0.25 |
+
+<!-- PARTS-8-9-CHANGE -->
+## What parts 8-9 change
+
+Claims in `docs/studies/tail-days-study-2026-11-05.md` (draft 3, commit 0bae3c92) set against Parts 8–9. Hand-written; the script keeps this section when it is re-run.
+
+**106c(ii) does not pass its pre-registered test.** On the VIX < 20 subset (3,049 out-of-sample sessions, 2008–2026), adding the internal set makes the realised-vol forecast worse, not better: R² 0.331 against 0.377, a difference of −0.047 (90% interval −0.078 to −0.022). It leaves the 2%-day AUC unchanged: 0.646 against 0.648, −0.002 (−0.030 to +0.029). The criterion needed both above zero. The result does not depend on 2008's extrapolation: dropping that year gives −0.043 (−0.075 to −0.018) and −0.002 (−0.031 to +0.030). Over all sessions and on the −3% target, S+I is no better anywhere and is worse on Brier score (Part 8.1). Under §5's own terms the internal-stress read is not built, and the change order's 61h case falls back to 54h.
+
+**Supported**
+
+1. **§0 item 3 and §3.2: "calm surface, stressed internals" is a hypothesis with one supporting case.** Part 8 now tests it out of sample and it fails, so "one case" was the right reading. The internals carry no forecasting information beyond the vol state, either on calm days or on all days.
+2. **§3.6: after an opener, outcomes widen in both directions.** In the looser class, a top-decile day followed within five sessions after 9 of 10 days with history. The next session fell in 4 of 10 (−3.94%, −1.81%, −2.06%, −3.03%), and the five-session range ran from 2.8% to 12.1% (Part 8.3).
+3. **§1: the two near-misses.** 2018-02-05 (−4.10%, VIX 17.31, one 2% day in the prior 20) is in the looser class. 2024-08-05 is not, and the reason is its size rather than VIX: at −3.00% it misses the bottom-1% threshold of −3.11%. Its VIX at T-1 (23.39) and its one prior 2% day would have passed.
+4. **§0 item 4, §3.4 and 106g(i): vol management is drawdown insurance with a premium of 1.4–2.1 points and about 20 points of recovery.** Part 3's rule with cash and borrowing at DTB3 and 2bp costs gives a premium of 1.69pp and a recovery of 19.5pp (max drawdown −33.0% against −52.6% for its 0.90 mix). The other variants' premiums run 0.92–1.64pp and their recoveries 14.1–24.1pp. Every variant's Sharpe on returns in excess of DTB3 (0.34–0.39) is below its matched mix's (0.40), which supports "not higher" (Part 9).
+5. **§0 and §3.6: 0.86 held into 5 Nov, 0.35 set for 6 Nov.** Reproduced for rule A (Part 9.1).
+
+**Contradicted or qualified**
+
+6. **§0 item 3, §1 and §3.1: "5 Nov 2026 is the only −4% member" holds only for the strict class.** The looser class has 11 days since 1990, about one every 3.3 years against one every six, and three of them fell 4% or more: 27 Oct 1997 (−6.87%), 5 Feb 2018 (−4.10%) and 5 Nov 2026.
+7. **§0 item 3: "only 5 Nov 2026 had extreme internals."** That is still true of its exact pattern: equal-weight leading at the 100th percentile, QQQ lagging at the 2nd, dispersion at the 99th. In the looser class, though, 4 Jan 2000 also had extreme internals with the rotation the other way: QQQ − SPY at the 99th percentile and sector dispersion at the 94th (RSP did not exist yet). SPY's Amihud 1-year percentile was 73–78 before 21 Aug 2015, 5 Feb 2018 and 24 Feb 2020, so "SPY unusually liquid before the openers" describes the strict class better than the looser one (Part 8.3).
+8. **106e: illiquidity as a core input.** Part 8.2 qualifies it rather than refutes it. SPY's Amihud 1-year percentile is the most stable internal feature: positive in 18–19 of 19 refits for realised vol and the 2% day, and 17 of 19 for the −3% day. Yet the I set as a whole adds nothing out of sample, and the 3-year percentile enters with the opposite sign once the 1-year is in the model. So the evidence does not show that Amihud adds forecasting value to the vol state. 106e stands or falls on its own case, as a liquidity reading for display. The RSP − SPY level and its percentile carry opposite signs in every refit, which is the collinear pair offsetting itself; neither is evidence either way.
+9. **§3.4: "the rule attaches late; an episode's first day stays on the book."** It holds for every variant once each is read against its own average exposure. Into 5 Nov, A held 0.86 (average 0.90), B 0.86 (0.95), D 1.04 (0.87), E 0.60 (0.73) and C 0.52 (0.54). C's lower holding is its level, not a warning. D, the slow-vol variant, was the most exposed of the five into the opener. It also has the largest recovery (24.1pp at a 1.64pp premium), because it is slower both into and out of a regime.
+10. **106g(i)'s "two cheaper variants".** Measured as premium against the variant's own matched mix, both are cheaper than A: B costs 1.30pp and C 0.92pp, against A's 1.69pp. Both also buy less. B's recovery is 18.9pp but its worst 20 sessions are −16.9% against A's −11.0%. C's recovery is 14.1pp, though at a 0.54 average exposure its matched mix's drawdown is only −34.3%. Per point of premium, recovery is about 11.5 for A, 14.5 for B, 15.3 for C, 14.7 for D and 12.7 for E. B, C and D are all better value than A. C is the only one whose exposure for 6 Nov cannot be set until FRED's 5 Nov VIX lands.
 
 <!-- NEW-PARTS-CHANGE -->
 ## What the new parts change

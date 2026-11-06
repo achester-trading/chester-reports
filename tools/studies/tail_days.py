@@ -827,7 +827,20 @@ def part5(d: Data, out: list[str], p2_q90: float):
         out.append("| " + " | ".join([str(t.date()), str(gi[p].date())] + [cell(c, row[c]) for c in COLS]) + " |")
     out.append("")
 
-    # internals, each a percentile of its own history through T-1
+    out.append("### Part 5.3 Internals at T-1, as percentiles of their own history\n")
+    internals_table(d, out, openers.index)
+
+    out.append("### Part 5.4 What followed\n")
+    n_top, n_obs = aftermath_table(d, out, openers, p2_q90)
+    out.append(f"\nA top-decile day followed within 5 sessions after **{n_top} of {n_obs}** openers with five "
+               "sessions of history.\n")
+    return {"n": len(openers), "big": big, "q01": q01, "n_bot1": int(bot1.sum()), "n_top": n_top,
+            "n_obs": n_obs}
+
+
+def internal_series(d: Data) -> dict:
+    """Part 5.3's internals as daily series: RSP-SPY and QQQ-SPY 20-session relative total
+    return (pp), sector-SPDR dispersion (pp, >= 9 sectors), the sector count, SPY Amihud."""
     rsp, spy, qqq = roll_ret(d, "RSP"), roll_ret(d, "SPY"), roll_ret(d, "QQQ")
     rsp_rel = (rsp - spy).dropna() * 100 if rsp is not None and spy is not None else None
     qqq_rel = (qqq - spy).dropna() * 100 if qqq is not None and spy is not None else None
@@ -839,7 +852,15 @@ def part5(d: Data, out: list[str], p2_q90: float):
         ami = (p_["ret"].abs() / (p_["close"] * p_["volume"]).replace(0, np.nan)).rolling(20, min_periods=20).mean()
     else:
         ami = None
-    out.append("### Part 5.3 Internals at T-1, as percentiles of their own history\n")
+    return {"rsp_rel": rsp_rel, "qqq_rel": qqq_rel, "disp": disp, "avail": avail, "ami": ami}
+
+
+def internals_table(d: Data, out: list[str], days) -> None:
+    """Part 5.3's table for tail days `days` (their T-1 rows)."""
+    gi = d.px["^GSPC"].index
+    s_ = internal_series(d)
+    rsp_rel, qqq_rel, disp, avail, ami = (s_["rsp_rel"], s_["qqq_rel"], s_["disp"], s_["avail"],
+                                          s_["ami"])
     out.append("Each value is as of T-1's close and its percentile is the share of the series' own values on or "
                "before T-1 that are at or below it (expanding history from the series' first observation; "
                "Amihud over the trailing 252 and 756 values). RSP-SPY and QQQ-SPY: 20-session total-return "
@@ -853,7 +874,7 @@ def part5(d: Data, out: list[str], p2_q90: float):
     def v_at(s, day):
         return float(s.loc[day]) if s is not None and day in s.index and pd.notna(s.loc[day]) else np.nan
 
-    for t in openers.index:
+    for t in days:
         day = gi[gi.get_loc(t) - 1]
         out.append(f"| {t.date()} | {day.date()} | {fmt(v_at(rsp_rel, day), 2, sign=True)} | "
                    f"{fmt(pct_of_history(rsp_rel, day), 0)} | {fmt(v_at(qqq_rel, day), 2, sign=True)} | "
@@ -863,7 +884,11 @@ def part5(d: Data, out: list[str], p2_q90: float):
                    f"{fmt(pct_of_history(ami, day, 252), 0)} | {fmt(pct_of_history(ami, day, 756), 0)} |")
     out.append("")
 
-    out.append("### Part 5.4 What followed\n")
+
+def aftermath_table(d: Data, out: list[str], openers: pd.Series, p2_q90: float) -> tuple[int, int]:
+    """Part 5.4's table for tail days `openers` (date -> return); returns (n top, n observed)."""
+    g = d.px["^GSPC"]
+    gi = g.index
     out.append(f"T+1: close T to close T+1, and that session's high-low range ÷ close T. T+1..T+5: close T to "
                f"close T+5, and the highest high less the lowest low over the five sessions ÷ close T. Top decile "
                f"is Part 2's full-sample threshold (≥ {p2_q90*100:.2f}%), looked for in T+1..T+5. \"gap\" where the "
@@ -891,10 +916,7 @@ def part5(d: Data, out: list[str], p2_q90: float):
             hit_s = "gap"
         out.append(f"| {t.date()} | {v*100:+.2f}% | {fmt(r1, 2, sign=True)}% | {fmt(rg1, 2)}% | "
                    f"{fmt(r5, 2, sign=True)}% | {fmt(rg5, 2)}% | {hit_s} |".replace("gap%", "gap"))
-    out.append(f"\nA top-decile day followed within 5 sessions after **{n_top} of {n_obs}** openers with five "
-               "sessions of history.\n")
-    return {"n": len(openers), "big": big, "q01": q01, "n_bot1": int(bot1.sum()), "n_top": n_top,
-            "n_obs": n_obs}
+    return n_top, n_obs
 
 
 # ------------------------------------------------------------------ Part 6
@@ -1027,6 +1049,414 @@ def part7(d: Data, out: list[str]):
                        f"{s.index[0].date()} | {s.index[-1].date()} | {len(s):,} |")
     out.append("")
     return {"vals": vals}
+
+
+# ------------------------------------------------------------------ Part 8
+P8_START, P8_END = "2003-05-01", "2026-10-22"
+P8_H = 10
+P8_FIRST_FIT = 2007                 # first year-end refit; predictions from 2008
+BOOT_DRAWS, BOOT_BLOCK = 500, 21
+S_FEATS = ["VIX", "RV20", "VIX-RV20", "VIX/VIX3M", "VVIX", "|r|>2% /20", "DD 252"]
+I_FEATS = ["RSP-SPY 20d", "RSP-SPY pctl", "QQQ-SPY 20d", "sector disp.", "Amihud 1y pctl",
+           "Amihud 3y pctl", "HB/LV 20d", "SPY - HB/LV 1d"]
+
+
+def p8_features(d: Data) -> pd.DataFrame:
+    """Every feature as of each ^GSPC close; NaN where a series has no value (the models fill)."""
+    g = d.px["^GSPC"]
+    gi = g.index
+    r = g["ret"]
+    lr = np.log1p(r)
+    f = pd.DataFrame(index=gi)
+    vix = d.fred.get("VIXCLS")
+    # as-of read, at most FRED_MAX_FILL_DAYS calendar days (asof() vectorised)
+    if vix is not None:
+        v = vix.reindex(gi.union(vix.index)).ffill()
+        last = pd.Series(vix.index, index=vix.index).reindex(gi.union(vix.index)).ffill()
+        v = v.reindex(gi).where((gi - pd.DatetimeIndex(last.reindex(gi))).days <= FRED_MAX_FILL_DAYS)
+    else:
+        v = pd.Series(np.nan, index=gi)
+    f["VIX"] = v
+    f["RV20"] = lr.rolling(20, min_periods=20).std(ddof=1) * np.sqrt(252) * 100
+    f["VIX-RV20"] = f["VIX"] - f["RV20"]
+    for nm, sym in (("VIX3M", "^VIX3M"), ("VVIX", "^VVIX")):
+        f[nm] = d.px[sym]["close"].reindex(gi) if sym in d.px else np.nan
+    f["VIX/VIX3M"] = f["VIX"] / f.pop("VIX3M")
+    f["|r|>2% /20"] = (r.abs() > 0.02).astype(float).rolling(20, min_periods=20).sum()
+    f["DD 252"] = (g["close"] / g["close"].rolling(252, min_periods=1).max() - 1) * 100
+    s_ = internal_series(d)
+    f["RSP-SPY 20d"] = s_["rsp_rel"].reindex(gi) if s_["rsp_rel"] is not None else np.nan
+    f["RSP-SPY pctl"] = (s_["rsp_rel"].expanding().rank(method="max", pct=True) * 100).reindex(gi) \
+        if s_["rsp_rel"] is not None else np.nan
+    f["QQQ-SPY 20d"] = s_["qqq_rel"].reindex(gi) if s_["qqq_rel"] is not None else np.nan
+    f["sector disp."] = s_["disp"].reindex(gi)
+    ami = s_["ami"].dropna() if s_["ami"] is not None else None
+    for nm, w in (("Amihud 1y pctl", 252), ("Amihud 3y pctl", 756)):
+        f[nm] = (ami.rolling(w, min_periods=w).rank(method="max", pct=True) * 100).reindex(gi) \
+            if ami is not None else np.nan
+    if "SPHB" in d.px and "SPLV" in d.px:
+        hl = ((1 + d.px["SPHB"]["ret"]) / (1 + d.px["SPLV"]["ret"]) - 1).dropna()
+        idx_ = (1 + hl).cumprod()
+        f["HB/LV 20d"] = ((idx_ / idx_.shift(20) - 1) * 100).reindex(gi)
+        f["SPY - HB/LV 1d"] = ((d.px["SPY"]["ret"] - hl) * 100).reindex(gi)
+    else:
+        f["HB/LV 20d"] = f["SPY - HB/LV 1d"] = np.nan
+    # targets over t+1..t+H
+    fl = pd.concat([lr.shift(-k) for k in range(1, P8_H + 1)], axis=1)
+    fr = pd.concat([r.shift(-k) for k in range(1, P8_H + 1)], axis=1)
+    complete = fl.notna().all(axis=1)
+    f["y_a"] = np.log(fl.std(axis=1, ddof=1) * np.sqrt(252)).where(complete)
+    f["y_b"] = (fr.abs() >= 0.02).any(axis=1).astype(float).where(complete)
+    f["y_c"] = (fr <= -0.03).any(axis=1).astype(float).where(complete)
+    return f
+
+
+def _design(F: pd.DataFrame, feats: list[str], tr: np.ndarray, te: np.ndarray):
+    """Standardise on the training rows; missing -> training mean (0) plus a missing flag
+    where the flag varies in training. Returns X_train, X_test (intercept first), names."""
+    cols_tr, cols_te, names = [], [], []
+    for c in feats:
+        x = F[c].values.astype(float)
+        xt = x[tr]
+        ok = ~np.isnan(xt)
+        if ok.sum() < 2:
+            continue
+        m, s = xt[ok].mean(), xt[ok].std(ddof=0)
+        if not s > 0:
+            continue
+        z = np.where(np.isnan(x), 0.0, (x - m) / s)
+        cols_tr.append(z[tr]); cols_te.append(z[te]); names.append(c)
+        fl = np.isnan(x).astype(float)
+        fm = fl[tr].mean()
+        if 0 < fm < 1:
+            cols_tr.append(fl[tr]); cols_te.append(fl[te]); names.append(c + " [missing]")
+    Xtr = np.column_stack([np.ones(tr.sum())] + cols_tr)
+    Xte = np.column_stack([np.ones(te.sum())] + cols_te)
+    return Xtr, Xte, names
+
+
+def _logit(X, y, ridge=1e-6, it=100):
+    b = np.zeros(X.shape[1])
+    for _ in range(it):
+        p = 1 / (1 + np.exp(-np.clip(X @ b, -35, 35)))
+        W = p * (1 - p)
+        H = X.T @ (X * W[:, None]) + ridge * np.eye(len(b))
+        step = np.linalg.solve(H, X.T @ (y - p) - ridge * b)
+        b += step
+        if np.max(np.abs(step)) < 1e-9:
+            break
+    return b
+
+
+def _auc(y, p):
+    from scipy.stats import rankdata
+    y = y.astype(bool)
+    n1, n0 = y.sum(), (~y).sum()
+    if n1 == 0 or n0 == 0:
+        return np.nan
+    rk = rankdata(p)
+    return (rk[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0)
+
+
+def _metrics(o: dict, sel: np.ndarray) -> dict:
+    m = {}
+    ya, bench = o["y_a"][sel], o["bench"][sel]
+    sst = ((ya - bench) ** 2).sum()
+    for k in ("S", "SI"):
+        m[("a", "R2", k)] = 1 - ((ya - o[("a", k)][sel]) ** 2).sum() / sst if sst > 0 else np.nan
+        for t in ("b", "c"):
+            y, p = o["y_" + t][sel], o[(t, k)][sel]
+            m[(t, "AUC", k)] = _auc(y, p)
+            m[(t, "Brier", k)] = float(((p - y) ** 2).mean()) if len(y) else np.nan
+    return m
+
+
+def part8(d: Data, out: list[str], q01_1990: float, p2_q90: float):
+    F = p8_features(d)
+    gi = F.index
+    pos = np.arange(len(gi))
+    insample = (gi >= pd.Timestamp(P8_START)) & (gi <= pd.Timestamp(P8_END)) & F["y_a"].notna().values
+    years = range(P8_FIRST_FIT + 1, pd.Timestamp(P8_END).year + 1)
+    o = {k: np.full(len(gi), np.nan) for k in
+         [("a", "S"), ("a", "SI"), ("b", "S"), ("b", "SI"), ("c", "S"), ("c", "SI"), "bench"]}
+    coefs = {}          # (target, year) -> {feature: coef} for the S+I model
+    n_train = {}
+    for yr in years:
+        fit_pos = gi.searchsorted(pd.Timestamp(f"{yr}-01-01")) - 1     # last session of yr-1
+        tr = insample & (pos + P8_H <= fit_pos)       # targets fully realised by the fit date
+        te = insample & (gi.year == yr)
+        if te.sum() == 0:
+            continue
+        n_train[yr] = int(tr.sum())
+        o["bench"][te] = F["y_a"].values[tr].mean()
+        for k, feats in (("S", S_FEATS), ("SI", S_FEATS + I_FEATS)):
+            Xtr, Xte, names = _design(F, feats, tr, te)
+            ya = F["y_a"].values[tr]
+            ba = np.linalg.lstsq(Xtr, ya, rcond=None)[0]
+            o[("a", k)][te] = Xte @ ba
+            bs = {"a": ba}
+            for t in ("b", "c"):
+                bt = _logit(Xtr, F["y_" + t].values[tr])
+                o[(t, k)][te] = 1 / (1 + np.exp(-np.clip(Xte @ bt, -35, 35)))
+                bs[t] = bt
+            if k == "SI":
+                for t in ("a", "b", "c"):
+                    coefs[(t, yr)] = dict(zip(names, bs[t][1:]))
+    oos = insample & ~np.isnan(o[("a", "S")])
+    for k in list(o):
+        o[k] = o[k][oos]
+    for t in ("a", "b", "c"):
+        o["y_" + t] = F["y_" + t].values[oos]
+    vix_t = F["VIX"].values[oos]
+    low = vix_t < 20
+    allm = np.ones(oos.sum(), bool)
+    ex08 = gi[oos].year >= 2009          # sensitivity only: drops the first fit's year
+    subs = {"all": allm, "low": low, "all09": ex08, "low09": low & ex08}
+    point = {k: _metrics(o, v) for k, v in subs.items()}
+
+    rng = np.random.default_rng(SEED)
+    n = int(oos.sum())
+    nb = int(np.ceil(n / BOOT_BLOCK))
+    keys = [("a", "R2"), ("b", "AUC"), ("b", "Brier"), ("c", "AUC"), ("c", "Brier")]
+    boots = {(sub, k): [] for sub in subs for k in keys}
+    for _ in range(BOOT_DRAWS):
+        starts = rng.integers(0, n - BOOT_BLOCK + 1, nb)
+        ix = (starts[:, None] + np.arange(BOOT_BLOCK)).ravel()[:n]
+        ob = {k: v[ix] for k, v in o.items()}
+        for sub, sel in ((k, v[ix]) for k, v in subs.items()):
+            mb = _metrics(ob, sel)
+            for t, met in keys:
+                boots[(sub, (t, met))].append(mb[(t, met, "SI")] - mb[(t, met, "S")])
+
+    oos_idx = gi[oos]
+    out.append(_src_line(d, ["^GSPC", "VIXCLS", "^VIX3M", "^VVIX", "SPY", "RSP", "QQQ", "SPHB", "SPLV"]
+                         + SECTORS))
+    out.append(f"Sample: every ^GSPC session from {P8_START} to {P8_END} with a complete t+1..t+{P8_H} window, "
+               f"n = {int(insample.sum()):,}. Out of sample: {oos_idx[0].date()} to {oos_idx[-1].date()}, "
+               f"n = {n:,}, of which {int(low.sum()):,} with VIXCLS < 20 at t. No new series was fetched; every "
+               "input was read from the cache.\n")
+    out.append("Features, each as of the close of t. **S** (vol state): VIXCLS (as-of, at most 5 days); RV20 "
+               "(annualised stdev of the 20 daily ^GSPC log returns ending t, %); VIX − RV20; VIXCLS ÷ ^VIX3M "
+               "(from 2006-07-17, else gap); ^VVIX (from 2007-01-03, else gap); sessions with |ret| > 2% among the "
+               "20 ending t; drawdown from the 252-session closing high, %. **I** (internals): RSP − SPY 20-session "
+               "total-return difference (pp) and its expanding percentile; QQQ − SPY 20-session difference; "
+               "sector-SPDR dispersion (Part 5.3); SPY Amihud as a percentile of its trailing 252 and 756 values; "
+               "SPHB/SPLV total-return ratio's 20-session change, % (from 2011-06, else gap); SPY's return less "
+               "SPHB/SPLV's on day t, pp.\n")
+    out.append(f"Targets over t+1..t+{P8_H} (^GSPC): (a) log of the annualised stdev of the ten daily log returns; "
+               "(b) any |ret| ≥ 2%; (c) any ret ≤ −3%. Models: OLS for (a), logistic regression (Newton–Raphson, "
+               "1e-6 ridge for numerical stability only) for (b) and (c). Features standardised on the training "
+               "rows; a missing value takes the training mean (0 after standardising) and a missing flag joins "
+               "the model wherever the flag varies in training; a feature with no variance in training is left "
+               "out of that fit. Refit at each year-end from 2007 on the expanding window from 2003-05-01, "
+               f"applied to the following year. Training rows are those whose target window had closed by the "
+               f"fit date (t + {P8_H} sessions ≤ the year's last session), so no label is used before it is known.\n")
+    out.append(f"Out-of-sample R² for (a) is 1 − Σ(y − ŷ)² / Σ(y − ȳ_train)², ȳ_train the training mean of the "
+               f"fit that made the prediction. AUC is the Mann–Whitney statistic; Brier is the mean of (p − y)² "
+               f"(lower is better). Intervals: {BOOT_DRAWS} moving-block bootstrap draws of the out-of-sample "
+               f"series, {BOOT_BLOCK}-session blocks (seed {SEED}), the VIX < 20 subset taken within each draw; "
+               "5th to 95th percentile of S+I minus S.\n")
+    out.append("Base rates out of sample: "
+               f"(b) any 2% day: {o['y_b'].mean()*100:.1f}% of all sessions, {o['y_b'][low].mean()*100:.1f}% "
+               f"with VIX < 20; (c) any −3% day: {o['y_c'].mean()*100:.1f}% and {o['y_c'][low].mean()*100:.1f}%.\n")
+
+    out.append("### Part 8.1 Out-of-sample results, S against S+I\n")
+    out.append("| Subset | Target | Metric | S | S+I | S+I − S | 90% interval |")
+    out.append("|---|---|---|---|---|---|---|")
+    labels = {"a": "(a) log RV t+1..10", "b": "(b) any \\|ret\\| ≥ 2%", "c": "(c) any ret ≤ −3%"}
+    ci = {}
+    for sub, sl in (("all", "all sessions"), ("low", "VIX < 20 at t"),
+                    ("all09", "sensitivity: all sessions, 2009–2026"),
+                    ("low09", "sensitivity: VIX < 20 at t, 2009–2026")):
+        for t, met in keys:
+            pS, pSI = point[sub][(t, met, "S")], point[sub][(t, met, "SI")]
+            lo, hi = np.nanquantile(boots[(sub, (t, met))], [0.05, 0.95])
+            ci[(sub, t, met)] = (pSI - pS, lo, hi)
+            out.append(f"| {sl} | {labels[t]} | {met} | {pS:.4f} | {pSI:.4f} | {pSI - pS:+.4f} | "
+                       f"{lo:+.4f} to {hi:+.4f} |")
+    out.append("")
+    da, la, _ = ci[("low", "a", "R2")]
+    db, lb, _ = ci[("low", "b", "AUC")]
+    passed = da > 0 and la > 0 and db > 0 and lb > 0
+    verdict = (f"**Pre-registered criterion (106c(ii)): {'PASS' if passed else 'FAIL'}.** On the VIX < 20 subset, "
+               f"S+I minus S is {da:+.4f} on the (a) R² (90% interval lower bound {la:+.4f}) and {db:+.4f} on the "
+               f"(b) AUC (lower bound {lb:+.4f}); the criterion needs both differences and both lower bounds above "
+               "zero.")
+    out.append(verdict + "\n")
+    out.append("The sensitivity rows are not the pre-registered test. They drop 2008, whose predictions come "
+               "from the first fit (2003-05 to 2007-12, a calm window): 2008's RV20 reached about 19 training "
+               "standard deviations, and the linear models extrapolate from there, S+I much further than S. "
+               "The verdict above is read from the pre-registered rows only.\n")
+
+    out.append("### Part 8.2 The internal features' coefficients\n")
+    last_yr = max(y for (_, y) in coefs)
+    out.append(f"Standardised coefficients (per training standard deviation) of the I features in the S+I model "
+               f"of the final fit (through {last_yr - 1}-12-31, applied to {last_yr}): log-vol units for (a), "
+               f"log-odds for (b) and (c). Signs: positive / negative across the {len(n_train)} refits "
+               f"({min(n_train)}–{max(n_train)}); a refit in which the feature had no variance is not counted. "
+               "Missing-flag coefficients are not shown.\n")
+    out.append("| Feature | (a) final | (a) + / − | (b) final | (b) + / − | (c) final | (c) + / − |")
+    out.append("|---|---|---|---|---|---|---|")
+    for fn in I_FEATS:
+        cells = []
+        for t in ("a", "b", "c"):
+            fin = coefs[(t, last_yr)].get(fn, np.nan)
+            vals = [coefs[(t, y)][fn] for y in n_train if fn in coefs[(t, y)]]
+            cells += [fmt(fin, 3, sign=True), f"{sum(v > 0 for v in vals)} / {sum(v < 0 for v in vals)}"]
+        out.append(f"| {fn} | " + " | ".join(cells) + " |")
+    out.append("")
+
+    # ---------------- looser opener class
+    g = d.px["^GSPC"]
+    allr = g["ret"]
+    r = allr.loc["1990-01-02":].dropna()
+    vix = d.fred.get("VIXCLS")
+    vix_t1 = vix.reindex(gi).ffill(limit=3).shift(1).loc[r.index]
+    big20 = (allr.abs() >= 0.02).astype(float).rolling(20, min_periods=20).sum().shift(1).loc[r.index]
+    bot1 = r <= q01_1990
+    loose = r[bot1 & (vix_t1 < 25) & (big20 <= 1)]
+    out.append("### Part 8.3 The looser opener class\n")
+    out.append(_src_line(d, ["^GSPC", "VIXCLS"]))
+    out.append(f"Definition: a Part 5 bottom-1% day (^GSPC since 1990-01-02, threshold ≤ {q01_1990*100:.2f}%) "
+               f"with FRED VIXCLS below 25 at the prior close and at most one session with |ret| ≥ 2% among the "
+               f"20 before T. {int(bot1.sum())} bottom-1% days; **{len(loose)} in the looser class** "
+               f"(Part 5's strict class: VIX < 20 and none).\n")
+    out.append("| # | Date | ^GSPC ret | VIX at T-1 | 2% days in prior 20 | in Part 5's strict class? |")
+    out.append("|---|---|---|---|---|---|")
+    pm = allr.abs().rolling(20, min_periods=20).max().shift(1)
+    for k, (t, v) in enumerate(loose.items(), 1):
+        strict = vix_t1.loc[t] < 20 and pm.loc[t] < 0.02
+        out.append(f"| {k} | {t.date()} | {v*100:+.2f}% | {vix_t1.loc[t]:.2f} | {int(big20.loc[t])} | "
+                   f"{'yes' if strict else 'no'} |")
+    out.append("")
+    out.append("**Internals at T-1 (Part 5.3's table).** ")
+    internals_table(d, out, loose.index)
+    out.append("**Aftermath (Part 5.4's table).** ")
+    nt, no = aftermath_table(d, out, loose, p2_q90)
+    out.append(f"\nA top-decile day followed within 5 sessions after **{nt} of {no}** days in the looser class.\n")
+    out.append("The two named near-misses:\n")
+    out.append("| Date | ^GSPC ret | bottom 1%? | VIX at T-1 | 2% days in prior 20 | in the looser class? |")
+    out.append("|---|---|---|---|---|---|")
+    near = {}
+    for ds in ("2018-02-05", "2024-08-05"):
+        t = pd.Timestamp(ds)
+        rv_, vv, bb = r.loc[t], vix_t1.loc[t], big20.loc[t]
+        inn = t in loose.index
+        near[ds] = (inn, rv_, vv, bb)
+        why = [] if inn else ([f"return above the {q01_1990*100:.2f}% threshold"] if rv_ > q01_1990 else []) + \
+            ([f"VIX {vv:.2f} ≥ 25"] if not vv < 25 else []) + ([f"{int(bb)} 2% days"] if bb > 1 else [])
+        out.append(f"| {ds} | {rv_*100:+.2f}% | {'yes' if rv_ <= q01_1990 else 'no'} | {vv:.2f} | {int(bb)} | "
+                   f"{'yes' if inn else 'no — ' + '; '.join(why)} |")
+    out.append("")
+    # the looser days the strict class lacks: their internals' percentiles, for the summary
+    return {"point": point, "ci": ci, "passed": passed, "verdict": verdict, "n_oos": n,
+            "n_low": int(low.sum()), "coefs": coefs, "last_yr": last_yr, "loose": loose, "near": near,
+            "n_train": n_train, "rates": (o["y_b"].mean(), o["y_b"][low].mean(), o["y_c"].mean(),
+                                          o["y_c"][low].mean())}
+
+
+# ------------------------------------------------------------------ Part 9
+def part9(d: Data, out: list[str]):
+    g = d.px["^GSPC"].loc["1989-01-01":]
+    gi = g.index
+    r_all = g["ret"].dropna()
+    lr = np.log1p(r_all)
+    v20 = lr.rolling(20).var(ddof=1) * 252
+    v60 = lr.rolling(60).var(ddof=1) * 252
+    vix = d.fred.get("VIXCLS")
+    vx_strict = vix.reindex(r_all.index)                      # the close's own value, or NaN
+    vx = vix.reindex(gi.union(vix.index)).ffill(limit=5).reindex(r_all.index)
+    sig_avg2 = ((np.sqrt(v20) + np.sqrt(v60)) / 2) ** 2
+    expos = {
+        "A. Part 3's rule (12% target, RV20, 0.25–1.5)": (0.12 ** 2 / v20).clip(0.25, 1.5),
+        "B. A with a 0.5 floor": (0.12 ** 2 / v20).clip(0.5, 1.5),
+        "C. VIX-based, (12 / VIX)², 0.25–1.5": ((12 / vx) ** 2).clip(0.25, 1.5),
+        "D. A on the mean of RV20 and RV60": (0.12 ** 2 / sig_avg2).clip(0.25, 1.5),
+        "E. A with a 10% target": (0.10 ** 2 / v20).clip(0.25, 1.5),
+    }
+    start = pd.Timestamp("1990-01-03")
+    r = r_all.loc[start:]
+    tb = d.fred.get("DTB3")
+    y = tb.reindex(gi.union(tb.index)).ffill(limit=5).reindex(gi)
+    rf = ((1 + y / 100) ** (1 / 252) - 1).shift(1).reindex(r.index)
+    cost = 0.0002
+
+    def stats(x):
+        eq = (1 + x).cumprod()
+        cagr = eq.iloc[-1] ** (252 / len(x)) - 1
+        vol = x.std(ddof=1) * np.sqrt(252)
+        xs = x - rf
+        shx = xs.mean() / xs.std(ddof=1) * np.sqrt(252)
+        mdd = (eq / eq.cummax() - 1).min()
+        w20 = (eq / eq.shift(20) - 1).min()
+        return cagr, vol, shx, mdd, w20
+
+    def cm(eb):
+        port = eb * r + (1 - eb) * rf
+        drift = eb * (1 + r) / (1 + port)
+        to = (drift - eb).abs().shift(1).fillna(eb)
+        return port - to * cost, to
+
+    out.append(_src_line(d, ["^GSPC", "VIXCLS", "DTB3"]))
+    out.append(f"{r.index[0].date()} to {r.index[-1].date()}, n = {len(r):,} (from 1990-01-03, the first session "
+               "with a prior-close VIXCLS for C, so A here differs from Part 6 by one day). Exposure is set at "
+               "each close and held over the next session; the rest of the book is in, or borrowed at, FRED DTB3 "
+               "at T-1 (carried at most 5 days, compounded to a 252-day year). Costs: 2bp × |Δexposure| each day "
+               "for the variants, 2bp × the drift back to target for the constant mixes. RV20 and RV60: annualised "
+               "sample stdev of the last 20 and 60 daily log returns; D averages the two vols, then applies A's "
+               "formula. C reads VIXCLS at the close (carried at most 5 rows over FRED's holiday gaps for the "
+               "backtest). Each variant's constant mix holds that variant's own average exposure. Price return, "
+               "no dividends, as Parts 3 and 6. Premium = CAGR(mix) − CAGR(variant). Recovery = the drawdown "
+               "avoided, |max drawdown(mix)| − |max drawdown(variant)|, in points (positive: the variant's "
+               "drawdown is shallower).\n")
+    out.append("| Strategy | CAGR | Ann. vol | Sharpe (excess of DTB3) | Max drawdown | Worst 20-session | Avg exposure | Ann. turnover | Premium | Recovery |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|")
+    bh = stats(r - pd.Series(np.where(r.index == r.index[0], cost, 0.0), index=r.index))
+    out.append(f"| Buy and hold | {bh[0]*100:.2f}% | {bh[1]*100:.2f}% | {bh[2]:.2f} | {bh[3]*100:.1f}% | "
+               f"{bh[4]*100:.1f}% | 1.00 | 0.0x | — | — |")
+    yrs = len(r) / 252
+    res = {}
+    for lbl, ex in expos.items():
+        held = ex.shift(1).reindex(r.index)
+        if held.isna().any():
+            out.append(f"| {lbl} | gap ({int(held.isna().sum())} sessions without an exposure) | | | | | | | | |")
+            continue
+        to = held.diff().abs().fillna(held.iloc[0])
+        x = held * r + (1 - held) * rf - to * cost
+        a = stats(x)
+        eb = float(held.mean())
+        xm, tom = cm(eb)
+        m = stats(xm)
+        prem, rec = m[0] - a[0], abs(m[3]) - abs(a[3])
+        res[lbl] = {"v": a, "m": m, "eb": eb, "to": to.sum() / yrs, "tom": tom.sum() / yrs,
+                    "prem": prem, "rec": rec}
+        out.append(f"| {lbl} | {a[0]*100:.2f}% | {a[1]*100:.2f}% | {a[2]:.2f} | {a[3]*100:.1f}% | {a[4]*100:.1f}% | "
+                   f"{eb:.2f} | {to.sum()/yrs:.1f}x | {prem*100:+.2f}pp | {rec*100:+.1f}pp |")
+        out.append(f"| — constant mix {eb:.2f} | {m[0]*100:.2f}% | {m[1]*100:.2f}% | {m[2]:.2f} | {m[3]*100:.1f}% | "
+                   f"{m[4]*100:.1f}% | {eb:.2f} | {tom.sum()/yrs:.1f}x | | |")
+    out.append("")
+    out.append("### Part 9.1 Exposure on 5 Nov 2026\n")
+    out.append("\"Held\" was set at the 4 Nov close and carried through 5 Nov; \"set\" is the exposure each rule sets "
+               "at the 5 Nov close for 6 Nov. C's set value needs VIXCLS for 5 Nov, which FRED had not published "
+               f"when the cache was pulled (last VIXCLS observation {vix.index[-1].date()}): gap, not carried.\n")
+    out.append("| Variant | held on 2026-11-05 | set at the 2026-11-05 close |")
+    out.append("|---|---|---|")
+    t5 = pd.Timestamp("2026-11-05")
+    t4 = pd.Timestamp("2026-11-04")
+    expo_at = {}
+    for lbl, ex in expos.items():
+        if lbl.startswith("C."):
+            vs = vx_strict.get(t4, np.nan)
+            held_v = min(1.5, max(0.25, (12 / vs) ** 2)) if vs == vs else np.nan
+            vs5 = vx_strict.get(t5, np.nan)
+            set_v = min(1.5, max(0.25, (12 / vs5) ** 2)) if vs5 == vs5 else np.nan
+        else:
+            held_v = ex.get(t4, np.nan) if t5 in ex.index else np.nan
+            set_v = ex.get(t5, np.nan)
+        expo_at[lbl] = (held_v, set_v)
+        out.append(f"| {lbl} | {fmt(held_v)} | {fmt(set_v)} |")
+    out.append("")
+    return {"res": res, "bh": bh, "expo": expo_at}
 
 
 # ------------------------------------------------------------------ main
@@ -1257,15 +1687,20 @@ def main(argv=None):
     part4(d, out)
     q90 = d.px["^GSPC"]["ret"].loc["1950-01-03":].dropna().quantile(0.90)
     out.append("## Part 5. Calm-surface openers, ^GSPC since 1990\n")
-    part5(d, out, q90)
+    p5 = part5(d, out, q90)
     out.append("## Part 6. Vol-managed exposure against a matched constant mix, ^GSPC since 1990\n")
     part6(d, out)
     out.append("## Part 7. Credit substitute: BAA10Y and the excess bond premium\n")
     part7(d, out)
+    out.append("## Part 8. Internal-stress test (106c(ii), pre-registered in the study's §5)\n")
+    p8 = part8(d, out, p5["q01"], q90)
+    out.append("## Part 9. Vol-managed variants priced as premium and recovery (106g(i)), ^GSPC since 1990\n")
+    p9 = part9(d, out)
 
     marker = "<!-- CONTRADICTS -->"
     cmark = "<!-- NEW-PARTS-CHANGE -->"
-    keep, ckeep = "", ""
+    m89 = "<!-- PARTS-8-9-CHANGE -->"
+    keep, ckeep, keep89 = "", "", ""
     op = Path(a.out)
     if op.exists():                       # the hand-written sections survive a re-run
         old = op.read_text(encoding="utf-8")
@@ -1273,7 +1708,13 @@ def main(argv=None):
             head, keep = old.split(marker, 1)
             keep = keep.lstrip("\n")
             if cmark in head:
-                ckeep = head.split(cmark, 1)[1].strip("\n") + "\n"
+                pre, ckeep = head.split(cmark, 1)
+                ckeep = ckeep.strip("\n") + "\n"
+                if m89 in pre:
+                    keep89 = pre.split(m89, 1)[1].strip("\n") + "\n"
+    out.append(m89)
+    out.append(keep89 or "## What parts 8-9 change\n\n(hand-written; the script keeps this section when it "
+               "is re-run)\n")
     out.append(cmark)
     out.append(ckeep or "## What the new parts change\n\n(hand-written; the script keeps this "
                "section when it is re-run)\n")
