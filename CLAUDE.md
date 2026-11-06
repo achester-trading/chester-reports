@@ -245,7 +245,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and sixty-four code gates (one hundred and sixty-one Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and sixty-five code gates (one hundred and sixty-two Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -1707,6 +1707,27 @@ Coded engines are named in `config/alpha_engines.yaml` (trend_ts, trend_xs,
 pm_futures, vrp_dealer, events_macro, events_fomc, events_pead, events_crush,
 crypto_carry, reversion, intraday_dealer, all candidates until they pass); a promoted grammar
 rule is named by its register id in `alpha.db`. No gate reads the live store.
+
+**The paper executor is outside the lab, paper only, and ships off (A98; D43,
+ruled 31 Oct 2026).** `paper_exec/` is the thin IBKR executor on `ib_async`
+(client id 21) that Gate 2 will use, built so no rule is a convention. It
+connects only to a paper port, and aborts unless every account the gateway
+reports begins "DU" before any order object exists. It ships `enabled: false`
+(nothing connects; `status` prints "paper executor off") and `dry_run: true`
+(every bracket built and logged, nothing sent), and sends only when the
+operator sets both flags in `config/paper_exec.yaml`. An entry leaves only as a
+whole bracket, through one send path; it trades MES only (ES refused by
+contract), conid from the Security Master; size is the config's ceiling, the
+governor's and the Doctrine's heat cap. A sticky kill file stops sending within
+one loop. Its own fills come into `alpha.db`'s `fills` (`source = paper_exec`,
+the venue's order id and fill time) before reconciliation, which stops sending
+on any mismatch. D43's two safeguards: the edge-decay pause
+(`paper_exec/pause.py`; the last 20 paper trades two standard errors below
+`validated_metrics.expectancy`; never clears itself) and "why this could fail"
+(`alpha_proposer/critic.py` makes one metered call per hypothesis, on its text
+and rule only, budget 0 shipped; `alpha/critique.py` stores it, written once).
+No timer and no unit: it runs by hand on the box. Its `run`, `clear-kill` and
+`resume` are denied to sessions. `tools/validate_paper_exec.py` holds it.
 
 ### Known cleanup
 
