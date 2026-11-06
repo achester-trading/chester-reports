@@ -287,3 +287,72 @@ What the panel cannot see is worth naming. It cannot see a credit loss in a loan
 | Credit loss | Lending standards; stress indices | When lenders see it | Slow to medium |
 | Funding mismatch | SOFR–IORB; financial CP; discount window; FHLB advances; deposits by size; money funds | Days to weeks | Fast |
 | The market's verdict | Regional banks against financials | Before the run | Fastest |
+
+---
+
+# Part IV — Liquidity Crises
+
+## Chapter 12 — The plumbing's failure modes
+
+A liquidity crisis is not a solvency crisis. Nobody need have lost money on a bad loan. What fails is the system's ability to turn safe assets into cash at short notice, at a price near their value. The assets are often the safest in the world: Treasury securities, government bonds, overnight repo. When that ability fails, holders who need cash must sell what they can, at any price, and the price of the safest asset in the system moves like a speculative one. The Rate and Liquidity Machine describes the plumbing in full. This chapter describes the three ways it has broken in recent memory, because each broke differently and each needed a different repair.
+
+**The 2019 repo spike: reserve scarcity.** In mid-September 2019, a corporate tax date and the settlement of a large Treasury auction drained cash from the banking system on the same day. The Fed had been shrinking its balance sheet, and reserves had fallen toward the level at which the largest banks, bound by their own liquidity requirements, would no longer lend them out. On 17 September the secured overnight rate jumped from just over two percent to above five, and some overnight repo traded near ten percent intraday *(the Federal Reserve Bank of New York's rate data and its subsequent review; cited 6 November 2026)*. The failure mode was a floor nobody had measured. The banks held reserves, but the regulations and their internal limits had raised the level below which they would not part with them. The Fed restored liquidity the same day with overnight repo operations, and within weeks began buying bills to rebuild reserves. It was the fastest policy response in this Part, because the cause was mechanical and the remedy was the Fed's ordinary tool. The equity market barely noticed.
+
+**March 2020: the dash for cash.** As the pandemic closed economies, every holder of liquid assets wanted cash at once. Foreign official holders sold Treasuries to defend currencies or fund spending, money-market funds faced redemptions, and leveraged funds unwound the Treasury basis trade, long cash bonds against short futures, as margins rose. Dealers, constrained by their balance sheets, could not absorb the selling. The Treasury market, the deepest in the world, became dysfunctional: off-the-run securities cheapened sharply, bid-ask spreads widened, and the safe asset fell in price on the days risk assets fell. Commercial paper froze and prime money funds faced a run.
+
+The Fed's response escalated over two weeks:
+- a rate cut on 3 March;
+- rates to zero and large purchases on 15 March;
+- commercial-paper, primary-dealer and money-fund facilities over the next three days;
+- unlimited purchases and corporate credit facilities on 23 March.
+
+The S&P 500 made its low that day *(the Federal Reserve's announcements and the S&P 500's close, March 2020; cited 6 November 2026)*. The failure mode was dealer capacity: the market's intermediaries could not hold the inventory the sellers needed to sell. The remedy was the central bank as dealer of last resort.
+
+**The 2022 gilt episode: leverage in a hedge.** On 23 September 2022 the United Kingdom announced large unfunded tax cuts, and gilt yields rose sharply. U.K. pension schemes had used liability-driven investment funds that hedged their liabilities with leveraged long positions in long-dated gilts. As yields rose, the funds faced collateral calls they could only meet by selling gilts, which raised yields further and produced more calls. The thirty-year gilt yield rose by more than a percentage point in a few sessions. On 28 September the Bank of England announced temporary purchases of long-dated gilts, a financial-stability operation it ran while it was raising rates to fight inflation. It ended the purchases on schedule in mid-October, and the fiscal measures were reversed *(the Bank of England's statements and its subsequent review of the episode; cited 6 November 2026)*. The failure mode was leverage hidden inside an instrument sold as a hedge, and a forced seller in the market that was supposed to be the hedge. The remedy was the central bank buying exactly what the forced sellers had to sell, for exactly as long as they had to sell it, while its monetary stance pointed the other way.
+
+The three failure modes are different, and the difference matters to an operator. Reserve scarcity is a quantity problem the central bank can fix with its everyday tools. Dealer capacity is a market-structure problem that needs a backstop of a scale only the central bank can supply. Hidden leverage is a positioning problem, and finding it before it breaks is the hardest of the three. A liquidity crisis inside an equity decline is how a correction becomes a crash: 2020's equity bear had a liquidity crisis at its centre, and the 1987 crash was, in the plumbing's terms, a forced-selling spiral of the same family as the gilt episode.
+
+| Episode | Failure mode | What the safe asset did | The remedy | How fast |
+|---|---|---|---|---|
+| September 2019 | Reserve scarcity | Repo rates spiked | Overnight repo, then bill purchases | Same day |
+| March 2020 | Dealer capacity; a dash for cash | Treasuries fell with equities | Facilities, then unlimited purchases | About two weeks |
+| September 2022 | Leverage inside a hedge | Long gilts spiralled | Targeted temporary purchases | Three sessions |
+
+## Chapter 13 — The policy put: what it did, how fast, and what the stack reads
+
+Every liquidity crisis in the record ended with a policy response, and the operator's question in one is not whether the response will come but how fast and with how much. The term "policy put" names the market's belief that it will come. It is a dangerous belief, for two reasons. The put is real but conditional, and its conditions change. And a market that relies on it prices less risk, which creates the fragility that will one day need it.
+
+The record across the three episodes, and across the broader set in the tail-days study, gives four regularities.
+
+**The put is fastest when the problem is the plumbing and the cure is the central bank's own tool.** In 2019 the response came the same day, and in 2022 within three sessions. Both were operations in markets the central bank runs or backstops.
+
+**The put is slower and larger when the problem is a dash for cash across markets.** In 2020 it took about two weeks of escalation, and the market's low coincided with the final, unlimited step, not the first.
+
+**The put works through the funding and Treasury markets, not the equity market.** The tail-days study found that every completed best day of the decade was a policy day or a known mechanical bid, and that in 2020 and in April 2025 the trigger for the response was stress in the Treasury and funding markets, not the fall in equities *(the tail-days study's replay of the decade's ten best and ten worst days, 2016–2026; filed with Batch 23, 6 November 2026)*. A policymaker watches the plumbing, and an operator who watches only equities will be surprised by the timing.
+
+**The put is unavailable when inflation binds.** The inflation bears of the study — 1973, 1980 and 2022 — are the episodes where policy could not turn, and they are the long ones. The 2022 gilt operation is the instructive exception. The central bank supplied liquidity to one market while tightening the economy, which shows that a financial-stability put and a monetary put are different instruments with different availability.
+
+The credit speed figures make the timing concrete. Before 9 March 2020, Baa corporate yields less the 10-year Treasury had widened by about half a percentage point in twenty observations. By 16 March they had widened by about one and a quarter points, and by the day before the 24 March bounce by more than two. Before the tariff shock of early April 2025 the widening was a fraction of that *(Baa less the 10-year, daily, from the tail-days study's Part 7; filed with Batch 23, 6 November 2026)*. Speed, not level, is what precedes a policy response.
+
+**The policy-put panel (item 124d)** is built on those findings. It is one read in plumbing and rates, with two parts. The **triggers** are all rates of change:
+- the 10-year's and the 30-year's three-session changes;
+- swap spreads, and the basis stress of SR-36;
+- the off-the-run spread;
+- the MOVE index;
+- funding spreads (FRA–OIS, SOFR against the interest on reserves) and commercial-paper spreads;
+- the cross-currency basis;
+- high yield above 500 basis points and accelerating;
+- primary-market shutdown days in investment grade;
+- Baa less the 10-year's twenty-observation change, the long-history credit speed trigger.
+
+The **availability** side reads whether a put can be delivered:
+- the Fed's stance from the scenario matrix;
+- the room inflation leaves;
+- whether the shock is the administration's own policy and therefore reversible;
+- the prediction markets' odds of an emergency meeting.
+
+The panel prints on any day the volatility-state read is in its top quintile. A "policy-put unavailable" flag conditions the tail base rates when it is set, because a decline with no put available has a different distribution from one with a put on the way.
+
+**The forward TGA path (item 121)** reads a slower plumbing channel that matters at the margin of reserve scarcity. The Treasury's cash account at the Fed drains reserves from the banking system when it rises and returns them when it falls. A rebuild of the account, after a debt-ceiling episode or ahead of heavy issuance, can push reserves toward the floor that broke in 2019. The register's ruling adds a forward row to the net-liquidity attribution. From each quarterly refunding, it reads the account's current balance against the Treasury's assumed end-of-quarter balance; the difference is the reserve add or drain the quarter implies. It prints in plumbing and rates with the refunding date. Its value is that it is forward-looking where the net-liquidity series is backward-looking, so a quarter in which the account is projected to rise sharply is a quarter in which the 2019 failure mode is closer. Which quarter that is now belongs in Appendix B.
+
+What the operator does differently because of this Part is to read a sharp decline's plumbing before its price. Funding spreads, the Treasury market's own volatility and credit speed say whether a liquidity crisis is inside the decline. The policy-put panel's availability side says whether the rescue can come. A decline with stressed plumbing and an available put has historically been the one to buy late. A decline with stressed plumbing and no put available has been the one to respect.
