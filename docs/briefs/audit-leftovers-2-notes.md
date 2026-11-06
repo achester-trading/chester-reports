@@ -310,7 +310,7 @@ and the deep price backfill (box steps after Monday's merge) have filled it, the
 store's window is shorter than the public one. Use `--source public` (the same
 command without `--source store`) for the full window.
 
-## Box steps (Ari's; nothing here was run on the box)
+## Box steps (the operator's; nothing here was run on the box)
 
 1. **Before Thursday's merge, list the stored source strings that are off the
    list:**

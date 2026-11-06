@@ -1,13 +1,13 @@
 # Warsh matrix: scenario lines
 
-The **Warsh matrix** is Ari's own scenario document for the Federal Reserve under Chair Warsh. It is kept outside this repository, and its cells and weights are his. The signal-triage batches send it **scenario lines** (Batch 6 items 34 and 42; Batch 7 item 46). Until now those lines had no home in the repo, so each was left in a session's notes. This file holds them.
+The **Warsh matrix** is the operator's own scenario document for the Federal Reserve under Chair Warsh. It is kept outside this repository, and its cells and weights are his. The signal-triage batches send it **scenario lines** (Batch 6 items 34 and 42; Batch 7 item 46). Until now those lines had no home in the repo, so each was left in a session's notes. This file holds them.
 
 Each entry records:
 - the item it comes from, and the date it was added;
 - the scenario, in one sentence;
 - the measure that adjudicates it, by its ST id where the stack computes one.
 
-**Status.** Under the ruling of 16 October 2026, judgment drafts are committed as drafted and listed for Ari's accept-all. Every entry below has that status until Ari accepts it. A line here does not weight a cell. The matrix's weights stay Ari's, and the measures are descriptive and unvalidated until their ledgers say otherwise. Entries are added with their date and never rewritten. A later ruling that changes a line is a new entry.
+**Status.** Under the ruling of 16 October 2026, judgment drafts are committed as drafted and listed for the operator's accept-all. Every entry below has that status until the operator accepts it. A line here does not weight a cell. The matrix's weights stay the operator's, and the measures are descriptive and unvalidated until their ledgers say otherwise. Entries are added with their date and never rewritten. A later ruling that changes a line is a new entry.
 
 The disagreement pairs that some of these items also produce are in `docs/narrative-register-pairs.md`.
 
@@ -29,7 +29,7 @@ The disagreement pairs that some of these items also produce are in `docs/narrat
 
 ## Item 46 — an energy shock with a softening labour market (Batch 7; `energy_shock_softening_labour`)
 
-**Added 16 October 2026 (6e-releases, session B). A draft for Ari's accept-all.**
+**Added 16 October 2026 (6e-releases, session B). A draft for the operator's accept-all.**
 
 - **The scenario:** an energy price shock lifts headline inflation while hiring slows: Monchau's "hard October call" on the September 2026 CPI.
 - **Live when** both hold in the same month:
@@ -42,7 +42,7 @@ The disagreement pairs that some of these items also produce are in `docs/narrat
 
 ## Section 2.1.5 — the order's one edit (Tranche H; added 19 October 2026)
 
-**Rule-31 draft (library-st-l, session B), for Ari's accept-all.** The signal-triage order's section 2.1.5 asks for one edit by hand. Each line below states what the stack holds on chain-2; none weights a cell.
+**Rule-31 draft (library-st-l, session B), for the operator's accept-all.** The signal-triage order's section 2.1.5 asks for one edit by hand. Each line below states what the stack holds on chain-2; none weights a cell.
 
 - **`rates.driver` as a matrix variable (SR-6, SR-17).** The four-cell driver failed its gate twice (0 of 5 episodes, then 2 of 5 under the pre-registered rule; `docs/ledgers/rates-driver-2026-09-30-r2.md`) and is withdrawn. What the matrix can read instead is the rates attribution: each model's path and premium split, dated, with a models-agree flag. It decides nothing, so it can inform a cell and never select one.
 - **The reaction-function variable, "defends the front end or the long end" (SR-9).** Adjudicated in real time by the attribution above: the 10-year rising through the premium with the front end anchored reads as the long end lost; rising through the expected path reads as tight but credible. Where the models disagree, the variable prints "models disagree" and says nothing.

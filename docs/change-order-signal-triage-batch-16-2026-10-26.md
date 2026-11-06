@@ -99,7 +99,7 @@ Every item is REPORT_OK-class. Nothing here has a path to DECISION_BLOCKED, chan
 **Decisions.**
 - **(a) AMEND 52 — oil-shock lens.** When Brent moves > 2σ over 1–5 sessions, the daily close prints the chain on one line: Brent → 5y breakeven → OIS hike odds → NDX and SOX vs equal-weight S&P. Report rights. 3 h.
 - **(b) ADOPT — midterm event row.** 3 Nov into *Ahead* at significance 4; a midterm base-rate table in Base Rates (scope widened by 90); control-of-Congress odds from the prediction-market layer once live (discovery rights). 3 h.
-- **(c) Grok chapter B prompt (by hand, 0.5 h).** Add theme tags *oil/energy* and *elections/policy*, and energy-desk seed accounts. To be folded with the three pending tweaks (Farside daily totals, two-sided disagreements, seed verification) into one recreated prompt once Ari supplies the current v2 text.
+- **(c) Grok chapter B prompt (by hand, 0.5 h).** Add theme tags *oil/energy* and *elections/policy*, and energy-desk seed accounts. To be folded with the three pending tweaks (Farside daily totals, two-sided disagreements, seed verification) into one recreated prompt once the operator supplies the current v2 text.
 - **(d) Voices.** Hartnett's "risk-off to mid-November" enters the voices register once a press source is stored.
 
 ### 81 · Prime-book net-selling trough ledger — AMEND item 74
@@ -146,13 +146,13 @@ Every item is REPORT_OK-class. Nothing here has a path to DECISION_BLOCKED, chan
 **Decision.** Amend 16 with a quantum-readiness ledger in the monthly Digital Assets chapter: status of BIP-360 and other post-quantum proposals · share of BTC with exposed public keys (public dashboard) · credible error-correction and logical-qubit milestones · adoption of quantum-safe locking schemes. Narrow flag only. 2 h + 0.5 h by hand. Voices: Lindell (*exchange cryptographer, credible*). Post: LOG ONLY.
 
 ### 87 · Gold five-lens attribution — AMEND item 73
-**Source.** Gold-focused funnel account (X, 25 Oct 2026; "comment NEWS") — *promoter*. Reviewed at Ari's request.
+**Source.** Gold-focused funnel account (X, 25 Oct 2026; "comment NEWS") — *promoter*. Reviewed at the operator's request.
 **Read.** Gold closed Fri at $3,996, −$169 on the week, −24% since the February strikes and −28.6% from January's $5,598 record; chain oil → inflation → hikes → 10y ~5% → gold; 78% December hike odds; Kitco survey 7/17 lower vs 4 higher; 41 closes below the 200-day; four "selling is done" tells.
 **Thought process.** The chain is real but partial. (1) Gold competes with *real* yields; an oil shock lifts breakevens first, which is gold-positive, so the chain bites only if the Fed lifts real yields — the daily split of the 10y into DFII10 and breakeven decides it (SR-17, DKW). The real-yield model broke in 2022–25 under official buying; a re-coupling would itself say the official bid has weakened (counterweight: Goldman's ~25t August China OTC estimate). (2) Falling *with* the Dow is a liquidation signature in a de-grossing week (81); analogues 2008 and March 2020. (3) Gold usually peaks into or before conflict onset — here, January — and a 28.6% fall after a parabolic run sits inside gold's bull-market history (1975–76 ≈ −47% mid-bull). Smaller: a hawkish Fed is largely priced at 78%, so a balanced Fed is the surprise; the dollar and ETF/CFTC positioning are omitted; the bearish Kitco survey is a contrarian marker; the "10y falling while oil rises" tell is the 1994-vs-2011 shape (batch-4 item 15) and belongs in the R28 rates-driver sub-state. Only the 10y ~5% was verified; gold, Brent and hike-odds prints to be confirmed from the box (V6).
 **Decision.** Amend 73: every gold move > 2σ decomposed into five lenses — real yield · breakeven · dollar · liquidation (same-day correlation with S&P and NDX, plus 81's prime-book reading) · official bid (WGC, PBoC, press estimates, by hand) — with a rolling 60-day gold-vs-real-yield beta. Report rights. 2 h + 0.5 h/month by hand. Post: LOG ONLY.
 
 ### 88 · Gold as standing coverage — ADOPT
-**Origin.** Ari, 25 Oct 2026, on ruling 87: include gold in the regular Weekly and Monthly reporting "to really pay attention to gold".
+**Origin.** The operator, 25 Oct 2026, on ruling 87: include gold in the regular Weekly and Monthly reporting "to really pay attention to gold".
 **Decisions.**
 - **(a) Weekly gold block, every Sunday from 8 Nov.** ~400 words + one chart, desk-commentary voice, between plumbing & rates and positioning: tape (close, weekly change, distance from record and 200-day, run of closes below it, realised vol, GVZ) · attribution (87's five lenses, 60-day real-yield beta) · positioning and flows (ETF holdings per 72, CFTC managed money; 1-week / 3-month / 12-month) · official bid (latest WGC, PBoC, press estimates) · sell-side targets (79) · exhaustion checklist (oil < $100; 10y falling while oil rises; gold up on an equity-down day; liquidation correlation flipping), each ticked weekly with a ledger testing whether they mark lows · *Ahead* gold events ranked 1–5. 4 h.
 - **(b) Monthly gold chapter.** A paragraph in the 1 Nov Monthly; full chapter from 1 Dec: regime (real-rate model vs official-bid model) · official sector, tied to SR-20 and Factor V · base-rate table of gold bull-market drawdowns (1975–76, 1980–82, 2008, 2011–15, 2022, now) · gold/oil, gold/silver, gold/BTC · positioning at 3 and 12 months · WGC Q3 Gold Demand Trends through the Reading chapter. 4 h.
@@ -171,7 +171,7 @@ By hand: 0.5 h/week for the official-bid line.
 - **(d) Voices.** McElligott (*sell-side flows, credible*); figures print only with the note's date and "via ZeroHedge, unverified".
 
 ### 90 · Midterm table scope — AMEND item 80(b)
-**Source.** @ThierryBorgeat (X, 26 Oct 2026) — *fintech marketing* (arvy). Reviewed at Ari's request.
+**Source.** @ThierryBorgeat (X, 26 Oct 2026) — *fintech marketing* (arvy). Reviewed at the operator's request.
 **Read.** "Every midterm year for 50 years has delivered a drawdown": ten years listed from 1974 (−35%) to 2022 (−27%), average ≈ −21%; "entering the hottest phase".
 **Thought process.** Figures roughly right, framing wrong. 50 years back from 2026 is 12 midterms (1978–2022); the list adds 1974 (outside the window) and drops the three mild ones — 1986 (≈ −9%), 2006 (≈ −8%), 2014 (≈ −7%). Every year has a drawdown: the S&P's average intra-year decline is ≈ 14% since 1980 (JPM GTM); midterm years ≈ 17–19% since 1950 — a modest excess, not a guaranteed −21%. The deep cases (1974, 1982, 1990, 2002, 2022) were recession or bear-market years. Timing runs the other way: midterm-year lows have usually come between late summer and October, and the S&P has risen in every 12-month period from the midterm-year low since 1950, ≈ +30% on average. 2026 had a −9% drawdown through 30 Sep (JPM 4Q GTM) plus October's selloff. Chat figures were approximate (V11).
 **Decision.** Amend 80(b): full sample of 19 midterms since 1950, nothing omitted · midterm-year intra-year drawdown vs all other years · date of each midterm-year low relative to election day · forward S&P returns at +1/+3/+6/+12 months from both the low and election day · recession / no-recession flag per row. Base-rate rights. 0.5 h. Post: LOG ONLY.
@@ -264,7 +264,7 @@ Session total ≈ 51.5 h (A 15 + B 27.5 + C 9). Tranche A ruled time-critical: t
 
 ## 8. Sign-off
 
-Ari's rulings, as given in chat; together they constitute his signature on this order.
+The operator's rulings, as given in chat; together they constitute his signature on this order.
 
 | Date (ET unless noted) | Items | Ruling as stated |
 |---|---|---|

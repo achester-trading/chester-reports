@@ -13,9 +13,9 @@ in at `81b865a`. It merges on Monday 19 Oct, second, and before anything on
 chain #2; Tuesday's stitch carries it into chain #2 (the shared files are listed
 below).
 
-**Monday's merge order (ruling 4 of 18 Oct), for Ari:**
+**Monday's merge order (ruling 4 of 18 Oct), for the operator:**
 
-| # | Branch | What it carries | PR title Ari will see |
+| # | Branch | What it carries | PR title the operator will see |
 |---|---|---|---|
 | 1 | `aud-3b-security-master` | the chain of nine, with the cherry-pick | "aud-3b-security-master: Monday's chain of nine (the 17 Oct fold), with validate_alpha's fixture clock" |
 | 2 | `weekly-fixes-8` | after the stitch; carries `weekly-fixes-7` and `writer-fixes-1` | "weekly-fixes-8: the first live Weekly's fixes (with weekly-fixes-7 and writer-fixes-1)" |
