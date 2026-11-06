@@ -2301,6 +2301,26 @@ sources:
     implemented_by: altdata/sources/ofr_fsi.py
     status: live
 
+  fed:
+    name: Federal Reserve Board -- FEDS Notes, the excess bond premium and GZ spread
+    tier: A0
+    epistemic_role: primary_fact
+    domain: [credit]
+    geography: [US]
+    latency: monthly, the month after
+    timestamp_reliability: low
+    timestamp_notes: >-
+      The CSV (www.federalreserve.gov/econres/notes/feds-notes/ebp_csv.csv) is
+      revised in place and keeps no vintages. The history is a one-time flagged
+      backfill under fed:backfill, available at the pull instant (AUD-3d's
+      convention for a series without vintages); later pulls use the file's
+      Last-Modified, else the write instant. www.federalreserve.gov answers
+      robots.txt with 404, no rules (read 6 Nov 2026).
+    license: public, no key (a Federal Reserve Board publication)
+    allowed_reports: [monthly_macro, daily_cascade, weekly_tactical]
+    implemented_by: altdata/sources/fed_ebp.py
+    status: live
+
   fdic_qbp:
     name: FDIC -- BankFind Suite API, the banking system's securities (the Quarterly Banking Profile's basis)
     tier: A0

@@ -76,9 +76,14 @@ def _window(f: dict, tag: str, short: bool) -> Any:
 def _pct_cell(f: dict, tag: str, short: bool = False) -> Optional[str]:
     if f.get(tag) is None:
         return None
+    # A percentile read from ANOTHER series (the credit family's long window, D60)
+    # names that series in the cell.
+    of = f.get(tag + "_series_label")
+    of = f" of {of}" if of else ""
     if short:
-        return f"{f.get(tag + '_ordinal')} ({_window(f, tag, True)})"
-    return f"{f.get(tag + '_ordinal')} ({_window(f, tag, False)}, n={f.get(tag + '_n')})"
+        return f"{f.get(tag + '_ordinal')} ({_window(f, tag, True)}{of})"
+    return (f"{f.get(tag + '_ordinal')} ({_window(f, tag, False)}{of}, "
+            f"n={f.get(tag + '_n')})")
 
 
 def cell(lens: dict, col: str, short: bool = False) -> Optional[str]:
@@ -87,6 +92,9 @@ def cell(lens: dict, col: str, short: bool = False) -> Optional[str]:
         return _pct_cell(f, "pctile_5y", short)
     if col == "pl":
         return _pct_cell(f, "pctile_long", short)
+    if col == "d20":
+        v = f.get("change_d20_bp")
+        return None if v is None else f"D20 {_signed(v, 0)} bp"
     if col == "vol":
         if f.get("realized_vol_20d") is None:
             return None
@@ -157,7 +165,11 @@ def compact(lens: Optional[dict]) -> str:
     if not lens or not lens.get("family"):
         return "—"
     fam = lens["family"]
-    parts = [c for c in (cell(lens, k, short=True) for k in COMPACT.get(fam, ())) if c]
+    cols = COMPACT.get(fam, ())
+    if (lens.get("forms") or {}).get("change_d20_bp") is not None:
+        # A D20 series (D60: Baa less the 10-year) shows its D20 and both windows.
+        cols = ("d20", "p5", "pl")
+    parts = [c for c in (cell(lens, k, short=True) for k in cols) if c]
     if fam == "rate" and len(parts) == 2:
         parts = [f"pctile {parts[0]}, {parts[1]}"]
     fl = flags(lens)

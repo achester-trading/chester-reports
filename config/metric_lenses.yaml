@@ -46,3 +46,21 @@ anchored_rates: [fred.yield_10y]
 # The core CPI less core PCE gap (JPM GTM change order, 3 Oct 2026): flagged when
 # the sign has flipped, core PCE above core CPI.
 sign_flip: [calc.core_cpi_pce_gap]
+
+# ---------------------------------------------------------------------------
+# THE CREDIT FAMILY'S LONG WINDOW (item 124 Tranche 0, step 5; ruled 6 Nov 2026,
+# D60). FRED serves the ICE BofA OAS series three years deep, so HY's and IG's
+# 20-year percentile was three years under a 20-year label. The credit family's
+# long read is Baa less the 10-year (calc.baa_less_10y, daily from 1986; 6i-3):
+# the members keep their own 5-year lens, its held span printed
+# (derived.window_label), and their long column reads the proxy's level against
+# the proxy's own 20 years, named as the proxy wherever it prints.
+# ---------------------------------------------------------------------------
+credit_long_window:
+  series: calc.baa_less_10y
+  label: "Baa less the 10-year"
+  years: 20
+  members: [fred.hy_oas, fred.ig_oas]
+  basis: "the credit family's long window is Baa less the 10-year (D60, 6 Nov 2026)"
+# A D20 form: the change over the last 20 stored observations, in bp (D60).
+d20_forms: [calc.baa_less_10y]

@@ -1386,6 +1386,40 @@ def long_window_of(metric_id: str, family: Optional[str]) -> tuple[Any, str]:
     return lw, f"6c: the {family} family's long window"
 
 
+def _credit_long_window(out: dict, clw: dict, long_rows: list, as_of_day: dt.date) -> None:
+    """Replace a credit member's long percentile with the declared long series'
+    (item 124 T0, step 5; D60): that series' latest level against its own window,
+    named as that series. The 5-year/long disagreement flag compares one series'
+    two windows only, so it does not compare across the two series."""
+    F, R = out["forms"], out["reasons"]
+    series = sorted((str(r["observed_at"])[:10], float(r["value_num"]))
+                    for r in long_rows if r.get("value_num") is not None)
+    name = str(clw.get("series"))
+    F["pctile_long_series"] = name
+    F["pctile_long_series_label"] = clw.get("label") or name
+    F["pctile_long_basis"] = clw.get("basis") or f"the credit long window: {name}"
+    out["flags"].pop("percentiles_disagree", None)
+    R["percentiles_disagree"] = (f"the long percentile reads {name}, another series; "
+                                 f"the flag compares one series' two windows")
+    if not series:
+        F["pctile_long"] = None
+        F["pctile_long_n"], F["pctile_long_window"] = 0, None
+        F["pctile_long_ordinal"] = None
+        R["pctile_long"] = f"{name}: no observation knowable at the cutoff"
+        return
+    p = _pct_in_window(series, series[-1][1], as_of_day, clw.get("years") or 20)
+    F["pctile_long"] = p["pct"]
+    if p["pct"] is None:
+        R["pctile_long"] = f"{name}: {p['reason']}"
+    else:
+        R.pop("pctile_long", None)
+    F["pctile_long_n"], F["pctile_long_window"] = p["n"], p["window"]
+    F["pctile_long_window_asked"] = p["asked_days"]
+    F["pctile_long_window_held"] = p["held_days"]
+    F["pctile_long_window_start"] = p.get("window_start")
+    F["pctile_long_ordinal"] = _ord(p["pct"])
+
+
 def _ord(p: Optional[float]) -> Optional[str]:
     if p is None:
         return None
@@ -1464,8 +1498,14 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
         return out
     own = store is None
     st = store or observations.ObservationStore()
+    # THE CREDIT FAMILY'S LONG WINDOW (item 124 T0, step 5; D60): a member's long
+    # percentile is read from the declared long series, as of the same cutoff.
+    clw = lens_config().get("credit_long_window") or {}
+    long_rows: Optional[list] = None
     try:
         rows = _rows_as_of(metric_id, cutoff, st)
+        if metric_id in (clw.get("members") or []) and clw.get("series"):
+            long_rows = _rows_as_of(str(clw["series"]), cutoff, st)
         vint = ([r for r in st.all_vintages(metric_id)
                  if str(r["available_at"]) <= observations.canonical_instant(cutoff)]
                 if fam == "release" else [])
@@ -1563,6 +1603,14 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
         for m in months:
             put(f"change_{m}m_bp", _change(level, back(m), "bp", bp_scale), need)
         percentiles(lw, lw_why)
+        if long_rows is not None:
+            _credit_long_window(out, clw, long_rows, as_of_day)
+        if metric_id in (lens_config().get("d20_forms") or []):
+            # D20 (D60): the change over the last 20 STORED OBSERVATIONS, in bp.
+            put("change_d20_bp",
+                _change(level, vals[-21] if len(vals) > 20 else None, "bp", bp_scale),
+                f"{len(vals)} stored observation(s); a D20 change needs 21")
+            F["change_d20_bp_rule"] = "the change over the last 20 stored observations"
         if fam == "spread":
             th, basis = widening_threshold(metric_id)
             ch = F.get("change_3m_bp")
@@ -1655,7 +1703,8 @@ def lens_forms(metric_id: str, as_of: Optional[str] = None,
                                                           "_basis", "_unit", "_rule",
                                                           "_window_asked",
                                                           "_window_held",
-                                                          "_window_start"))]
+                                                          "_window_start",
+                                                          "_series", "_series_label"))]
     return out
 
 

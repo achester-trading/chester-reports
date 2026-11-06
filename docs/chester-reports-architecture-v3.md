@@ -202,7 +202,7 @@ analysis should almost never require touching an engine.
 > **Refreshed 19 Oct 2026 (the chain-2 stitch; A51 adds RSAFS and a53 item 59's panel; chain-5 adds b52's eight capex-chain proxies, Batch 14 item 63; b55 adds the Census household estimates, item 68; a57 items 65 and 71's four and AIQ, SPXT; a58 item 73's NIKKEI225; a61 adds QAI, ruling D22 of 24 Oct; b69 adds OVXCLS for the Quarterly; A79 adds DBAA and BAA, 6i-3's Baa proxy).** The pull walks 286 FRED series
 > (`config.FRED_PULL_SERIES`) and 127 market symbols
 > (`yfinance_source.SYMBOLS`), whose store keys resolve through the Security
-> Master (`config/security_master.yaml`). The scheduled roster is 43 official
+> Master (`config/security_master.yaml`). The scheduled roster is 44 official
 > writers, 41 external writers and 7 loggers. A scheduled writer opens the store
 > through `observations.open_writer()`; the append-only triggers refuse UPDATE
 > and DELETE once installed, and a row whose source is not a registered id (or

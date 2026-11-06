@@ -115,6 +115,10 @@ def build_store() -> observations.ObservationStore:
         for i, d in enumerate(days):
             v = base + (i % 5) * 0.01 + (up * (i - (n - 63)) / 63 if i >= n - 63 else 0.0)
             rows.append(row(key, d, v))
+    # the credit family's long window (item 124 T0, D60): Baa less the 10-year,
+    # in bp, thirty years deep -- HY's and IG's long percentile reads it
+    for i, d in enumerate(ydays):
+        rows.append(row("calc.baa_less_10y", d, 250.0 + (i % 40) * 2.0))
     # conditions: VIX quiet, then a spike
     for i, d in enumerate(days):
         rows.append(row("fred.vix", d, 15 + (i % 10) * 0.3 + (12 if i == n - 1 else 0)))

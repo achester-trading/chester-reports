@@ -540,6 +540,9 @@ PLUMB = (("fred.yield_2y", "2-year"), ("fred.yield_10y", "10-year"),
 
 # 6e, the rest: the Weekly's lens table carries Plumbing's series and these.
 WEEKLY_LENS_EXTRA = [("fred.ig_oas", "Investment-grade OAS"),
+                     # The credit family's long window (item 124 T0, D60): its 5y
+                     # and 20y lenses and its D20, beside the OAS series it serves.
+                     ("calc.baa_less_10y", "Baa less the 10-year"),
                      ("fred.cpi", "CPI"), ("fred.core_pce", "Core PCE"),
                      ("fred.u3_rate", "Unemployment rate"),
                      ("calc.core_cpi_pce_gap", "Core CPI less core PCE")]

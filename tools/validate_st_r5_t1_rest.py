@@ -698,7 +698,7 @@ def group_e() -> None:
           and not res["ten_beyond"]["ten_year_leg"] and not res["ten_beyond"]["supply_shock"],
           "and not a hair beyond it: either leg off turns the signature off")
     line = tr.oil_shock_line(o)
-    check("shorter than 20 years" in line and f"n={o['n_windows']:,}" in line
+    check("20y asked, " in line and "y held" in line and f"n={o['n_windows']:,}" in line
           and "supply-shock signature is ON" in line,
           "the line names a history shorter than 20 years, with its n of windows")
     with open_store(store([r for r in oil_rows() if r[0] != "fred.brent"])) as st:

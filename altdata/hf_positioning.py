@@ -184,7 +184,8 @@ def squeeze(r: dict, depth: Optional[dict]) -> dict:
              "on" if arm_s and arm_d else "off")
     s_txt = ("not read" if arm_s is None else
              f"ES's net short at the {rt.ordinal(c['lens']['percentile_window'])} "
-             f"percentile of {r['years']} years ({'at or above' if arm_s else 'below'} "
+             f"percentile of {c['lens'].get('window_label') or str(r['years']) + 'y'} "
+             f"({'at or above' if arm_s else 'below'} "
              f"the {rt.ordinal(nsp)})")
     d_txt = ("not read" if arm_d is None else
              f"depth (the Amihud measure, standing in for it) at its "

@@ -362,8 +362,11 @@ def oil_shock_line(o: dict) -> str:
     if o["state"] != "read":
         return f"The oil-shock signature: {o['reason']}."
     yrs = o["history_years_n"]
-    hist = (f"{yrs} years" if o["history_full"] else
-            f"its stored history since {o['history_from']}, shorter than {yrs} years")
+    # THE WINDOW THROUGH derived.window_label (item 124 T0, step 1).
+    held = (derived._as_date(o["day"]) - derived._as_date(o["history_from"])).days
+    lab = derived.window_label(round(365.25 * yrs), None if o["history_full"] else held)
+    hist = (lab if o["history_full"] else
+            f"its stored history since {o['history_from']}, {lab}")
     read = ("the supply-shock signature is ON: oil trades as the hedge"
             if o["supply_shock"] else
             "no supply-shock signature (demand-driven or mixed)")

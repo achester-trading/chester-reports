@@ -135,6 +135,9 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # bank-stress panel's OFR Financial Stress Index and the
                     # FDIC's unrealised securities losses, both keyless
                     "ofr_fsi", "fdic_qbp",
+                    # Item 124 Tranche 0 (D60, 6 Nov 2026; A126): the Fed's excess
+                    # bond premium and GZ spread, keyless, monthly
+                    "fed_ebp",
                     # The Quarterly's readers, tranche 1 (b69, 25 Oct 2026; D34):
                     # oil and energy, agriculture, currencies. PortWatch and the
                     # Riksbank send one request a day, whatever the timer does.

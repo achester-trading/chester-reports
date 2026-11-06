@@ -320,6 +320,10 @@ commands:
     domain: rates
     line: 'OFR Financial Stress Index -- the headline and its funding and credit categories, daily, keyless (the bank-stress panel)'
     sources: [ofr_fsi]
+  altdata.sources.fed_ebp:
+    domain: rates
+    line: 'The Fed''s excess bond premium and GZ spread (FEDS Notes CSV) -- monthly from 1973, keyless; `--backfill` once for the history (source fed:backfill)'
+    sources: [fed]
   altdata.sources.fdic_qbp:
     domain: rates
     line: 'FDIC BankFind -- the banking system''s unrealised securities gains (losses), AFS and HTM, quarterly, keyless (`--since 2007-03-31` for the history)'

@@ -17744,6 +17744,44 @@ metrics:
       the market's last five sessions), percent. Its calibration ledger is
       docs/ledgers/trend-breadth-2026-10-26.md, pre-registered; no rights until it
       is read. Barred from the market-state object.
+  # --- Item 124 Tranche 0, step 5 (D60, 6 Nov 2026; A126): the Fed's credit spreads ---
+  fed.ebp:
+    source: fed
+    mechanism_group: macro_valuation_credit
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: percent_rate
+    family: spread
+    trigger_eligible: false
+    description: >-
+      The excess bond premium (Gilchrist and Zakrajsek; the Board's FEDS Notes
+      update, www.federalreserve.gov/econres/notes/feds-notes/ebp_csv.csv), monthly
+      from January 1973, percentage points: the part of the GZ credit spread not
+      explained by expected default. The file is revised in place and keeps no
+      vintages, so its history is a flagged backfill (source fed:backfill,
+      available at the pull). Report only: barred from the market-state object,
+      no composite or overlay reads it; the Monthly prints it as one slow-read line.
+  fed.gz_spread:
+    source: fed
+    mechanism_group: macro_valuation_credit
+    native_horizon: monthly
+    freq: monthly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: percent_rate
+    family: spread
+    trigger_eligible: false
+    description: >-
+      The GZ credit spread (Gilchrist and Zakrajsek; the Board's FEDS Notes update),
+      monthly from January 1973, percentage points: the average spread of senior
+      unsecured corporate bonds over matched Treasuries. Flagged backfill as
+      fed.ebp. Report only, barred from the market-state object.
 
 bulk_imports:
 
@@ -19937,6 +19975,8 @@ families:
   calc.yield_curve_2s10s: ratio
   calc.baa_less_10y: spread
   calc.baa_less_10y_m: spread
+  fed.ebp: spread
+  fed.gz_spread: spread
   calc.yoy_ahe: ratio   # ambiguous: a return series, not a level; alternative: price
   calc.yoy_core_cpi: ratio   # ambiguous: a return series, not a level; alternative: price
   calc.yoy_core_pce: ratio   # ambiguous: a return series, not a level; alternative: price
@@ -20869,6 +20909,9 @@ market_state_barred:
   - order: "ruling D34 of 24 Oct 2026 (b70-quarterly-readers-2)"
     rule: "report only: the Quarterly's tranche-2 readers and declared gaps enter no composite, flag, dial or the market-state object"
     keys: ['ishares.*', 'llama.tvl.*', 'edgar.bdc.*', 'eth.*', 'thai.current_account_usd', 'thai.construction_materials_index', 'pjm.*', 'lbnl.*', 'moea.*', 'tsmc.*', 'circle.*', 'tether.*', 'yahoo_pending.*']
+  - order: "item 124 Tranche 0 (the tail-days order's 106i), ruled 6 Nov 2026 (D60; A126)"
+    rule: "the Fed's credit spreads are report only: nothing enters the market-state object, a composite or an overlay"
+    keys: ["fed.ebp", "fed.gz_spread"]
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:

@@ -1,0 +1,12 @@
+# Item 124 Tranche 0, step 5 (D60, 6 Nov 2026; A126): the excess bond premium's one
+# slow-read line in the Monthly, after the T&B harness's credit lines. Monthly only:
+# the series is monthly. "not yet pulled" until the first pull. Report only.
+id: monthly-slow-credit-ebp
+cadence: monthly
+section: slow
+after: monthly-slow-tb-harness
+module: daily_cascade.credit_long_block
+function: slow_subsection
+args: [st, now]
+requires: [st, now]
+returns: one

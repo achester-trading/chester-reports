@@ -275,7 +275,8 @@ def flag(depth: dict, flow: dict, cfg: dict) -> dict:
     parts = []
     parts.append("depth arm: " + ("not read" if arm_d is None else
                                   f"{STAND_IN}, {_ord(am['lens'].get('percentile_window'))} "
-                                  f"percentile of {f['window_years']} years "
+                                  f"percentile of "
+                                  f"{am['lens'].get('window_label') or str(f['window_years']) + 'y'} "
                                   f"({'at or above' if arm_d else 'below'} the "
                                   f"{_ord(f['amihud_pct'])})"))
     parts.append("forced-flow arm: " + ("not read" if arm_f is None else

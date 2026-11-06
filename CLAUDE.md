@@ -245,7 +245,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and sixty-six code gates (one hundred and sixty-three Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and sixty-seven code gates (one hundred and sixty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -258,6 +258,7 @@ stops at the first failure for a tight edit loop. The list lives in the
 and a local run cannot hold different lists — which is how four validators
 drifted out of CI while still passing locally. Adding a gate means adding one
 line to the Makefile.
+Study sessions install into `.venv-study` only, never the shared `.venv` (D60, 6 Nov 2026).
 
 **A gate pins its clock to its fixture's date.** A gate that must read today
 says so in a comment and names the day it will next need attention. The pin is
@@ -330,7 +331,9 @@ the family's forms (returns and drawdown flags for a price; bp changes for a rat
 YoY, 3-month annualized and the revision line for a release; direction for a
 quantity; dual percentiles with n wherever a level is placed), point-in-time,
 and the Monthly v2 pillar tables print them. A monthly release never shows a
-20-session change. `tools/validate_lenses.py` holds it.
+20-session change. The credit family's long window is Baa less the 10-year
+(`calc.baa_less_10y`; D60, 6 Nov 2026); HY and IG OAS lenses are 5-year with the held
+span printed (`derived.window_label`). `tools/validate_lenses.py` holds it.
 
 **6e, the rest (16 Oct 2026): macro completeness and the bound lenses.**
 `altdata/macro_6e.py` writes, in the market_features pass, the architecture's
@@ -1318,7 +1321,7 @@ Mechanics, the slow layers and Positioning & flows. The thresholds are
 `config/batch5_tranche_1b.yaml`'s. `tools/validate_st_r4_t1b.py` holds it on
 fixtures.
 
-**The scheduled roster is 43 official writers, 41 external writers and 7
+**The scheduled roster is 44 official writers, 41 external writers and 7
 loggers** (`feeds.OFFICIAL_WRITERS`, `feeds.EXTERNAL_WRITERS`,
 `altdata.loggers.load_all()`), beside the prices, FRED, bars, prediction-market
 and fed-funds feeds.
