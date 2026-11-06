@@ -115,6 +115,7 @@ DELTA_UNITS: dict[str, str] = {
     "price": "percent",
     "idx": "percent",
     "usd": "percent",
+    "usd_bn": "percent",      # US dollars in billions (A66, the capex guidance)
     "contract_ccy": "percent",
     "JPY": "percent",
     "CNY": "percent",
@@ -314,7 +315,8 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
                                   "members_are", "member_suffixes",
                                   "mechanism_group_from_member",
                                   "mechanism_group_map", "member_units",
-                                  "member_families")}
+                                  "member_families", "member_inputs",
+                                  "member_inputs_from")}
             entry["bulk_block"] = bid
             # `from_member` means "the member owns this field". A member named as
             # a string has no attributes: its units are the individually
@@ -332,6 +334,15 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
             for suffix in suffixes:
                 key = prefix + str(name) + suffix
                 e = dict(entry)
+                # A DERIVED MEMBER'S INPUTS (the feed repair of 24 Oct 2026): a
+                # template over the member's name, or a function of the key, so
+                # the staleness rule can inherit the inputs' publication lag.
+                if block.get("member_inputs"):
+                    e["inputs"] = [str(t).format(member=name)
+                                   for t in block["member_inputs"]]
+                elif block.get("member_inputs_from"):
+                    mp, fa = str(block["member_inputs_from"]).rsplit(".", 1)
+                    e["inputs"] = list(getattr(importlib.import_module(mp), fa)(key) or [])
                 # ONE MEMBER'S OWN UNITS (AUD-3a item 3): ^TNX is a yield and ^VIX
                 # a volatility index inside a block of prices. Declared per store
                 # key in the block, so the exception is visible in the registry.
@@ -366,7 +377,66 @@ def resolve_registry(reg: dict, by_block: Optional[dict] = None) -> dict:
         why = excl.get(key) or excl.get(e.get("bulk_block") or "\0")
         if why and not e.get("family"):
             e["lens_excluded"] = why
+    # MEMBER OVERRIDES (the feed repair of 24 Oct 2026): fields set on one key,
+    # a bulk member's included, after everything else -- a declared status
+    # (superseded, refused, gap, while_held) or a corrected cadence, each with its
+    # reason beside it in the registry.
+    for key, fields in (reg.get("member_overrides") or {}).items():
+        if key in out and isinstance(fields, dict):
+            out[key].update(fields)
+    # THE MARKET-STATE BAR (6f tranche 5; ruling 12a): every key an order keeps
+    # out of the object carries `market_state: barred` and the order that bars it.
+    import fnmatch  # noqa: PLC0415
+    for bar in reg.get("market_state_barred") or []:
+        pats = list(bar.get("keys") or [])
+        for key, e in out.items():
+            if any(fnmatch.fnmatchcase(key, g) for g in pats):
+                e["market_state"] = "barred"
+                e.setdefault("market_state_barred_by", []).append(
+                    {"order": bar.get("order"), "rule": bar.get("rule"),
+                     "instruments": bar.get("instruments")})
     return out
+
+
+# THE DECLARED STATUSES (the feed repair of 24 Oct 2026). A key so declared is
+# never counted stale -- not by the store check, not by the heartbeat's freshness
+# roster -- and is listed apart, with its reason:
+#   superseded  replaced by `superseded_by`; its rows are history
+#   refused     its source refuses automated reads (the 16 Oct sources rule); the
+#               writer no longer requests it and the readers print the gap
+#   gap         a listed gap: not written, with `gap_reason`
+#   while_held  written only while a position is held; a flat book is not stale
+#   held        its source is on a declared hold pending a ruling (D45, 31 Oct
+#               2026: Cboe's terms); the writer asks nothing, the rows are kept
+# A declaration may carry `declared_until` (B85, 29 Oct 2026): a gap that is only
+# history still accruing -- a percentile that needs 60 days, a z that needs 90 --
+# is declared until the date its first row is due, and lapses then, so a key that
+# still has no row is counted stale again rather than hidden for good.
+DECLARED_STATUSES = ("superseded", "refused", "gap", "while_held", "held")
+
+
+def declared_status(e: Optional[dict], today: Optional[str] = None) -> Optional[str]:
+    """The key's declared status, if it has one of DECLARED_STATUSES and its
+    `declared_until`, when it carries one, is still ahead of `today` (ET)."""
+    s = (e or {}).get("status_extra") or (e or {}).get("status")
+    if s not in DECLARED_STATUSES:
+        return None
+    until = (e or {}).get("declared_until")
+    if until:
+        day = (today or session.session_date())[:10]
+        if day >= str(until)[:10]:
+            return None
+    return s
+
+
+def market_state_barred(e: Optional[dict], instrument: Optional[str] = None) -> Optional[str]:
+    """The order that bars this key (or this instrument of it) from the
+    market-state object, or None (6f tranche 5)."""
+    for b in (e or {}).get("market_state_barred_by") or []:
+        inst = b.get("instruments")
+        if not inst or (instrument is not None and instrument in inst):
+            return str(b.get("order"))
+    return None
 
 
 def _leaf_field(reg: dict, name: str, field: str) -> Any:
@@ -604,6 +674,21 @@ def publication_lag(e: dict, metric_id: str,
     return 0, None
 
 
+def inherited_lag(e: dict, metric_id: str, families: Optional[list[dict]] = None,
+                  lookup=None) -> tuple[int, Optional[str]]:
+    """(sessions, family) -- the LARGEST publication lag among the key's own
+    family and its declared `inputs` (the feed repair of 24 Oct 2026). A derived
+    key can be no fresher than its slowest input: calc.surprise_vs_naive.core_pce
+    waits for core PCE as calc.naive_expectation.core_pce does."""
+    lag, fam = publication_lag(e, metric_id, families)
+    look = lookup or registry_entry
+    for k in (e or {}).get("inputs") or []:
+        l2, f2 = publication_lag(look(k) or {}, k, families)
+        if l2 > lag:
+            lag, fam = l2, f"{f2}, through its input {k}"
+    return lag, fam
+
+
 def staleness_allowance_of(e: dict, metric_id: str = "") -> tuple[Optional[int], str]:
     """The same rule over an entry already resolved (tools/check_store_registry.py
     resolves a registry of its own and reads it here, so the store check and the
@@ -616,7 +701,7 @@ def staleness_allowance_of(e: dict, metric_id: str = "") -> tuple[Optional[int],
     base, why = _cadence_allowance(e)
     if base is None:
         return base, why
-    lag, fam = publication_lag(e, metric_id)
+    lag, fam = inherited_lag(e, metric_id)
     if lag:
         return base + lag, f"{why}, plus {lag} sessions' publication lag ({fam})"
     return base, why
@@ -1226,7 +1311,7 @@ def family_of(metric_id: str) -> tuple[Optional[str], str]:
     if e.get("family") in FAMILIES:
         if str(e.get("units")) in NOT_LEVEL_UNITS:
             return None, (f"declared family {e['family']}, but units {e.get('units')!r}: "
-                          f"not a level series (listed for Ari)")
+                          f"not a level series (listed for the operator)")
         return e["family"], "registry family"
     if e.get("lens_excluded"):
         return None, f"not a level series: {e['lens_excluded']}"
@@ -1248,7 +1333,7 @@ def long_window_of(metric_id: str, family: Optional[str]) -> tuple[Any, str]:
             return n, f"the registry's long_window override ({v})"
         fam_lw = LONG_WINDOW.get(family or "")
         return fam_lw, (f"the registry's long_window {v!r} is not a window; 6c's "
-                        f"{family} default (listed for Ari)")
+                        f"{family} default (listed for the operator)")
     if family == "release" and INFLATION.search(metric_id):
         return "full", "6c: inflation, full history"
     lw = LONG_WINDOW.get(family or "")

@@ -142,12 +142,14 @@ def release_times(map_path: Optional[Path] = None,
 
 # -- ALFRED ------------------------------------------------------------------
 def _live_get(key: str) -> Get:
-    from .sources._base import http_get_json  # noqa: PLC0415
+    # The pull's fetch (24 Oct 2026): a body that is not JSON is retried with
+    # backoff and Retry-After, then fails with its HTTP status, as the pull does.
+    from .sources.fred import get_json  # noqa: PLC0415
 
     def get(path: str, params: dict) -> dict:
         time.sleep(PACING_SECONDS)
-        return http_get_json(f"{BASE}/{path}", params={**params, "api_key": key,
-                                                       "file_type": "json"})
+        return get_json(f"{BASE}/{path}", params={**params, "api_key": key,
+                                                  "file_type": "json"})
     return get
 
 

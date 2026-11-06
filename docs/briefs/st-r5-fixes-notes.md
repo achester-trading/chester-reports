@@ -13,8 +13,8 @@ It is branch-only. Nothing was merged or deployed, and nothing ran on the box. S
 | | Ruling | Applied as |
 |---|---|---|
 | (a) | WAL and the busy timeout satisfy D1c for an append-only writer in the scheduled pulls; the write-lock helper is a separate item | The four held writers are lifted (1). Japan's CPI reader (5) is born unheld. |
-| (b) | No recurring by-hand line survives without Ari's yes | Three keys dropped, plus the ACWI key (2, 3). `manual.global_pmi` and the AAII keys stay. |
-| (c) | Judgment drafts are committed as drafted and listed for Ari's accept-all; the register's confirm step stays Ari's | Six drafts committed (6). |
+| (b) | No recurring by-hand line survives without the operator's yes | Three keys dropped, plus the ACWI key (2, 3). `manual.global_pmi` and the AAII keys stay. |
+| (c) | Judgment drafts are committed as drafted and listed for the operator's accept-all; the register's confirm step stays the operator's | Six drafts committed (6). |
 | (d) | The blocklist may be strengthened, never weakened | `normalise()` reads the ACT dollar form (4). Nothing else in the register changes. |
 
 ## Each change and its fixture
@@ -122,7 +122,7 @@ It is branch-only. Nothing was merged or deployed, and nothing ran on the box. S
 
   Both are keyless downloads; neither is built here.
 
-### 6. Drafts committed, for Ari's accept-all
+### 6. Drafts committed, for the operator's accept-all
 
 | # | Draft | File and line | Source notes |
 |---|---|---|---|
@@ -140,7 +140,7 @@ It is branch-only. Nothing was merged or deployed, and nothing ran on the box. S
 - **Agreed with session B:**
   - Its item-24 rule is A-6, in the same appendix.
   - Its item-26 pair body becomes a section of `docs/narrative-register-pairs.md`.
-  - Its side-B story `capital_competition` is a pending proposal in `config/narratives.yaml` on its branch, written through a new `proposals:` block, so the confirm is Ari's. This branch touches no narratives file.
+  - Its side-B story `capital_competition` is a pending proposal in `config/narratives.yaml` on its branch, written through a new `proposals:` block, so the confirm is the operator's. This branch touches no narratives file.
 
 **Not committed, and why:**
 - **Item 42's Warsh-matrix line.** No Warsh matrix exists in the repository to hold it: the 25 Sep order names "Warsh matrix variables" as library work, unbuilt. The text is in the t1-rest notes' drafts. Needs-you 3. (Since moved to `docs/warsh-matrix-lines.md` on `st-r5-audit`.)
@@ -170,7 +170,7 @@ Every other gate is left to CI, including the blocklist gates (`validate_alpha_n
 | 38974652897 | `ce6cf33` | **Failed, 93 of 95 jobs green.** The one failing gate is `check_library`, failure [10]: the built HTML editions of Base Rates, Equities and Metals were built from the papers before this branch's appendices. The second failed job is `gates-passed`, which only reports that a gate failed. This branch caused it. |
 | (the fix's push) | the next commit | The three editions are rebuilt with `tools/build_paper_html.py`; no paper text changes. Its result is recorded in `docs/briefs/st-r5-audit-notes.md`, step 0, because the next branch's first push carries this commit too. |
 
-## Box commands (Ari's, inside a window: weekdays 09:05–15:40 or 17:20–23:30 ET, never 16:00–17:20, clear of Sunday 05:00)
+## Box commands (the operator's, inside a window: weekdays 09:05–15:40 or 17:20–23:30 ET, never 16:00–17:20, clear of Sunday 05:00)
 
 These run only after this branch is merged to main; the box's next wrapper pulls main. Each is one writer's first pull into the live store, one at a time, read-only otherwise:
 

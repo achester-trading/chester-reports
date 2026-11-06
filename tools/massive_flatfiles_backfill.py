@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Two years of per-name option readings from Massive's options day bars (signal-
-triage Batch 11, decision D4, ruled 19 Oct 2026). RUN BY ARI ON THE BOX.
+triage Batch 11, decision D4, ruled 19 Oct 2026). RUN BY THE OPERATOR ON THE BOX.
 
     .venv/bin/python tools/massive_flatfiles_backfill.py --dry-run          # the plan
     .venv/bin/python tools/massive_flatfiles_backfill.py --max-days 25      # one capped run
@@ -42,7 +42,7 @@ sessions done, each with its row count); a run takes at most --max-days sessions
 and not retried. --dry-run checks the credentials and the bucket with one listing
 and prints the plan; it downloads no day file and writes nothing.
 
-CREDENTIALS, by name (Ari's, in .env): MASSIVE_FLATFILES_ACCESS_KEY_ID and
+CREDENTIALS, by name (the operator's, in .env): MASSIVE_FLATFILES_ACCESS_KEY_ID and
 MASSIVE_FLATFILES_SECRET_ACCESS_KEY. No new dependency: rclone is already on the
 box for the backup (scripts/rclone_sync.sh).
 """

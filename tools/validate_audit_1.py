@@ -28,6 +28,8 @@ network, no box: every check seeds its own temporary store.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import os
 import sqlite3
 import sys
@@ -416,7 +418,9 @@ def group_e() -> None:
         sent.append(dict(params or {}))
         return {"observations": [{"date": "2026-08-01", "value": "2.5"},
                                  {"date": "2026-09-01", "value": "2.6"}]}
-    with mock.patch.object(fred, "http_get_json", fake_get), \
+    # fred.get_json, not http_get_json: FRED's own read since the feed repair
+    # (a61b item 1, the non-JSON path).
+    with mock.patch.object(fred, "get_json", fake_get), \
             mock.patch.object(fred, "_get_key", lambda: "k"), \
             mock.patch.object(fred.time, "sleep", lambda s: None):
         out = fred.pull(st, series=[monthly, daily])
@@ -430,12 +434,13 @@ def group_e() -> None:
           "the narrow fetch MERGES into the CSV copy: the 2020 row survives, the "
           "re-read month is replaced, the new month added")
     fixed: list = []
-    with mock.patch.object(fred, "http_get_json",
+    with mock.patch.object(fred, "get_json",
                            lambda url, params=None, **k: fixed.append(params) or
                            {"observations": []}), \
             mock.patch.object(fred, "_get_key", lambda: "k"), \
             mock.patch.object(fred.time, "sleep", lambda s: None):
         fred.pull(st, lookback_days=1500, series=[monthly])
+    # THE GATE'S CLOCK (B106): reads today on purpose -- a fixture window ending today, so the revision window is measured from it. Next attention: none.
     check(fixed and fixed[0]["observation_start"] == (
               fred.session.session_date_obj() - dt.timedelta(days=1500)).isoformat(),
           "a caller that passes lookback_days keeps the fixed window (the Monthly)")

@@ -80,7 +80,7 @@ buybacks:
   # W8-13 (weekly-fixes-8): the tape's 30-year first -- FRED's leg lags a session,
   # so the newest operation read "not yet stored" -- as weekly-fixes-7's rule for
   # the 10-year; each cell names its source and date.
-  thirty_year_tape: yfinance.mkt_tyx
+  thirty_year_tape: "price:us_yields.y30"
   tga_key: fred.tga               # MILLIONS (CLAUDE.md, the net-liquidity trap)
   # The modifier on the long-end supply read, in the Monthly's lever table:
   # a bought/max ratio below `soft_ratio` reads as soft take-up.

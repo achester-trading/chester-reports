@@ -92,3 +92,9 @@ meta_loop:
   cadence_multiplier: 2
   max_refit_every_weeks: 8
   review_window_days: 21
+
+# A98 (D43): "why this could fail" -- the critic call (alpha_proposer/critic.py),
+# one per new hypothesis, metered as alpha_critic. Ships at 0: no call until the
+# operator raises it. The executor it serves is config/paper_exec.yaml.
+critic:
+  daily_call_budget: 0

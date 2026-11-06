@@ -152,10 +152,31 @@ def _flow(key: str) -> bool:
     return k.startswith(("fees_", "revenue_", "holders_revenue_"))
 
 
+def series_break(n: dict, *days: Optional[str]) -> Optional[dict]:
+    """The name's declared break ({date, label}; AERO, ruling D29.3) when any of
+    `days` is on or after it, else None."""
+    b = (n or {}).get("llama_break") or {}
+    if not b.get("date"):
+        return None
+    return dict(b) if any(d and str(d)[:10] >= str(b["date"]) for d in days) else None
+
+
+def break_notes(names_: dict, rows: list[dict]) -> list[str]:
+    """One note per name whose printed figure reaches its break."""
+    out = []
+    for r in rows:
+        b = series_break(names_.get(r.get("name")) or {}, r.get("as_of"))
+        if b:
+            out.append(f"{r['name']}: {b['label']}.")
+    return out
+
+
 def measurable(sym: str, n: dict, st: Any, as_of: Optional[str], end: str,
                days: int = 7) -> dict:
     """{key, latest, change_pct, as_of, form, reason}: a flow as its sum over
-    `days` against the `days` before; a level against `days` ago."""
+    `days` against the `days` before; a level against `days` ago. Where the
+    name declares a break, a window starting before it reads only from it, and
+    the change is not computed across it (`break` carries the label)."""
     key = (n.get("measurable") or {}).get("key")
     if not key:
         return {"key": None, "reason": (n.get("measurable") or {}).get("note")
@@ -165,15 +186,22 @@ def measurable(sym: str, n: dict, st: Any, as_of: Optional[str], end: str,
     if not pts:
         return {"key": key, "reason": f"{key}: nothing stored at this cutoff"}
     last = pts[-1][0]
+    brk = series_break(n, last)
+    if brk:
+        pts = [p for p in pts if p[0] >= brk["date"]]
     if _flow(key):
         now = _sum_window(pts, last, days)
         then = _sum_window(pts, _minus(last, days), days)
-        return {"key": key, "latest": now, "change_pct": _pct(now, then),
-                "as_of": last, "form": f"{days}-day sum"}
+        across = bool(brk) and _minus(last, 2 * days - 1) < brk["date"]
+        return {"key": key, "latest": now,
+                "change_pct": None if across else _pct(now, then),
+                "as_of": last, "form": f"{days}-day sum"
+                + (f" from {brk['date']}" if brk and _minus(last, days - 1) < brk["date"] else ""),
+                "break": brk}
     prev = _on_or_before(pts, _minus(last, days))
     return {"key": key, "latest": pts[-1][1],
             "change_pct": _pct(pts[-1][1], prev[1] if prev else None),
-            "as_of": last, "form": "level"}
+            "as_of": last, "form": "level", "break": brk}
 
 
 # ---------------------------------------------------------------------------
@@ -573,7 +601,8 @@ def weekly_block(st: Any, ending: str, as_of: Optional[str] = None,
             "price", "week_pct", "d30_pct", "drawdown_pct", "as_of")},
             "market_cap": mc[-1][1] if mc else None,
             "measurable": me.get("key"), "measurable_latest": me.get("latest"),
-            "measurable_change_pct": me.get("change_pct")})
+            "measurable_change_pct": me.get("change_pct"),
+            "measurable_as_of": me.get("as_of")})
     events = weekly_events(st, ending, as_of, cfg)
     detail = {"title": "The crypto basket",
               "table": {"columns": ["Name", "Price", "Week", "30 days",
@@ -585,7 +614,9 @@ def weekly_block(st: Any, ending: str, as_of: Optional[str] = None,
                         "market cap from DefiLlama's coin service; what pays the "
                         "token from DefiLlama, a 7-day sum for fees and revenue, the "
                         "level for TVL. The odds are the operator's and print in "
-                        "the Quarterly."]}
+                        "the Quarterly."]
+              + break_notes(names(cfg), [{"name": x["name"], "as_of": x["measurable_as_of"]}
+                                         for x in data])}
     tag_moves(detail["table"], data, 2, "week_pct", "week")
     tag_moves(detail["table"], data, 3, "d30_pct", "30d")
     # W8-11 (weekly-fixes-9): the market-cap column printed "—" for all twelve.
@@ -637,7 +668,8 @@ def monthly_block(st: Any, now: str, cfg: Optional[dict] = None) -> dict:
                      + (f" (rule: {g['rule']})" if g.get("rule") else "") + ".")
         data.append({"name": sym, "status": g["status"], "dilution": dl.get("ratio"),
                      "dilution_reason": dl.get("reason"), "as_of": pr.get("as_of"),
-                     "price": pr.get("price"), "month_pct": pr.get("d30_pct")})
+                     "price": pr.get("price"), "month_pct": pr.get("d30_pct"),
+                     "measurable_as_of": me.get("as_of")})
     table = {"columns": ["Name", "Price", "Month", "Market cap", "From its high",
                          "Dilution"], "rows": prows}
     tag_moves(table, data, 2, "month_pct", "30d")
@@ -655,7 +687,9 @@ def monthly_block(st: Any, now: str, cfg: Optional[dict] = None) -> dict:
                       "circulating supply, at today's price) over the value "
                       "returned to holders (DefiLlama's holders revenue: buybacks, "
                       "burns and distributions); not measured where a leg is "
-                      "absent. Status is each name's falsifier, graded by rule."],
+                      "absent. Status is each name's falsifier, graded by rule."]
+                     + break_notes(names(cfg), [{"name": x["name"], "as_of": x["measurable_as_of"]}
+                                                for x in data]),
             "data": {"rows": data}}
 
 
@@ -998,6 +1032,9 @@ def quarterly_pages(st: Any, quarter: str, restated: Optional[dict] = None,
                     else to["reason"])
                  + "; executable depth not measured — order-book depth has no free "
                    "source. " + MW7]
+        brk = me.get("break")
+        if brk:
+            lines.insert(2, f"Break: {brk['label']}.")
         if f.get("kind") == "signposts":
             lines.insert(4, f"Signposts: {f.get('signposts')}; no coin page "
                             f"(demoted from deep tier, 12 Oct 2026)")

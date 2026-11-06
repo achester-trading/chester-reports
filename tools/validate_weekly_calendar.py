@@ -41,6 +41,8 @@ network, no box, no register write (the register rows are dicts in memory).
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import os
 import sys
@@ -334,7 +336,10 @@ def main() -> int:
           "a digital-asset calendar entry prints in its week as crypto_index_event, "
           "its \"to verify\" marker beside the event")
     rr = ahead.register_rows(cfg, dt.date(2026, 11, 2), dt.date(2026, 11, 7))
-    check(len(rr) == 1 and rr[0]["cls"] == "register_event"
+    # A named register row carries its own class (Batch 16 item 90, A78).
+    named = ((cfg.get("register_event_rows") or {}).get(
+        (rr[0] if rr else {}).get("claim")) or {}).get("cls")
+    check(len(rr) == 1 and rr[0]["cls"] == (named or "register_event")
           and rr[0]["date"] == "2026-11-03",
           "the claims register's dated event (the midterm) prints in its week")
     rb = ahead.rebalance_rows({"week_ahead": {"session_events": {

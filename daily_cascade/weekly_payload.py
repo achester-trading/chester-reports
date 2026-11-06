@@ -259,6 +259,15 @@ def week_in_state(ending: str, store: Optional[Any] = None) -> dict:
         v = t.get("legs_agree")
         agree["agreed" if v is True else
               "disagreed" if v is False else "not_comparable"] += 1
+    # HELD (D45, 31 Oct 2026): the champion (VX2/VX1) and the basis (VX1 less
+    # VIX) read Cboe's settlements, which are on a declared hold; the stored
+    # object is read as it is and the hold is applied here, where it prints.
+    from altdata import refusals                                # noqa: PLC0415
+    ts = dict(ts)
+    for leg_name in ("champion", "basis"):
+        h = refusals.held_leg(ts.get(leg_name), store)
+        if h:
+            ts[leg_name] = h
     out["vol_term_structure"] = {
         "published_by": ts.get("published_by"),
         "published_state": ts.get("state"),
@@ -827,6 +836,12 @@ def week_ahead(ending: str, store: Optional[Any] = None,
             "the table holds no release dates in this window, and the source HAS "
             "written before -- so this is a quiet week rather than a gap")}
 
+    # A102: switched to EDGAR, the forward date is a listed gap, not a quiet week.
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _gap = _ps.gap("earnings_dates", "next_date")
+    if _gap and not earn:
+        out["earnings"] = {"state": "not_tracked", "reason": _gap}
+        return out
     if earn:
         out["earnings"] = {
             "state": "ok", "count": len(earn),

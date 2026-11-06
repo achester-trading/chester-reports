@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | **Ruled 2026-10-02 14:21 ET** — Ari: adopt the ten-section stack as the shape of the daily close, the Weekly and the Monthly; pull 6d (prediction markets) forward to follow the daily commentary build; reading targets daily 5 min / weekly 20 min / monthly 40 min; depth changes — Mechanics in the Monthly becomes a retrospective on how the market behaved against dealer positioning; Plumbing & rates goes deep in the daily on a major event; What's priced goes deep in the daily and Weekly on a major movement. Long-horizon tape in the Monthly was asked as a question; the answer is §3.4, with its values *proposed* for the Doctrine monthly. |
-| Owner | Ari Chester |
+| Status | **Ruled 2026-10-02 14:21 ET** — the operator: adopt the ten-section stack as the shape of the daily close, the Weekly and the Monthly; pull 6d (prediction markets) forward to follow the daily commentary build; reading targets daily 5 min / weekly 20 min / monthly 40 min; depth changes — Mechanics in the Monthly becomes a retrospective on how the market behaved against dealer positioning; Plumbing & rates goes deep in the daily on a major event; What's priced goes deep in the daily and Weekly on a major movement. Long-horizon tape in the Monthly was asked as a question; the answer is §3.4, with its values *proposed* for the Doctrine monthly. |
+| Owner | the operator |
 | Binding on | Claude Code sessions building the daily close, the Weekly, the Monthly, and 6d |
 | Placement | Four tranches, §7. T1 (daily close) first. |
 | Precedence | Below Part 26, the change orders, Amendments #4–#5. Alongside the Monthly v2 brief and the metric-lenses brief: this brief sets the **section order and depth** of every report; Monthly v2 keeps the content rules of its own sections (themes and tags, voices, "our read is bounded"); the lenses brief keeps the forms each metric shows. `altdata/derived.py` stays the one place a delta, percentile or z-score is computed. Levels are computed once (§2.2) and shared by prose and charts. |
@@ -79,7 +79,7 @@ Daily ≤ 1,000 words and ≤ 3 charts (5 minutes); Weekly ≤ 3,500 words and �
 
 ### 2.1 Style, as rules
 
-Ari's 2 Oct sample is the reference for tone. It is **not filed in the repository** unless it is Ari's own writing (then `docs/briefs/tape-style-reference.md`, under the same header as the Monthly reference: tone, structure and density only; never cite, reuse or restate). Its traits, as rules a gate can hold:
+The operator's 2 Oct sample is the reference for tone. It is **not filed in the repository** unless it is the operator's own writing (then `docs/briefs/tape-style-reference.md`, under the same header as the Monthly reference: tone, structure and density only; never cite, reuse or restate). Its traits, as rules a gate can hold:
 
 1. **Frames in order.** Each report writes the frame it owns and the one above it: the daily writes intraday and daily and places the session in the week; the Weekly writes daily and weekly and places the week in the month; the Monthly writes weekly and monthly and places the month in the long frame (§3.4).
 2. **Levels by name and value.** Every level in the prose comes from the level list (§2.2), with its stored label and value; the label audit checks it.
@@ -120,13 +120,13 @@ Rendered by code from the store at edition time — never from a live fetch — 
 
 The prose may describe only what its chart shows and may name only listed levels; the chart may draw only listed levels. The gate holds both to one object. A chart and its paragraph are rendered from the same stored edition data, so an edition rebuilt later reproduces both.
 
-### 3.4 The long frame in the Monthly (Ari's question)
+### 3.4 The long frame in the Monthly (the operator's question)
 
 Yes, add it, as levels and not as signals. The Monthly's tape stays light in words and gains two charts: M1 (three years, weekly, 40-week average) and M2 (ten years, monthly, 10- and 20-month averages, drawdown from the high). The 40-week and the 10-month are the weekly and monthly forms of the 200-day; the 10-month is the most widely watched monthly trend filter and so is a level the tape must know; the 20-month marks the two-year mean. "The index closed the month above its 10-month average for the *n*th consecutive month" is a fact from the store; "therefore long" is not, and the model may not write it. A cross counts only after the monthly close, never intra-month. The lenses' 12-month return percentile and the correction and bear flags print beside the chart. Bars are resampled from the daily bars in the store; where the store holds fewer than ten years, the chart shows what it holds with *n* printed (deep history is 6e). *Proposed for the Doctrine monthly:* the 40-week, 10-month and 20-month as the long-frame averages.
 
 ## 4. 6d — prediction markets, pulled forward
 
-Spec v1.1 stands: Polymarket and Kalshi, read-only, with three rights — discovery, attention shock (≥ 10 points in a day), disagreement — and never a trigger. Public market endpoints only; if a key is ever required it goes in the box `.env` by Ari and never in a file or a chat. Pulled in the overnight fetch (06:45) and in the eod run (16:10) so the close can print the day's change, stored with the three clocks.
+Spec v1.1 stands: Polymarket and Kalshi, read-only, with three rights — discovery, attention shock (≥ 10 points in a day), disagreement — and never a trigger. Public market endpoints only; if a key is ever required it goes in the box `.env` by the operator and never in a file or a chat. Pulled in the overnight fetch (06:45) and in the eod run (16:10) so the close can print the day's change, stored with the three clocks.
 
 The watch list (`config/prediction_markets.yaml`): the FOMC decision at each of the next four meetings (cut / hold / hike); a US recession in 2026 and in 2027; each month's CPI print; House and Senate control on 3 November; a government shutdown by date; and a discovery slice of the twenty highest-volume markets whose titles match the narrative register's stories by keyword. Forms: probability, 1-, 5- and 20-session changes, volume. Disagreement: venue against the fed-funds-implied probability ≥ 15 points on the same meeting; venue against our scenario weight ≥ 20 points *(proposed)*.
 
@@ -163,7 +163,7 @@ Ratify or change: the Plumbing and What's-priced trigger thresholds (§1.1); the
 
 About 42 hours in all. Proposed order of work after this: cloud migration → 6b intraday slots → 6e with the metric lenses → 6f → Quarterly Structural → Audit #4 (14–15 Oct holds its date). The Doctrine agenda's item 9 is amended to match.
 
-Deploys stay inside the box windows (weekdays 09:05–15:40 and 17:20–23:30 ET; never 16:00–17:20); on a weekend, clear of the Sunday 05:00 Weekly run. Sessions print the unit commands for Ari rather than restarting units.
+Deploys stay inside the box windows (weekdays 09:05–15:40 and 17:20–23:30 ET; never 16:00–17:20); on a weekend, clear of the Sunday 05:00 Weekly run. Sessions print the unit commands for the operator rather than restarting units.
 
 ## Not in scope
 

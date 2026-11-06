@@ -303,20 +303,53 @@ def with_signed(payload: Any, _depth: int = 0) -> Any:
     return payload
 
 
+# A95 (the Monthly of 1 Nov 2026): A NEGATIVE MOVE HANDED OVER AS ITS DISPLAY.
+# A frame (a parent's `figures_you_may_cite`, a block's table) carries a move as
+# the string its table prints -- {"change": "−169,786"}, a "Change" cell "−19
+# bp" -- not as a number beside a `_signed` sibling. Positioning's "10-year note
+# futures shed 169,786 contracts" and "the 30-year yield fell 19 bp" were
+# withheld with no fix named, because only numeric moves were read here. A string
+# under a move key, or a cell under a change column, written with a minus is
+# that negative move, read through extract() exactly as the prose is.
+_NEG_LEAD = re.compile(r"^\s*[−–-]")
+
+
+def _neg_display(v: Any) -> Optional[float]:
+    """The value of a display string written with a leading minus, else None."""
+    if not isinstance(v, str) or not _NEG_LEAD.match(v):
+        return None
+    figs = extract(v)
+    return figs[0].value if figs and figs[0].value < 0 else None
+
+
 def signed_fields(payload: Any, _depth: int = 0) -> list[tuple[float, str, str]]:
     """(value, field, signed display) for every NEGATIVE move the payload carries
     -- the only case where an unsigned figure can be the right magnitude with the
-    wrong sign."""
+    wrong sign. A move written as its display string counts (A95)."""
     out: list[tuple[float, str, str]] = []
     if _depth > 16:
         return out
     if isinstance(payload, dict):
+        cols = payload.get("columns")
+        if isinstance(cols, list) and isinstance(payload.get("rows"), list):
+            for row in payload["rows"]:
+                if not isinstance(row, (list, tuple)) or not row:
+                    continue
+                for j, cell in enumerate(row[1:], start=1):
+                    if j < len(cols) and role_of_column(cols[j]) == ROLE_CHANGE:
+                        nv = _neg_display(cell)
+                        if nv is not None:
+                            out.append((nv, f"{row[0]}'s {cols[j]}",
+                                        str(cell).strip()))
         for k, v in payload.items():
             if (isinstance(v, (int, float)) and not isinstance(v, bool)
                     and v < 0 and _is_move_key(str(k))):
                 out.append((float(v), f"{k}{SIGNED_FIELD}",
                             str(payload.get(f"{k}{SIGNED_FIELD}")
                                 or signed_display(v, _move_unit(k, payload)))))
+            elif isinstance(v, str) and _is_move_key(str(k)) \
+                    and _neg_display(v) is not None:
+                out.append((_neg_display(v), str(k), v.strip()))
             else:
                 out.extend(signed_fields(v, _depth + 1))
     elif isinstance(payload, (list, tuple)):
@@ -426,6 +459,9 @@ DISPLAY_NOUNS = {
     "fred.existing_homes": "homes", "fred.new_homes": "homes",
     "cftc.": "contracts", "pm.volume": "contracts", "pm.open_interest": "contracts",
     "exposure.oi_": "contracts", "eia.": "barrels",
+    # B84 (summary:narratives, the 28 Oct dry run): official gold in troy ounces,
+    # stored as a plain count -- "+740,000" printed bare until it carried its noun.
+    "safe.gold_reserves_oz": "ounces", "imf.ifs.gold_reserves_oz.": "ounces",
 }
 UNIT_NOUNS = {"shares": "shares", "contracts": "contracts", "Contracts": "contracts",
               "jobs": "jobs", "persons": "people", "Persons": "people"}
@@ -1559,6 +1595,154 @@ def _bindable(f: "Figure") -> bool:
                 (TYPE_BP, TYPE_PRICE, TYPE_PERCENT, TYPE_Z, TYPE_DOLLARS))
 
 
+_CURRENCY_NAMES: Optional[dict] = None
+
+
+def currency_names() -> dict:
+    """{ISO code: the name the prose uses} from metrics_registry.yaml's
+    `quote_conventions` (EUR/USD: base euro, quote dollar), the registry's one
+    declaration of what the prose calls each leg of a pair."""
+    global _CURRENCY_NAMES
+    if _CURRENCY_NAMES is None:
+        _CURRENCY_NAMES = {}
+        try:
+            import yaml                                         # noqa: PLC0415
+            path = Path(__file__).resolve().parent.parent / "metrics_registry.yaml"
+            reg = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            for q in (reg.get("quote_conventions") or {}).values():
+                legs = str(q.get("pair") or "").split("/")
+                if len(legs) == 2:
+                    for code, name in zip(legs, (q.get("base"), q.get("quote"))):
+                        if re.fullmatch(r"[A-Z]{3}", code) and isinstance(name, str):
+                            _CURRENCY_NAMES.setdefault(code, name)
+        except Exception:                                       # noqa: BLE001
+            _CURRENCY_NAMES = {}
+    return _CURRENCY_NAMES
+
+
+# THE NAMES THE PROSE USES (A88, 28 Oct 2026). The Monthly's dry run withheld
+# correct sections because the prose named a series by a short form its row's
+# label does not carry: "nonfarm payrolls" for "Nonfarm payrolls, total", "the
+# 10-year yield" for "10-year Treasury yield", "bank reserves" for "Bank
+# reserves at the Fed", "the euro" for "USD/EUR exchange rate". Each label also
+# goes by: its head (before a comma, a bracket or " at/of/for/in/on "), each of
+# those without the issuer and noise words below, without its leading tenor or
+# first word where two or more words remain, its leading tenor ("2-year"), and
+# the registry's name for a currency in an ISO pair. A derived form binds only
+# where it is unique to one row in the block; shared, it is no name at all.
+_ALIAS_NOISE = re.compile(r"\b(?:the|treasury|total|rate|level)\b", re.I)
+# A90: "against", "versus" and "vs" end a head too ("Equal-weight against
+# cap-weight S&P 500" goes by "equal-weight", as the 29 Oct draft wrote it).
+_ALIAS_HEAD = re.compile(r",\s|\s(?:at|of|for|in|on|against|versus|vs\.?)\s")
+_ALIAS_TENOR = re.compile(r"^(\d+-(?:year|month|week|day))\b\s*", re.I)
+_ALIAS_PAIR = re.compile(r"\b([A-Z]{3})/([A-Z]{3})\b")
+_ALIAS_TO_TENOR = re.compile(
+    r"^(\S+(?:\s\S+)*?\s\d+(?:-\d+)?[- ](?:year|month|week|day))\b", re.I)
+
+
+def _derived_aliases(label: str) -> list[str]:
+    lab = re.sub(r"\s+", " ", str(label or "")).strip()
+    bare = re.sub(r"\s*\([^()]*\)", "", lab).strip()
+    forms: list[str] = []
+    for base in (bare, _ALIAS_HEAD.split(bare, 1)[0].strip()):
+        clean = re.sub(r"\s+", " ", _ALIAS_NOISE.sub(" ", base)).strip(" ,")
+        for form in (base, clean):
+            forms.append(form)
+            rest = _ALIAS_TENOR.sub("", form)
+            if rest != form:
+                forms.append(rest)
+            words = form.split(" ")
+            if len(words) >= 3:
+                forms.append(" ".join(words[1:]))
+                # A90: and without its last word ("the 10-year breakeven" for
+                # "10-year breakeven inflation", "the 30-year Treasury").
+                forms.append(" ".join(words[:-1]))
+            # A111: a long name without one inner word ("China's gold holdings"
+            # for "China's official gold holdings", 1 Nov's geopolitics).
+            if len(words) >= 4:
+                forms += [" ".join(words[:i] + words[i + 1:])
+                          for i in range(1, len(words) - 1)]
+            # A111: a name up to its tenor ("the Michigan 5-10 year measure"
+            # for "Michigan 5-10 year inflation expectations", 1 Nov's
+            # sentiment); a word before the tenor at least.
+            m = _ALIAS_TO_TENOR.match(form)
+            if m and m.group(1) != form:
+                forms.append(m.group(1))
+    t = _ALIAS_TENOR.match(bare)
+    if t:
+        forms.append(t.group(1))
+    # A111: "27+ weeks" is also written "27 weeks" ("unemployed 27 weeks or
+    # longer" for "Unemployed 27+ weeks", 1 Nov's pillar 1).
+    if re.search(r"\d\+", bare):
+        forms.append(re.sub(r"(\d)\+", r"\1", bare))
+    names = currency_names()
+    for m in _ALIAS_PAIR.finditer(lab):
+        forms += [names[c] for c in m.groups() if c in names]
+    # An acronym that ends the label is also its words: "Chicago Fed NFCI" is
+    # "the Chicago Fed's National Financial Conditions Index".
+    last = bare.split(" ")[-1] if bare else ""
+    if re.fullmatch(r"[A-Z]{3,6}", last) and len(bare.split(" ")) > 1:
+        forms.append(_ACRONYM + last)
+    return [f for f in dict.fromkeys(forms)
+            if f != lab and len(f) >= 3 and re.search(r"[A-Za-z]", f)]
+
+
+_ACRONYM = "acronym:"
+
+
+def _alias_rx(a: str) -> "re.Pattern":
+    """A name as a pattern: a ticker by its case, a phrase in any case, a
+    phrase's first word in its possessive ("PRL's fees" for "PRL fees"), and an
+    acronym as its capitalised words."""
+    if a.startswith(_ACRONYM):
+        return re.compile(r"(?<![\w-])" + r"\s+".join(
+            ch + r"[a-z]+" for ch in a[len(_ACRONYM):]) + r"(?![\w-])")
+    flags = 0 if re.fullmatch(r"[A-Z0-9.=^\-]{2,8}", a) else re.I
+    first, sp, rest = a.partition(" ")
+    # A111: a phrase's words may be joined by hyphens ("gold-over-copper" for
+    # "Gold over copper", 1 Nov's metals block).
+    gap = r"[\s-]"
+    body = (re.escape(first) + r"(?:['’]s)?" + gap
+            + re.escape(rest).replace(r"\ ", gap).replace(" ", gap)
+            if sp and re.fullmatch(r"[\w.&-]+", first)
+            else re.escape(a).replace(r"\ ", gap).replace(" ", gap))
+    return re.compile(r"(?<![\w-])" + body + r"(?![\w-])", flags)
+
+
+# THE CLAUSE (A88). A figure binds first to a name in brackets straight after it
+# ("-3.27% (XLY/XLP)"), then to a name in its own clause -- the one before it
+# first, the nearest of those, and a name inside a bracket that closes before the
+# figure only when no other is there (the bracket qualifies the name before it:
+# "Net liquidity (the Fed balance sheet less ...) ended at") -- then to one after
+# it in the clause, and only then to the nearest name before it in the sentence.
+# A name AFTER the figure in another clause never binds it. A clause ends at a
+# comma (not one between digits), a semicolon, a colon, a dash or " - "; a
+# bracket does not end one. A clause that says "respectively" pairs its lists by
+# order, so its figures bind to nothing and are left to the plain match.
+_BIND_CLAUSE = re.compile(r"[;:—–]|,(?!\d)|\s-\s")
+_RESPECTIVELY = re.compile(r"\brespectively\b", re.I)
+
+
+_UNNAMED = re.compile(r"(?<![\w-])(?:\d+-(?:year|month)|[A-Z]{3,5})(?![\w-])")
+
+
+def _unnamed_subject(text: str, start: int, end: int, taken: list) -> bool:
+    """Is there, between `start` and `end`, a bare tenor ("the 10-year") or a
+    capitalised ticker-like word ("PCE") outside every name the block knows?"""
+    return any(not any(s <= m.start() < e for s, e in taken)
+               for m in _UNNAMED.finditer(text, start, end))
+
+
+def _enclosed(text: str, start: int, end: int) -> bool:
+    """Is position `start` inside a bracket that closes before `end`?"""
+    depth = 0
+    for ch in text[start:end]:
+        depth += (ch == "(") - (ch == ")")
+        if depth < 0:
+            return True
+    return False
+
+
 def series_bindings(text: str, figures: list["Figure"], payload: Any
                     ) -> list[tuple["Figure", str]]:
     """(figure, why) for each figure bound to a series whose row does not hold
@@ -1566,14 +1750,38 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
     rows = series_rows(payload)
     if not rows or not figures:
         return []
-    alias_rx: list[tuple["re.Pattern", str]] = []
-    for a in sorted({a for r in rows for a in r["aliases"]}, key=len, reverse=True):
-        flags = 0 if re.fullmatch(r"[A-Z0-9.=^\-]{2,8}", a) else re.I
-        alias_rx.append((re.compile(r"(?<![\w-])" + re.escape(a) + r"(?![\w-])", flags), a))
+
+    def say(r: dict) -> str:
+        """A111: the row's short name, or its whole label where another series
+        goes by the same short name ("bound to SAFE but belongs to SAFE" named
+        neither China's reserves nor its gold to the retry)."""
+        n = r["name"]
+        if any(x["name"] == n and x["aliases"][0] != r["aliases"][0] for x in rows):
+            return r["aliases"][0]
+        return n
     by_alias: dict[str, list[dict]] = {}
     for r in rows:
         for a in r["aliases"]:
-            by_alias.setdefault(a, []).append(r)
+            # A90: a noise word alone ("level") is no name; it matched "an index
+            # level of 130.9" and bound core PCE's level to a row called that.
+            if not _ALIAS_NOISE.fullmatch(a.strip()):
+                by_alias.setdefault(a, []).append(r)
+    derived: dict[str, list[dict]] = {}
+    for r in rows:
+        for lab in list(r["aliases"]):
+            for a in _derived_aliases(lab):
+                if a in by_alias:
+                    # Another row's own name: the rows share it, as rows that
+                    # carry one name already do ("SOFR less IORB" twice).
+                    if all(x is not r for x in by_alias[a]):
+                        by_alias[a].append(r)
+                elif all(x is not r for x in derived.get(a, [])):
+                    derived.setdefault(a, []).append(r)
+    # A90: unique means one SERIES -- a label printed twice in the block (the
+    # same table in two places) is still one row's name ("PRL fees, 30 days").
+    by_alias.update({a: rs for a, rs in derived.items()
+                     if len({r["aliases"][0] for r in rs}) == 1})
+    alias_rx = [(_alias_rx(a), a) for a in sorted(by_alias, key=len, reverse=True)]
     bounds = [0] + [m.end() for m in _SENTENCE_END.finditer(text)] + [len(text) + 1]
     out = []
     for f in figures:
@@ -1581,7 +1789,8 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
             continue
         lo = max(b for b in bounds if b <= f.position)
         hi = min(b for b in bounds if b > f.position)
-        hits, taken = [], []
+        end = f.position + len(f.text)
+        names, taken = [], []
         for rx, a in alias_rx:
             for m in rx.finditer(text, lo, hi):
                 if any(m.start() < e and s < m.end() for s, e in taken):
@@ -1589,17 +1798,61 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
                 if m.start() <= f.position < m.end():
                     continue       # the figure is part of the name ("S&P 500")
                 taken.append((m.start(), m.end()))
-                d = (f.position - m.end() if m.end() <= f.position
-                     else m.start() - (f.position + len(f.text)))
-                # THE SUBJECT COMES FIRST: a series named before the figure in
-                # its clause wins over one named after it, however close.
-                hits.append((0 if m.end() <= f.position else 1, d, m.group(0), a))
+                names.append((m, a))
+        # A90: a comma inside a name ("Implied correlation, 1 month (Cboe
+        # COR1M)") does not end a clause.
+        cuts = [c for c in _BIND_CLAUSE.finditer(text, lo, hi)
+                if not any(s <= c.start() < e for s, e in taken)]
+        c_lo = max([lo] + [c.end() for c in cuts if c.end() <= f.position])
+        c_hi = next((c.start() for c in cuts if c.start() >= end), hi)
+        if _RESPECTIVELY.search(text, c_lo, c_hi):
+            continue
+        tag = re.match(r"\s*\(", text[end:hi])
+        tag_hi = text.find(")", end, hi) if tag else -1
+        # A90: "a 7.03% mortgage rate" -- after "a" or "an", the name straight
+        # after the figure is the figure's own.
+        attributive = re.search(r"\b(?:a|an)\s+$", text[lo:f.position], re.I)
+        # A90: a sentence that opens on a name alone, set off by a comma ("Net
+        # liquidity, the Fed balance sheet less ..., closed September at"), has
+        # that name for its subject; the appositive after it does not.
+        first_cut = next((c.start() for c in cuts), hi)
+        hits = []
+        for m, a in names:
+            before = m.end() <= f.position
+            d = f.position - m.end() if before else m.start() - end
+            # A90: an unnamed subject between a name and the figure takes the
+            # figure from it -- "the 2-year yield rose ... and the 10-year rose
+            # ... to 5.29%", "Brent crude surged ..., WTI rose ... to 97.18",
+            # "core CPI climbed ... and core PCE rose +0.32%": a bare tenor or a
+            # capitalised ticker-like word that names no row. The figure is left
+            # to the plain match.
+            if before and _unnamed_subject(text, m.end(), f.position, taken):
+                continue
+            lone_tag = (re.search(r"\(\s*$", text[lo:m.start()]) is not None
+                        and re.match(r"\s*\)", text[m.end():hi]) is not None)
+            if tag and end < m.start() and m.end() <= tag_hi:
+                tier = 0                             # its own tag: "(XLY/XLP)"
+            elif attributive and not before and re.match(r"\s+$", text[end:m.start()]):
+                tier = 0                             # "a 7.03% mortgage rate"
+            elif c_lo <= m.start() < c_hi:
+                # A90: a bracket that holds only a name is a tag naming the
+                # series ("(Cboe COR1M) at 8.73"), not a qualifier to step over.
+                enclosed = _enclosed(text, m.start(), f.position) and not lone_tag
+                tier = (2 if enclosed else 1) if before else 3
+            elif before and text[lo:m.start()].strip() in ("", "The", "the") \
+                    and m.end() <= first_cut and not text[m.end():first_cut].strip():
+                tier = 3.5                           # the sentence's bare subject
+            elif before:
+                tier = 5 if _enclosed(text, m.start(), f.position) else 4
+            else:
+                continue                             # after it, in another clause
+            hits.append((tier, d, m.group(0), a))
         if not hits:
             continue
         _, _, _, alias = min(hits)
         mine = by_alias[alias]
         mine_ids = {id(r) for r in mine}
-        said = mine[0]["name"]
+        said = say(mine[0])
         fields = [k for r in mine for k in _holds(r["values"], f)]
         want = (TYPE_PERCENT if _OF_OI.match(text, f.position + len(f.text))
                 else f.unit_type)
@@ -1619,7 +1872,7 @@ def series_bindings(text: str, figures: list["Figure"], payload: Any
             continue
         others = [r for r in rows if id(r) not in mine_ids and _holds(r["values"], f)]
         if others:
-            names = list(dict.fromkeys(r["name"] for r in others))
+            names = list(dict.fromkeys(say(r) for r in others))
             out.append((f, f"{f.text.strip()} is bound to {said} but belongs to "
                            f"{' and '.join(names[:2])}"))
     return out
@@ -1954,6 +2207,39 @@ _CLOSE_WORD = re.compile(
 _OTHER_ROLE = re.compile(r"\b(?:average|averages|mean|percentile|high|low|from|"
                          r"range|band|between)\b", re.I)
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
+# A88 (d): what a close-word's span skips, and where it ends. The span runs to a
+# semicolon, a colon, a dash or a bracket; a comma continues it, because the list
+# ("closes September with gold at 4,554.56, SPY at 721.82") is the case the audit
+# exists for.
+_ROLE_SPAN_END = re.compile(r"[;:—–()]|\s-\s")
+_MONTH_RX = "(?:" + "|".join(sorted(MONTHS, key=len, reverse=True)) + r")\.?(?![a-z])"
+_DATE_PHRASE = re.compile(
+    r"\b\d{1,2}(?:st|nd|rd|th)?\s+" + _MONTH_RX + r"(?:,?\s+\d{4})?\b"
+    r"|\b" + _MONTH_RX + r"\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?\b"
+    r"|\b" + _MONTH_RX + r"\s+\d{4}\b|\b\d{4}-\d{2}-\d{2}\b", re.I)
+_WINDOW_AFTER = re.compile(r"(?:st|nd|rd|th)?-(?:day|week|month|year|session)s?\b", re.I)
+# A weight is skipped only where the prose calls it one ("the 0.65 and 0.5
+# weights") and the payload carries it as one: a bare 0.5 after "closed" is read.
+_WEIGHT_AFTER = re.compile(r"(?:\s+(?:and|or|to)\s+[+−-]?\d[\d.,]*%?)*\s+"
+                           r"(?:weights?|probabilit(?:y|ies)|odds|chances?)\b", re.I)
+
+
+def _weights(payload: Any, _depth: int = 0) -> list[float]:
+    """Every value the payload carries as a probability or a weight."""
+    out: list[float] = []
+    if _depth > 12:
+        return out
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool) \
+                    and re.search(r"probab|weight", str(k), re.I):
+                out.append(abs(float(v)))
+            elif isinstance(v, (dict, list, tuple)):
+                out += _weights(v, _depth + 1)
+    elif isinstance(payload, (list, tuple)):
+        for v in payload:
+            out += _weights(v, _depth + 1)
+    return out
 
 
 def _tolerance(text: str) -> float:
@@ -1971,19 +2257,37 @@ def role_faults(text: Optional[str], payload: Any) -> list[str]:
     rs = roles(payload)
     if not rs or not text:
         return []
+    weights = _weights(payload)
     bad = []
     for sent in _SENTENCE.split(text):
         m = _CLOSE_WORD.search(sent)
         if not m:
             continue
-        figs = [f for f in extract(sent) if f.position >= m.end()]
+        stop = _ROLE_SPAN_END.search(sent, m.end())
+        span_end = stop.start() if stop else len(sent)
+        dates = [d.span() for d in _DATE_PHRASE.finditer(sent)]
+        figs = [f for f in extract(sent) if m.end() <= f.position < span_end]
         prev = m.end()
         for f in figs:
+            # A95: A DATE'S NUMERALS DO NOT END THE GAP. "closed October at 44.60,
+            # ..., against its full-history average since 2021-09-20 of 32.01"
+            # bound 32.01 to "closed": the date's parts each restarted the gap,
+            # so the gap before 32.01 was " of " and lost "average". A date is
+            # skipped (A88 (d)) and the gap runs on across it.
+            if any(s <= f.position < e for s, e in dates):
+                continue
             gap = sent[prev:f.position]
             prev = f.position + len(f.text)
             if f.is_percent or _CHANGE_AFTER.match(sent, f.position + len(f.text)):
                 continue
             if _OTHER_ROLE.search(gap):
+                continue
+            # A88 (d): a day of the month or a year ("1 October 2026"), a
+            # window's length ("its 20-day average") and a weight or probability
+            # the payload types as one are not the figure the close-word names.
+            if _WINDOW_AFTER.match(sent, f.position + len(f.text)) \
+                    or (_WEIGHT_AFTER.match(sent, f.position + len(f.text))
+                        and any(abs(w - abs(f.value)) <= 1e-9 for w in weights)):
                 continue
             tol = _tolerance(f.text)
             held = [(r, w) for v, r, w in rs if abs(v - abs(f.value)) <= tol]

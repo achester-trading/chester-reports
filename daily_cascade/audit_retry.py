@@ -108,8 +108,10 @@ def log_attempt(report: str, section: str, attempt: int, published: bool,
     """One attempt in the run log: published or withheld, the reason, and the
     draft the audit read (logged, never rendered)."""
     if published:
-        log.warning("audit retry: %s/%s attempt %d of %d published", report, section,
-                    attempt, ATTEMPTS)
+        # A95: a published attempt is news, not a warning (the 1 Nov Monthly's
+        # log carried thirteen WARNING lines for paragraphs that published).
+        log.info("audit retry: %s/%s attempt %d of %d published", report, section,
+                 attempt, ATTEMPTS)
         return
     log.warning("audit retry: %s/%s attempt %d of %d withheld: %s", report, section,
                 attempt, ATTEMPTS, reason)
@@ -145,6 +147,181 @@ def _record(report: str, section: str, attempt: int, r) -> None:
     log_attempt(report, section, attempt, bool(r.published),
                 None if r.published else r.reason, None if r.published
                 else getattr(r, "rejected_text", None))
+
+
+# ---------------------------------------------------------------------------
+# W10-1: THE FALLBACK -- WITHHOLD THE SENTENCE, NOT THE SECTION (D46, 31 Oct 2026)
+# ---------------------------------------------------------------------------
+# On 28 Oct the Monthly's dry run withheld 20 of 61 sections whole, most of them
+# right but for one figure's binding. After the second attempt fails on the FIGURE
+# audit alone, the sentences that carry a failed figure are removed and the rest
+# published, a marker in each removed sentence's place. It only removes: no figure
+# is edited, and the audit's verdicts are the audit's. The limits (D46 1):
+#   - more than a third of the sentences fail, or the first does -> whole, as today;
+#   - the Précis and "Our read" (and the stack's read, the same synthesis) always
+#     withhold whole: their sentences lean on each other;
+#   - any fault that is not a figure's (filler, a misstated state, the length, the
+#     shape, the vocabulary) -> whole: removing a sentence does not cure it;
+#   - a failed figure the fallback cannot place in a sentence -> whole.
+# The caller re-runs its own post-audit checks on what remains and withholds
+# whole if any fires: the remainder is held to every rule a draft is.
+MARKER = "[one sentence withheld: figure audit]"
+WHOLE_ONLY = ("precis", "our_read", "read")
+# The figure audits' clause heads; a clause that opens otherwise is not a figure's.
+_FIGURE_HEAD = re.compile(r"^(?:numeral audit failed on|role audit failed on|"
+                          r"a change of 10,000 or more printed without its unit)", re.I)
+# What may follow a figure clause inside it: a role audit's item, a count tail,
+# the role rule's sentence, the bare delta's instruction or hint.
+_CONTINUATION = re.compile(r"^(?:'[^']+':\s|\d+ of them\b|write\s|'closed at'|"
+                           r"copy its\s)", re.I)
+_PREFIX = re.compile(r"^(?:narrative\s+)?withheld:\s*", re.I)
+# The two forms the numeral audit's figures are listed in: the withheld note's
+# "failed on 4 figures (a, b)" (cut at six) and reason()'s "failed on 4 figure(s):
+# a (why), b (+2 more)".
+_NOTE_FIGS = re.compile(r"numeral audit failed on (\d+) figures? \(([^()]*)\)")
+_REASON_FIGS = re.compile(r"numeral audit failed on (\d+) figure\(s\): (.+?)"
+                          r"(?=;\s*\d+ of them|$)")
+_BARE_FIGS = re.compile(r"without its unit or scale \(([^()]*)\)")
+_LIST_SPLIT = re.compile(r",\s+(?![^()]*\))")
+# A role audit's item: 'closes ... 1st': -- the span is followed by its colon.
+_ROLE_SPAN = re.compile(r"'([^']+? \.\.\. [^']+?)':")
+
+
+def _clauses(reason: str) -> list[str]:
+    r = _PREFIX.sub("", str(reason or "").strip())
+    r = re.sub(r"\s+--\s+", "; ", r)
+    return [c.strip() for c in r.split("; ") if c.strip()]
+
+
+def figure_only(reason: Optional[str]) -> bool:
+    """Every fault the reason names is a figure audit's (numeral, role, bare
+    delta): the faults that removing a sentence cures."""
+    cl = _clauses(reason or "")
+    if not cl or not _FIGURE_HEAD.match(cl[0]):
+        return False
+    return all(_FIGURE_HEAD.match(c) or _CONTINUATION.match(c) for c in cl[1:])
+
+
+def failed_figures(reason: Optional[str],
+                   unmatched: Optional[list] = None) -> tuple[Optional[list], list]:
+    """(figures, spans): each failed figure's text, and each quoted span ("closes
+    ... 1st") the role audit names. `unmatched`, the audit's own full list, stands
+    in for the numeral audit's listed figures, which the reason cuts at six; a cut
+    list with no `unmatched` gives (None, spans): not every failed figure is known."""
+    r = str(reason or "")
+    spans = _ROLE_SPAN.findall(r)
+    figs = [q.split(" ... ")[-1].strip() for q in spans]
+    for m in _BARE_FIGS.finditer(r):
+        figs += [x.strip() for x in _LIST_SPLIT.split(m.group(1))]
+    if unmatched is not None:
+        figs += [str(getattr(f, "text", f)) for f in unmatched]
+    else:
+        for rx in (_NOTE_FIGS, _REASON_FIGS):
+            for m in rx.finditer(r):
+                listed = [x.split(" (")[0].strip()
+                          for x in _LIST_SPLIT.split(re.sub(r"\s*\(\+\d+ more\)", "",
+                                                            m.group(2)))]
+                if len([x for x in listed if x]) < int(m.group(1)):
+                    return None, spans
+                figs += listed
+    return [f for f in dict.fromkeys(figs) if f], spans
+
+
+def _hits(sentence: str, fig: str) -> bool:
+    """The figure's text in the sentence as a whole token: "5.2" is not in
+    "15.29"."""
+    return bool(re.search(r"(?<![\d.,])" + re.escape(fig) + r"(?![\d])", sentence))
+
+
+def partial(draft: Optional[str], reason: Optional[str], *, section: str = "",
+            unmatched: Optional[list] = None) -> dict:
+    """The fallback's verdict over a twice-withheld draft: {"ok": True, "text":
+    the published text with markers, "clean": the remainder without them (what
+    the caller's post-checks read), "withheld": [{"sentence", "reason"}], "k",
+    "n"}, or {"ok": False, "why": the reason it stays withheld whole}."""
+    sec = str(section or "").split(":")[-1]
+    if sec in WHOLE_ONLY:
+        return {"ok": False, "why": "withheld whole: its sentences depend on each other"}
+    if not draft:
+        return {"ok": False, "why": "no draft"}
+    if not figure_only(reason):
+        return {"ok": False, "why": "a fault that is not a figure's"}
+    figs, spans = failed_figures(reason, unmatched)
+    if figs is None or not figs:
+        return {"ok": False, "why": "a failed figure the reason does not list"}
+    paras = [_sentences(p) for p in str(draft).strip().split("\n\n") if p.strip()]
+    flat = [s for p in paras for s in p]
+    bad: dict[int, list[str]] = {}
+    for q in spans:
+        parts = [x.strip() for x in q.split(" ... ") if x.strip()]
+        idx = [i for i, s in enumerate(flat)
+               if all(p.lower() in s.lower() for p in parts[:-1]) and _hits(s, parts[-1])]
+        if not idx:
+            return {"ok": False, "why": f"span '{q}' not placed in a sentence"}
+        for i in idx:
+            bad.setdefault(i, []).append(parts[-1])
+    span_figs = {q.split(" ... ")[-1].strip() for q in spans}
+    for fig in figs:
+        if fig in span_figs:
+            continue
+        # Every sentence carrying the figure goes: the published text never
+        # holds a figure the audit failed.
+        idx = [i for i, s in enumerate(flat) if _hits(s, fig)]
+        if not idx:
+            return {"ok": False, "why": f"figure {fig} not placed in a sentence"}
+        for i in idx:
+            bad.setdefault(i, []).append(fig)
+    n, k = len(flat), len(bad)
+    if 0 in bad:
+        return {"ok": False, "why": "its first sentence fails", "k": k, "n": n}
+    if 3 * k > n:
+        return {"ok": False, "why": f"{k} of {n} sentences fail (more than a third)",
+                "k": k, "n": n}
+    out, clean, i = [], [], 0
+    for p in paras:
+        kept, shown = [], []
+        for s in p:
+            shown.append(MARKER if i in bad else s)
+            if i not in bad:
+                kept.append(s)
+            i += 1
+        out.append(" ".join(shown))
+        if kept:
+            clean.append(" ".join(kept))
+    withheld = [{"sentence": flat[j], "reason": "figure audit: " + ", ".join(
+        dict.fromkeys(bad[j]))} for j in sorted(bad)]
+    return {"ok": True, "text": "\n\n".join(out), "clean": "\n\n".join(clean),
+            "withheld": withheld, "k": k, "n": n}
+
+
+def status(k: int) -> str:
+    """The section's status for a partial publication."""
+    return f"published, {k} sentence{'' if k == 1 else 's'} withheld"
+
+
+def apply_fallback(res: dict, *, report: str, section: str,
+                   recheck: Optional[Callable[[str], list]] = None) -> dict:
+    """A twice-withheld result through the fallback: published with markers
+    (state "published_partial", `partial` k, `withheld_sentences`, `status`), or
+    unchanged with `fallback` saying why it stays whole. `recheck(clean)` is the
+    caller's own post-audit checks over the remainder; any fault keeps it whole.
+    Each withheld sentence and its reason go to the run log."""
+    if res.get("published") or int(res.get("attempts") or 0) < ATTEMPTS:
+        return res
+    p = partial(res.get("rejected_text"), res.get("retry_reason") or res.get("reason"),
+                section=section, unmatched=res.get("unmatched_figures"))
+    if not p["ok"]:
+        return {**res, "fallback": p["why"]}
+    faults = list(recheck(p["clean"]) if recheck else [])
+    if faults:
+        return {**res, "fallback": "the remainder fails: " + "; ".join(map(str, faults[:3]))}
+    for w in p["withheld"]:
+        log.warning("audit fallback: %s/%s sentence withheld (%s): %s", report,
+                    section, w["reason"], w["sentence"])
+    log.warning("audit fallback: %s/%s %s", report, section, status(p["k"]))
+    return {**res, "published": True, "state": "published_partial", "text": p["text"],
+            "partial": p["k"], "sentences": p["n"], "withheld_sentences": p["withheld"],
+            "status": status(p["k"])}
 
 
 def run(call: Callable[[Optional[str]], dict], *, report: str, section: str,

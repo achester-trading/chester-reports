@@ -56,6 +56,8 @@ which let it run unattended cannot be widened by accident.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import fnmatch
 import json
 import re
@@ -147,6 +149,9 @@ MUST_DENY = {
         "bash scripts/decide_remote.sh record --instrument QQQ",
         "scripts/decide_remote.sh set-status --id x --status active",
         "python tools/migrate_register.py import --in x.json",
+        # 6f tranche 4: the register's alignment_weekly columns are the operator's
+        # schema change, from the box sheet.
+        "python tools/migrate_alignment_weekly.py --apply --backup ~/backups/x.db",
         # 6c-2: confirming or rejecting a PROPOSED narrative is the narrative
         # register's one human gate, on the same argument as a decision write.
         "python -m altdata.narratives confirm dollar_funding_squeeze",
@@ -173,6 +178,13 @@ MUST_DENY = {
         "python x.py --allow-live",
         "python -c 'ib.bracketOrder(...)'",
         "python -m order_router",
+        # A98 (D43): the paper executor's run, the operator's clear of its kill
+        # switch and the operator's resume of an edge-decay pause. Sessions never
+        # place orders; the entry point arrives already denied.
+        "python -m paper_exec run",
+        "ssh vps 'cd ~/chester-reports && .venv/bin/python -m paper_exec run --ledger x'",
+        "python -m paper_exec clear-kill --reason x",
+        "python -m paper_exec resume --engine trend_ts --reason x",
     ],
     "secrets": [
         "ssh vps cat ~/chester-reports/.env",
@@ -197,6 +209,8 @@ MUST_DENY = {
         "ssh vps 'grep BITCOIN_DATA_API_KEY ~/chester-reports/.env'",
         "echo $CHESTER_RCLONE_CRYPT_PASSWORD",
         "python -c 'import os; print(os.getenv(\"CHESTER_RCLONE_CRYPT_SALT\"))'",
+        # A94 (30 Oct 2026): the second forecaster's key (D38: Gemini).
+        "printenv GEMINI_API_KEY",
     ],
 }
 
@@ -523,12 +537,24 @@ def group_g() -> None:
     # THE POINT OF THE MAKEFILE IS ONE LIST. A shim carrying its own copy of the
     # validator names would be the third place the list lives, which is how four
     # gates drifted out of CI while still passing locally.
-    check("mk_list" in shim and "Makefile" in shim,
-          "the shim READS the gate list out of the Makefile rather than keeping "
-          "its own copy -- one list is the Makefile's entire reason to exist")
-    for name in ("PY_VALIDATORS", "EXTRA", "SH_VALIDATORS", "DATA_GATES"):
-        check(re.search(rf'mk_list {name}\b', shim) is not None,
-              f"and reads {name} from it")
+    check("tools/gate_list.py" in shim and "mk_list" in shim and "Makefile" in shim,
+          "the shim READS the gate list from tools/gate_list.py, the tool the "
+          "Makefile calls, rather than keeping its own copy -- one list is the "
+          "whole point")
+    # S1: the three lists are the gates' declarations, through the one tool;
+    # EXTRA is still read out of the Makefile.
+    for name, kind in (("PY_VALIDATORS", "code"), ("SH_VALIDATORS", "shell"),
+                       ("DATA_GATES", "data")):
+        check(re.search(rf'{name}="\$\(gate_list {kind}\)"', shim) is not None,
+              f"and reads {name} from it (--kind {kind})")
+    check(re.search(r"mk_list EXTRA\b", shim) is not None,
+          "and reads EXTRA from the Makefile")
+    mk = MAKEFILE.read_text(encoding="utf-8")
+    check(all(re.search(rf"^{n} := \$\(shell \$\(LISTPY\) tools/gate_list\.py "
+                        rf"--kind {k}\)", mk, re.M)
+              for n, k in (("PY_VALIDATORS", "code"), ("SH_VALIDATORS", "shell"),
+                           ("DATA_GATES", "data"))),
+          "and the Makefile builds the same three lists from the same tool")
     check(not re.search(r"^\s*PY_VALIDATORS=[\"']?tools/", shim, re.M),
           "and hardcodes no validator path of its own")
     # figures has an ADOPT=1 mode that overwrites the committed Currencies

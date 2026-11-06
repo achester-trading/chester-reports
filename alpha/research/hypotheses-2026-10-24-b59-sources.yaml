@@ -1,0 +1,178 @@
+# Alpha Lab hypothesis batch. Schema alpha-lab-hypotheses/v1.
+# The three new sources of the rulings of 24 Oct 2026 (D26): each is registered
+# as a hypothesis BEFORE its reader is written (b59-trigger-sources), and no
+# backtest has been run. Committed alone, before any of the three readers;
+# tools/validate_b59.py checks the order. Registered on the box by manifest:
+#   .venv/bin/python -m alpha.manifest register alpha/research/hypotheses-2026-10-24-b59-sources.yaml
+# The readers are report-only; nothing here grants a right. This file is never
+# edited after creation: a correction is a new file naming the local_id it
+# supersedes.
+schema: alpha-lab-hypotheses/v1
+batch_id: 2026-10-24-b59-new-sources
+source: model
+proposer: claude
+channel: sitting
+written_at: '2026-10-24T12:35:00-04:00'
+model_idea_rule: true
+inputs:
+- docs/briefs/new-sources-check-2026-10-24.md (B58, the source checks; each hypothesis
+  is the brief's, as written there)
+- 'the rulings of 24 Oct 2026, D26: GDELT raw files, NOAA CPC degree days and the
+  Hugging Face model-release watch are yes, report-only, each pre-registered first'
+human_record: docs/briefs/b59-trigger-sources-notes.md
+hypotheses:
+- local_id: H-B59-1
+  title: A geopolitical family's conflict surge is followed by a rise in volatility
+  horizon_class: short
+  horizon_sessions: 5
+  family: geopolitical-attention
+  mechanism: GDELT counts conflict events (CAMEO roots 18 to 20) as the world's news
+    reports them. A surge in one of the Twenty-Five's geopolitical families (Family D
+    and Factor III's theatres) is news the equity market has to price, and a sustained
+    five-day surge is more than one day's noise, so implied volatility should rise
+    over the following week more often than it does unconditionally.
+  universe:
+  - ^VIX
+  rule_text: At each session's close, for each family in config/gdelt.yaml, take the
+    mean of the family's daily conflict share (gdelt.conflict_share, conflict events
+    per 10,000 of the day's events) over the last five stored days. When it is at or
+    above its own 95th percentile over the five years before (at least 750 stored
+    days), the signal is on for that family. The outcome is the change in the VIX
+    index's close from the signal session to the 5th session after; the claim is that
+    it is positive more often after a signal than over all sessions. One signal per
+    family per five sessions.
+  conditioning:
+  - name: family
+    values:
+    - taiwan_strait
+    - middle_east_gulf
+    - russia_ukraine
+    - korean_peninsula
+  - name: any_family
+    values:
+    - true
+  expected:
+    sign: vix_change_positive_share_above_unconditional
+    share_gap_min: 0.1
+  sample:
+    min_independent_signals: 30
+    history_from: the stored GDELT history (the 1.0 daily files' backfill, then the 2.0
+      15-minute exports)
+  data:
+    in_store:
+    - ^VIX daily closes
+    gaps:
+    - gdelt.conflict_share, written by the reader this batch precedes
+    - 'needs code: the grammar has no n-day mean of a stored series, the series carries
+      a family instrument the grammar does not read, and the outcome is the VIX index''s
+      level, which is not traded'
+  needs_code: true
+  kill: constitution
+  state_at_registration: No GDELT row is stored; the reader is not written. The brief's
+    one request on 23-24 Oct read the newest 15-minute export (about 800 events).
+
+- local_id: H-B59-2
+  title: An unusually cold week lifts natural gas the week after
+  horizon_class: short
+  horizon_sessions: 5
+  family: weather-demand
+  mechanism: Heating demand for natural gas follows population-weighted heating degree
+    days. A week far colder than the same calendar week usually is draws storage faster
+    than the market's seasonal expectation, so the spot price should rise over the next
+    week more often than it does unconditionally.
+  universe: Henry Hub spot (fred.natgas), a FRED series and not a traded symbol
+  rule_text: At the last session of each ISO week, sum the CONUS population-weighted
+    heating degree days (noaa.hdd_pop, instrument conus) over the week's seven days.
+    When the sum is above the 80th percentile of the same ISO week's sums in the stored
+    history before it (at least 20 years), the signal is on. The outcome is the change
+    in Henry Hub spot (FRED DHHNGSP, fred.natgas) from the signal session's value to
+    the value five sessions later; the claim is that it is positive more often after a
+    signal than over all weeks of the same months.
+  conditioning:
+  - name: heating_season_only
+    values:
+    - november_to_march
+  - name: departure_from_normal_instead
+    values:
+    - above_80th_of_departures
+  expected:
+    sign: natgas_change_positive_share_above_unconditional
+    share_gap_min: 0.1
+  sample:
+    min_independent_signals: 40
+    history_from: '1997-01 (Henry Hub spot on FRED); degree days from 1981'
+  data:
+    in_store:
+    - fred.natgas (Henry Hub spot, daily)
+    gaps:
+    - noaa.hdd_pop, written by the reader this batch precedes
+    - 'needs code: the grammar has no percentile against the same calendar week''s
+      history, and Henry Hub spot is a FRED series, not a traded symbol'
+  needs_code: true
+  kill: constitution
+  state_at_registration: No degree-day row is stored; the reader is not written. The
+    2026 heating file served 22 Oct as its newest day (CONUS 7 HDD).
+
+- local_id: H-B59-3
+  title: A burst of Chinese model releases is followed by semiconductors lagging the
+    index
+  horizon_class: short
+  horizon_sessions: 5
+  family: ai-release-watch
+  mechanism: A week in which the watched labs publish an unusual number of open model
+    repositories is a week of cheaper capability arriving in public, the shape of the
+    January 2025 release that repriced the AI hardware trade. Semiconductors carry
+    that trade's capex expectation, so they should lag the index over the next five
+    sessions more often than in other weeks.
+  universe:
+  - SMH
+  - SPY
+  rule_text: At each session's close, read the newest complete week's count of new
+    public model repositories across the declared organisations (ai.model_releases_week_total).
+    When it is at or above its 90th percentile over the last 104 weekly observations,
+    short SMH against SPY (equal weight) at the next close and hold five sessions; no
+    new signal for five sessions after one.
+  rule_dsl:
+    grammar: alpha-lab-rules/v1
+    universe:
+    - SMH
+    - SPY
+    cadence: daily_close
+    trigger:
+    - series: ai.model_releases_week_total
+      transform: percentile
+      w: 104
+      op: '>='
+      value: 90
+    direction: short
+    instrument:
+      pair:
+        long: SMH
+        short: SPY
+        weight: equal
+    entry: next_close
+    exits:
+      time: 5
+    cooldown: 5
+    note: the weekly total is written once its week is complete; the daily cadence
+      reads it from the first close it is knowable
+  conditioning:
+  - name: watched_chinese_labs_only
+    values:
+    - true
+  expected:
+    sign: negative_pair_return_share_above_unconditional
+    next5_pair_return_vs_unconditional_mean_pts: -0.3
+  sample:
+    min_independent_signals: 30
+    history_from: 2023-10 (deepseek-ai's first repository); the backfilled weeks are
+      reconstructed from createdAt, the live weeks point in time
+  data:
+    in_store:
+    - SMH and SPY daily closes
+    gaps:
+    - ai.model_releases_week_total, written by the reader this batch precedes
+  needs_code: false
+  kill: constitution
+  state_at_registration: No release row is stored; the reader is not written. On 24 Oct
+    Qwen's newest public repository was dated 9 Oct 2026.
