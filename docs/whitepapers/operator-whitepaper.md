@@ -97,3 +97,110 @@ The summary below is a cheat sheet for the four chapters above; each line is arg
 | Narrative capture | The story read before the print | A thesis line that cites a report, not an edge | The three edge questions; the narrative register | Narrative-cited against signal-cited expectancy |
 
 What the operator does differently because of Part I is to read the register by failure mode before reading it by result. A month with a positive result and a rising risk ratio is a warning; a month with a negative result and every exit on plan is variance. The account cannot tell those two apart. The fields can.
+
+---
+
+# Part II — The Canon
+
+*A note on the closing clauses in this Part. Each empirical claim ends with the study's sample and period and the date it was cited for this draft. The findings are as their authors published them. None was re-run here, and Appendix A lists every one for re-verification at the operator's read.*
+
+## Chapter 7 — Loss aversion and the disposition effect
+
+The behavioral literature most often read by investors is about portfolios: under-diversification, home bias, the cost of fees. Most of it matters little to a trader running defined-risk positions with written exits. What does matter is the smaller body of work on how people treat a position once they hold it, because that is where the gap of Part I lives. Six findings carry most of the weight, and this Part takes them in turn. Each is stated as a mechanism, with the sample that supports it and the conditions under which it has held or failed.
+
+**Loss aversion** is the finding that a loss is felt more strongly than a gain of the same size. In prospect theory's account, people evaluate outcomes as gains and losses relative to a reference point rather than as final wealth, and the value function is steeper for losses than for gains. The usual estimate is that a loss weighs a little over twice as much as an equal gain *(Tversky and Kahneman's 1992 elicitation, a median loss-aversion coefficient of about 2.25 from a small sample of graduate students choosing among hypothetical gambles; cited 6 November 2026)*. The coefficient varies widely across people and tasks, and some later work finds it much smaller for small stakes or routine exchanges. The direction has proved robust; the size has not.
+
+For a trader, loss aversion matters less as a single number than through the reference point it implies. A position is not felt as a contribution to the account. It is felt as a gain or a loss **against its entry price**, and the entry price becomes the most important number on the screen, though the market does not know it exists. Everything else in this chapter follows from that.
+
+**The disposition effect** is loss aversion's signature in trading records: the tendency to sell winners too soon and hold losers too long. Shefrin and Statman named it in 1985. Odean's study of a discount broker's accounts gave it its best-known measurement: investors realised gains at about one and a half times the rate at which they realised losses, and the winners they sold went on to outperform the losers they kept *(10,000 accounts at a US discount brokerage, 1987–1993; the proportion of gains realised about 0.15 against 0.10 for losses; the sold winners outperformed the held losers by about three percentage points over the following year; cited 6 November 2026)*.
+
+The mechanism is the reference point. Below entry, the position sits in the region of the value function where people take risk to avoid a sure loss, so holding — a gamble on recovery — is preferred to selling, which makes the loss real. Above entry, it sits in the region where people avoid risk to keep a sure gain, so selling is preferred to holding. Some economists doubt that prospect theory alone produces the effect, and propose instead a pleasure in realising a gain and a pain in realising a loss at the moment of sale *(the realisation-utility account, and Kaustia's 2010 test against prospect theory's predictions on Finnish investors; cited 6 November 2026)*. For the operator the distinction matters little. Either way, the moment of selling is where the bias acts, and that is the moment the Doctrine takes away from discretion.
+
+**Where it has held and where it has failed.** The effect is strongest among individual investors and weakest among professionals, but it does not vanish with professionalism. Futures floor traders who held losers longer earned less than those who did not *(Locke and Mann's study of Chicago Mercantile Exchange floor traders, 1995; cited 6 November 2026)*. Israeli investors with professional managers showed less of the effect than those who traded independently, though still some *(Shapira and Venezia, Israeli brokerage accounts, 1994; cited 6 November 2026)*. The effect also declines with experience, partly because investors learn and partly because the worst-affected stop trading *(Seru, Shumway and Stoffman, Finnish individual investors, 1995–2003; cited 6 November 2026)*.
+
+It reverses in one documented condition: when the position is part of a written plan executed by rule. The literature's natural experiments are fund managers with mandated sell disciplines and stop-loss rules. That is the condition the Doctrine imposes, and it is the reason the operator's ledger should show less of the effect than the literature's retail samples. If it does not, the rules are not being followed.
+
+**What the operator does differently.** The entry price is noted once, in the packet, and then treated as irrelevant to every decision except the stop. A question that begins "it's only down…" or "it's already up…" is answered by the plan, not by the P&L. Doctrine Rule 17 (exits follow the plan, not the P&L) and Doctrine Rule 5 (exit written before entry) are, in the language of this chapter, the disposition effect made illegal.
+
+## Chapter 8 — House money and the break-even effect
+
+Loss aversion predicts that people are cautious after gains and reckless only to avoid a sure loss. Experience suggests something more specific. Thaler and Johnson's experiments separated two effects that run against the simplest reading *(gambles with real and hypothetical stakes offered to student subjects after a prior gain or loss, 1990; cited 6 November 2026)*:
+
+- **The house-money effect.** After a gain, people become **more** willing to take risk, as though the gain were someone else's money that can be lost without hurting.
+- **The break-even effect.** After a loss, people become more willing to take a gamble that offers a chance to get back to even, and less willing to take one that does not.
+
+Both effects act through the reference point. Whether a gain is "house money" depends on whether the trader still counts it as separate from capital. Whether a loss provokes risk-seeking depends on whether a chance to break even is on offer.
+
+The professional evidence is direct. Proprietary traders in Treasury bond futures who lost money in the morning took **more** risk in the afternoon, and that afternoon trading moved prices in a way that cost them *(Coval and Shumway, proprietary traders on the Chicago Board of Trade, 1998; cited 6 November 2026)*. These were full-time professionals trading their own firms' capital, the population least expected to show the bias. They showed it within a single session.
+
+A later refinement makes the effect usable. Imas found that the break-even effect depends on whether the loss has been **realised** *(laboratory experiments with real stakes, published 2016; cited 6 November 2026)*. After a paper loss, still open, people take more risk, trying to get back to even. After a realised loss, closed and booked, they take less. Closing a position resets the reference point, and an open loss keeps the old one alive. That is the strongest argument in the literature for the resting stop, which realises the loss mechanically instead of leaving it open to be fought. It is also the argument for not "managing" a losing day by holding its positions into the close.
+
+**Conditions.** Both effects are stronger when the trader's reference period is short — the day, the week — and weaker when it is long. The Doctrine's choice of a thirteen-week score over a weekly one is, among other things, a choice to lengthen the reference period (Doctrine Rule 22). Both effects also grow with stakes relative to the trader's comfort, which is one reason the Doctrine's kill-switch ladder works in percentages of capital rather than in figures that feel like money.
+
+**What the operator does differently.** A red morning is not a reason to change anything in the afternoon. The resting stop realises a loss so that it stops shaping the next decision. A green week is not a budget. It is one week of a thirteen-week sample, and the Doctrine's tier test, not the week's result, sets the next size.
+
+## Chapter 9 — Overconfidence after a run
+
+Overconfidence comes in two forms that matter here. The first is miscalibration: confidence intervals too narrow, so that outcomes the trader rated very unlikely happen far more often than the rating implied. The second is self-attribution: wins credited to skill and losses to luck, so that a run of wins raises self-assessed skill faster than the evidence warrants. Gervais and Odean modelled the second as "learning to be overconfident". A trader who updates on wins more than on losses becomes most overconfident after a run of success, which is exactly when size creep begins *(the theory, published 2001; cited 6 November 2026)*.
+
+The cost shows up in turnover. Households that traded most earned the least net of costs *(Barber and Odean, 66,465 households at a US discount broker, 1991–1996; the most active fifth earned about 11 percent a year net against about 18 percent for the market; cited 6 November 2026)*. Men, who in the same data reported more confidence in their own ability, traded about half as much again as women and paid for it in returns *(Barber and Odean, the same broker's accounts, published 2001; cited 6 November 2026)*. The day-trading evidence is starker:
+
+- **Taiwan.** Fewer than one percent of day traders were predictably profitable net of fees, across the whole population over fifteen years *(Barber, Lee, Liu and Odean, Taiwan Stock Exchange day traders, 1992–2006; cited 6 November 2026)*.
+- **Brazil.** Of the individuals who persisted at day trading index futures for more than three hundred days, about ninety-seven percent lost money *(Chague, De-Losso and Giovannetti, Brazilian mini-index futures, 2013–2015; cited 6 November 2026)*.
+
+**Conditions.** These are population results, and their main lesson is about the base rate, not about any single trader. Evidence and Inference makes the same point about the operator's own sample: a winning streak of twenty decisions is weak evidence of skill, because a break-even process produces such streaks often. The overconfidence literature adds the behavioral half: a winning streak also changes the trader. It is therefore not only weak evidence but a hazard, because it raises size and lowers the bar for entry at the moment the sample least supports either.
+
+Overconfidence has one well-documented counterweight. The "outside view" — asking how often trades like this one have worked, before asking how good this one looks — reduces the error in planning and forecasting tasks. Kahneman and Lovallo's account of timid choices and bold forecasts describes it, and the pre-mortem is a version of it: imagine the trade has failed and write the reason *(Kahneman and Lovallo, 1993; Klein's pre-mortem, 2007; cited 6 November 2026)*. Base Rates is the library's outside view, and the Doctrine's tier-2 rule of the change ladder (its Section 10.1) institutionalises it: a conditional rate is never printed without the unconditional base rate beside it.
+
+**What the operator does differently.** After a run of wins, the next packet gets the base rate read first and the exceptional tier is not discussed. A run is recorded as a run. Doctrine Rule 15 (quarter-Kelly is a ceiling the operator cannot see until the register has measured the edge) is the sizing half of that discipline, and Portfolio Construction carries its arithmetic.
+
+## Chapter 10 — Recency and anchoring
+
+**Recency** is the overweighting of recent experience in judging what comes next. Surveyed expectations of future stock returns rise after strong past returns and fall after weak ones, which is the opposite of what valuation-based models of expected return say *(Greenwood and Shleifer, six survey series of investor expectations, 1963–2011; cited 6 November 2026)*. Recency bias is extrapolation, and for a trader it has two faces. In a trend it is useful: extrapolation is roughly what trend-following systems do on purpose, and it pays when trends persist. At a turn it is ruinous: the most recent regime is the one most confidently extrapolated just as it ends.
+
+The Doctrine's Section 5.4 calls transitions "the danger zone" for this reason. Its dials carry a Transition or Flip-zone state with the card's most restrictive rules. A trader whose expectations are anchored on the last three months will size for a world that has just stopped.
+
+Recency also shapes which failure mode the trader is guarding against. After a period of chop, the trader guards against overtrading and misses the trend when it arrives. After a trend, the trader guards against missing the move and overtrades the chop that follows. The guard is always set for the last war. That is an argument for a fixed checklist, which does not have a memory, over a judgment, which does.
+
+**Anchoring** is the tendency for an arbitrary number in view to pull an estimate toward it. The classic demonstrations used numbers with no relevance at all *(Tversky and Kahneman's laboratory demonstrations, 1974; cited 6 November 2026)*. Three anchors matter in trading.
+
+- **The entry price.** This is the reference point of Chapter 7, and the most consequential anchor.
+- **Prominent prior levels.** Round numbers, prior highs and the 52-week high draw attention and judgment toward them. Stocks near their 52-week highs tend to keep outperforming, consistent with investors anchoring on the high and under-reacting to news that should carry the price through it *(George and Hwang, US stocks, 1963–2001; cited 6 November 2026)*. Technical Indicators treats such attention levels as reflexive: real because other people anchor on them too.
+- **The trader's own prior forecast.** Once a target has been written down it becomes an anchor, and new information is weighed by its distance from the target rather than on its merits. The library makes this third anchor easy to acquire, because every report states a read.
+
+**Conditions.** Anchoring is strongest when the trader is uncertain and the anchor is salient. It is weakest when a structured process forces the estimate to be built from independent inputs. The packet's required fields are such a process. A stop "on the right side of the structure", as the day-trading checklist puts it, is anchored on the market's levels rather than on the entry price or on a round number of R.
+
+**What the operator does differently.** Exits are set from structure, not from the entry price or a round number. A forecast once made is graded, not defended. A target is a field in a packet, not a belief.
+
+## Chapter 11 — The narrative fallacy
+
+The narrative fallacy is Taleb's name for a habit Kahneman described in other terms: fitting a coherent story to a sequence of facts, and then taking the coherence of the story as evidence that it is true *(Taleb's Black Swan, 2007; Kahneman's "what you see is all there is", 2011; cited 6 November 2026)*. Shiller extended it to markets as a cause, not only a bias: narratives spread like infections and move prices by moving behaviour *(Narrative Economics, 2019; cited 6 November 2026)*. Both readings are true at once, and that is the difficulty. Narratives do move markets, so a trader cannot ignore them. Narratives are also the trader's own most persuasive error, so a trader cannot trust them.
+
+The best evidence on the cost of narrative thinking comes from forecasting rather than trading. Tetlock's long study of expert political forecasts found that experts who explained the world through one big idea forecast worse than those who drew on many small ones and changed their minds. The most confident narrators were the least accurate *(Tetlock, some 280 experts' forecasts gathered over about two decades, published 2005; cited 6 November 2026)*. The later forecasting tournaments found the reverse pattern among the best forecasters: frequent small updates, probabilities rather than stories, and keeping score.
+
+**Conditions.** The narrative fallacy is most dangerous when the story is well made, the trader made it, and the evidence is ambiguous. All three hold for a trader with a research library. It is least dangerous when every story must carry a falsifier and a graded outcome. That is what the narrative register does, and Part IV reads three of the register's items as examples.
+
+The hot-hand literature adds a caution in the other direction. For decades the belief that streaks carry information was treated as a textbook fallacy. The original basketball evidence was later shown to carry a statistical bias that hid a real, if small, hot hand *(Gilovich, Vallone and Tversky, 1985; the correction by Miller and Sanjurjo, 2018; cited 6 November 2026)*. The moral is not that streaks mean something. It is that a confident debunking is a narrative too, and that only the count settles it.
+
+**What the operator does differently.** Every story the operator acts on carries its falsifier in the packet, and stories are graded in the narrative register like any other forecast. A loss explained by a story gets a post-mortem category before it gets an explanation.
+
+## Chapter 12 — The Wizards' lessons as counters
+
+The Doctrine's Part III traces its rules to the Market Wizards literature and to what the Doctrine calls the Market Wizards Alpha Framework. It finds that traders who agreed on almost nothing about markets shared an operating system, and that the operating system was mostly behavioral. Four of the framework's lessons are restated here as counters to the six mechanisms above. The restatement is the point. A lesson remembered as wisdom is applied when the trader feels like it; a lesson understood as the counter to a named mechanism is applied when the mechanism is active, which is when it is needed.
+
+**Edge before signal** (Doctrine Rule 6) counters the narrative fallacy and overconfidence. A trade must name its edge family, say who is on the other side, and say why the edge persists. A story can produce a reason to trade, but it cannot produce a counterparty or a persistence argument, so the three edge questions screen out trades that are only stories. They also slow the overconfident trader, because an edge has to be stated in terms someone else could check.
+
+**Asymmetry before hit rate** (Doctrine Rule 7) counters the disposition effect and loss aversion. The disposition effect is, in effect, a strategy for a high hit rate: take small gains quickly, let losses run in hope. The result is many small wins and a few large losses, the profile the Doctrine's Rule 7 describes as "a losing strategy that feels like a winning one". Optimising expectancy rather than the count of green days reverses the incentive. A small loss taken on plan is the cost of a large gain held on plan, and the hit rate is printed after the average win and loss, not before.
+
+**Size to the opportunity** (Doctrine Rule 14) counters house money, the break-even effect and size creep. Each of those sets size by the trader's recent P&L. Sizing to the opportunity sets it by the configuration — the dials, the trust level, an independent confirmation — through a calculator that cannot see the week's result. Druckenmiller's "be a pig" is half of the lesson. The other half, which matters more to this book, is that the large size comes from the checklist and never from the mood.
+
+**Doing nothing is a position** (Doctrine Rule 10) counters recency and overtrading in chop. The open market is not an obligation. A pass is logged with a reason, scored as a decision, and counted as restraint in the Weekly. The lumpy-year model in the Doctrine's Part VII says most of a good year is made in a minority of weeks, and the job in the others is not to lose much while waiting. Recency makes waiting feel like falling behind. The logged pass makes it a recorded choice instead.
+
+| Mechanism (Chapters 7–11) | Its signature in a trading record | The Wizards' counter | Where the system holds it |
+|---|---|---|---|
+| Loss aversion, disposition | Small wins, large losses; late exits | Asymmetry before hit rate | Doctrine Rules 5, 7 and 17; brackets at entry |
+| House money, break-even | Size up after wins; risk up after a red morning | Size to the opportunity | Doctrine Rule 14; the tier calculator; the kill-switch ladder |
+| Overconfidence | Rising turnover after a run | Size to the opportunity; the outside view | Doctrine Rule 15; Base Rates beside every conditional |
+| Recency | Sizing for the regime that just ended | Doing nothing is a position | Doctrine Rule 10; the Transition states of the dials |
+| Anchoring | Exits set from entry price or round numbers | Edge before signal | Stops from structure; the packet's fields |
+| Narrative fallacy | Positions that share one story | Edge before signal | Doctrine Rule 6; the narrative register; the heat cap |
