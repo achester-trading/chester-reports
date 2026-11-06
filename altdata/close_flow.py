@@ -222,7 +222,7 @@ def flag(total: dict, rule: dict) -> dict:
     if rule["basis"] == "dollars":
         cond = (f"|{usd(v)}| {'>=' if fired else '<'} the "
                 f"${rule['threshold'] / 1e9:,.0f}bn threshold (O-1; the percentile "
-                f"rule from the {rule['after_sessions']}th stored session, "
+                f"rule from the {_ord(rule['after_sessions'])} stored session, "
                 f"{rule['stored']} stored)")
     else:
         cond = (f"|{v:+.1f}% of ADV| {'>=' if fired else '<'} the "
@@ -236,9 +236,8 @@ def flag(total: dict, rule: dict) -> dict:
 
 
 def _ord(p: float) -> str:
-    n = int(round(p))
-    suf = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-    return f"{n}{suf}"
+    from .numeral_audit import ordinal                          # noqa: PLC0415
+    return ordinal(p)
 
 
 def usd(v: Optional[float]) -> str:

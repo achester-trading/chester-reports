@@ -310,3 +310,5 @@ Also run, since `chain_spot` is item 49's:
 
 - SNDK (SNXX's underlying): "gap: no keyless price".
 - MSTR and COIN read the chain spot until the migration carries them. Their funds then move to stored closes and enter the bucket's ADV.
+
+**CI.** A127's run 42280039981 failed on one check: `validate_numeral_audit`, 180/1. `close_flow.py`'s flag line wrote an ordinal suffix by hand ("60th"), and its private `_ord` duplicated the one helper. Both now go through `numeral_audit.ordinal()`, and the gate reads 181/0. The fix is committed after A127b's push, so A127b's own run fails the same way. The fix rides A128's push.
