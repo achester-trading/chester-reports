@@ -126,6 +126,12 @@ def fetch_rows() -> list[dict]:
 
 
 def pull(run_id: Optional[str] = None, db=None) -> dict:
+    # HELD (D45, 31 Oct 2026; paste B95): Cboe's terms forbid storage in a
+    # retrieval system. The source registry declares the hold; nothing is
+    # requested, nothing written, and the stored rows are kept.
+    h = pub.held(SOURCE, run_id, db=db, keys=KEYS)
+    if h:
+        return h
     return pub.run(SOURCE, KEYS, fetch_rows, run_id=run_id, db=db)
 
 

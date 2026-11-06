@@ -1,0 +1,55 @@
+# paper_exec.yaml -- the paper-only IBKR executor (A98; D43, ruled 31 Oct 2026).
+#
+# SHIPS OFF. `enabled: false`: nothing connects, and `python -m paper_exec status`
+# prints "paper executor off". Turned on, it runs DRY first: `dry_run: true`
+# builds and logs every intended bracket and sends nothing. Sending needs BOTH
+# flags set by the operator, by hand, in this file: enabled: true AND
+# dry_run: false. A session never sets either (CLAUDE.md: sessions never place
+# orders; Claude stays out of the execution path).
+#
+# Paper only, twice over: the port must be one of `paper_ports` before any
+# connection, and after connecting every account the gateway reports must begin
+# with `paper_account_prefix` -- a live account aborts before any order object
+# is built. No live order before 2027 (D43, standing).
+version: paper-exec-v1
+enabled: false
+dry_run: true
+
+host: 127.0.0.1
+port: 4002                     # IB Gateway's paper port
+paper_ports: [4002, 7497]      # Gateway and TWS paper; 4001/7496 are live
+paper_account_prefix: "DU"     # IBKR paper accounts begin with DU
+client_id_key: paper_exec      # altdata/ibkr_clients.py CLIENT_IDS (21)
+timeout_s: 15
+
+# MES ONLY in this tranche (D43: MES, not ES, for the three-month paper dwell).
+# A contract resolves through the Security Master's ibkr_conid; an instrument
+# with none is skipped and named, never guessed.
+instruments:
+  MES:
+    lookup_scheme: ticker
+    multiplier: 5
+    exchange: CME
+    currency: USD
+refused:
+  ES: "ES is refused by contract: MES only in this tranche (D43)"
+
+# SIZE. The ceiling per bracket (session-set, the operator's to change); the
+# Doctrine's heat cap (config/risk_limits.yaml heat_max_pct of capital_usd)
+# bounds the open paper risk, this bracket's included; the lab's governor
+# refuses a halted lab or a frozen engine and halves a halved one.
+max_contracts: 1
+
+# THE KILL SWITCH. A file named `kill` in the state directory
+# ($CHESTER_STATE_DIR/paper_exec, else ~/.chester/paper_exec) stops all sending
+# within one loop, and writes `killed`, which stays until the operator clears it
+# (python -m paper_exec clear-kill --reason "...").
+state_subdir: paper_exec
+
+# THE EDGE-DECAY PAUSE (D43): the last `n` closed paper trades' mean net return
+# against the engine's backtest (engines.validated_metrics: expectancy, sd,
+# n_signals); trips at a shortfall past `z` standard errors of the difference.
+# Never clears itself; resuming is the operator's.
+decay:
+  n: 20
+  z: 2.0

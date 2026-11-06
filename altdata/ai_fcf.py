@@ -53,8 +53,17 @@ def load_config(path: Optional[Path] = None) -> dict:
 
 
 def _key(ticker: str, field: str) -> str:
-    from .sources import fundamentals                           # noqa: PLC0415
-    return fundamentals.key(ticker, field)
+    # A102: the fundamentals family's active key (config/price_sources.yaml),
+    # Yahoo's fund keys today, EDGAR's once switched.
+    from . import price_sources as ps                           # noqa: PLC0415
+    try:
+        return ps.key("fundamentals", f"{ticker.lower()}_{field}")
+    except KeyError:
+        # A name the writers do not carry (a config's addition, TSM in the gate):
+        # the active source's key form, which holds no rows and prints as missing.
+        from .sources import edgar_xbrl, fundamentals           # noqa: PLC0415
+        return (edgar_xbrl.fund_key(ticker, field) if ps.switched("fundamentals")
+                else fundamentals.key(ticker, field))
 
 
 def quarters(st, key: str, cutoff: Optional[str]) -> list[tuple[str, float]]:

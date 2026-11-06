@@ -122,7 +122,7 @@ cd ~/chester-reports
 .venv/bin/python -m altdata.sources.shiller
 # The narrative proposal enters at the next seed (the register's own step):
 .venv/bin/python -m altdata.narratives seed
-# Then the Monthly's dry run (Ari's, as always), which prints the three items:
+# Then the Monthly's dry run (the operator's, as always), which prints the three items:
 .venv/bin/python -m monthly_macro.run --dry-run
 ```
 

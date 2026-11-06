@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from altdata import crypto_blocks
+from altdata import crypto_blocks, dth1_ledger
 
 from . import es_read, events_block, opening_setup, signal_lines, state_block, volatile_day
 
@@ -359,6 +359,7 @@ def render(payload: dict, delivery: Optional[dict] = None,
 
 <h2 style="{H2}">{esc(es_read.TITLE)}</h2>
 {es_section(payload, es)}
+{dth1_ledger.checklist_html(payload.get("dth1_checklist"))}
 
 <h2 style="{H2}">Prior close &mdash; dealer surface</h2>
 {exposure_block(payload)}
@@ -421,6 +422,7 @@ def text_fallback(payload: dict, es: Optional[dict] = None) -> str:
     lines.append("")
     if payload.get("es_block"):
         lines += es_read.text_lines(payload["es_block"], es)
+    lines += dth1_ledger.checklist_text(payload.get("dth1_checklist"))
     lines += (payload.get("volatile_day") or {}).get("lines") or []
     if payload.get("meme_line"):
         lines.append(payload["meme_line"])

@@ -94,7 +94,7 @@ def staleness_multiple() -> float:
         return float(STALENESS_MULTIPLE_FALLBACK)
 
 FEEDS = ("prices", "fred", "official", "external", "loggers", "bars",
-         "prediction_markets", "fed_funds")
+         "fed_funds", "prediction_markets")
 
 # THE PUBLISHED-FILE WRITERS (signal-triage order, ST-1). Official publications
 # that are not on FRED: the NY Fed's ACM term premium, the SF Fed's term-premium
@@ -134,7 +134,13 @@ OFFICIAL_WRITERS = ("acm", "sffed", "dkw", "treasury_auctions", "fiscaldata",
                     # Signal-triage Batch 12, item 59 (a53, 20 Oct 2026): the
                     # bank-stress panel's OFR Financial Stress Index and the
                     # FDIC's unrealised securities losses, both keyless
-                    "ofr_fsi", "fdic_qbp")
+                    "ofr_fsi", "fdic_qbp",
+                    # The Quarterly's readers, tranche 1 (b69, 25 Oct 2026; D34):
+                    # oil and energy, agriculture, currencies. PortWatch and the
+                    # Riksbank send one request a day, whatever the timer does.
+                    "eia_buffers", "portwatch", "esmis_wasde", "esmis_crop_progress",
+                    "cpc_oni", "cftc_grains", "boc_valet", "riksbank", "snb_sight",
+                    "mof_intervention")
 
 # THE EARLY WRITERS -- the official writers whose publisher releases between the
 # 16:10 pull and 06:45 ET, so the morning correction pass is the first pull that
@@ -212,7 +218,13 @@ EXTERNAL_WRITERS = ("umich", "french", "damodaran", "shiller", "worldbank",
                     # share count, MSTR's captured spot -- before the derived
                     # writer, which computes mNAV and net purchases from them.
                     "treasury",
-                    "crypto_derived")
+                    "crypto_derived",
+                    # The Quarterly's readers, tranche 2 (b70, 25 Oct 2026; D34):
+                    # iShares' crypto trusts (level, not flow), DefiLlama's breadth
+                    # (stored, never republished), the BDCs' filed facts, and the
+                    # Blockscout field check (PENDING until a supply field exists).
+                    "ishares_holdings", "llama_breadth", "edgar_bdc",
+                    "blockscout_supply")
 
 
 def _writer_modules(names: tuple[str, ...]) -> list:
@@ -229,6 +241,26 @@ def _writer_modules(names: tuple[str, ...]) -> list:
 
 def _official_modules() -> list:
     return _writer_modules(OFFICIAL_WRITERS)
+
+
+# WRITERS BUILT AHEAD OF THEIR SOURCE (A93). A writer here joins the external
+# step only while its own config enables it: off, it is not called, its keys are
+# not on the freshness roster, and nothing reads as stale for a source nobody has
+# bought. The IBKR daily bars wait for the market-data subscription (D38).
+SWITCHED_WRITERS = ("ibkr_bars",)
+
+
+def _switched_writers() -> list:
+    from importlib import import_module
+    out = []
+    for name in SWITCHED_WRITERS:
+        try:
+            mod = import_module(f"{__package__}.sources.{name}")
+            if mod.enabled():
+                out.append((name, mod))
+        except Exception as exc:                              # noqa: BLE001
+            log.warning("switched writer %s not read: %s", name, secrets.redact(str(exc)))
+    return out
 
 
 def static_keys(name: str) -> list[str]:
@@ -403,7 +435,11 @@ def writer_failures(mods: list, out: dict) -> dict:
     failed: dict[str, str] = {}
     for name, mod in mods:
         r = out.get(name) or {}
-        if r.get("status") in ("OK", "PENDING"):
+        # REFUSED (the feed repair of 24 Oct 2026): the source refuses automated
+        # reads, the writer asked nothing, and its keys are declared in the
+        # registry -- a listed gap, not a failure of this run.
+        # HELD (D45, 31 Oct 2026) likewise: a declared hold asks nothing.
+        if r.get("status") in ("OK", "PENDING", "REFUSED", "HELD"):
             continue
         why = f"{name}: {r.get('reason') or 'status ' + str(r.get('status'))}"
         for k in _keys([(name, mod)]):
@@ -514,11 +550,14 @@ def pull_fred(run_id: Optional[str] = None) -> dict:
     from .sources import fred as fred_src
     from .store import Store
     summary = fred_src.pull(Store())
-    record_attempted("fred", fred_keys())
+    # A failed series is STALE with its reason (the HTTP status where there was
+    # one), not pending (the feed repair of 24 Oct 2026); the pull's own summary
+    # line names them, so nothing is logged per series here.
+    failed = {f"fred.{key}": f"fred: {secrets.redact(str(err))}"[:160]
+              for key, err in summary.get("failed") or []}
+    record_attempted("fred", fred_keys(), failed=failed)
     log.info("fred: %d/%d series, %d failed", summary.get("success", 0),
-             summary.get("total", 0), len(summary.get("failed") or []))
-    for key, err in summary.get("failed") or []:
-        log.warning("fred: %s failed -- %s", key, secrets.redact(str(err)))
+             summary.get("total", 0), len(failed))
     return summary
 
 
@@ -541,7 +580,7 @@ def pull_official(run_id: Optional[str] = None,
 
 def pull_external(run_id: Optional[str] = None) -> dict:
     """The external writers, on the same terms as the official ones."""
-    mods = _writer_modules(EXTERNAL_WRITERS)
+    mods = _writer_modules(EXTERNAL_WRITERS) + _switched_writers()
     out = _pull_writers(mods, run_id)
     record_attempted("external", _keys(mods), failed=writer_failures(mods, out),
                      awaiting=writer_awaiting(mods, out))
@@ -752,6 +791,20 @@ def freshness(as_of: Optional[str] = None,
         # heartbeat sees them; the explorer's keys are PENDING until it reads.
         from . import prl as _prl                              # noqa: PLC0415
         rosters += [(_prl.ROSTER, list(_prl.ROSTER_KEYS))]
+        # Batch 15 items 77 and 78 (b56): the cyber feeds' Saturday step and the
+        # daily protocol count, both steps of the crypto basket's run.
+        from . import cyber_pressure as _cyb                   # noqa: PLC0415
+        from . import protocol_breadth as _pb                  # noqa: PLC0415
+        rosters += [(_cyb.ROSTER, list(_cyb.ROSTER_KEYS)),
+                    (_pb.ROSTER, list(_pb.ROSTER_KEYS))]
+        # D26 (b59): GDELT, the degree days and the model-release watch, steps
+        # of the crypto basket's run.
+        from .sources import cpc_degree_days as _cpc           # noqa: PLC0415
+        from .sources import gdelt as _gd                      # noqa: PLC0415
+        from .sources import hf_releases as _hf                # noqa: PLC0415
+        rosters += [(_gd.ROSTER, list(_gd.ROSTER_KEYS)),
+                    (_cpc.ROSTER, list(_cpc.ROSTER_KEYS)),
+                    (_hf.ROSTER, list(_hf.ROSTER_KEYS))]
         attempted = read_attempted()
         outcomes = read_attempt_outcomes()
         out["attempted_recorded"] = attempted is not None
@@ -762,12 +815,21 @@ def freshness(as_of: Optional[str] = None,
         newest_map = db.newest_observed_map([k for _, ks in rosters for k in ks],
                                             as_of=as_of)
         for name, keys in rosters:
-            absent, stale, fresh, pending = [], [], [], []
+            absent, stale, fresh, pending, declared = [], [], [], [], []
             detail, pdetail = {}, {}
             tried = set((attempted or {}).get(name) or [])
             oc = outcomes.get(name) or {}
+            # DECLARED KEYS (the feed repair of 24 Oct 2026): superseded, refused,
+            # a listed gap or written only while held -- the registry says so, and
+            # the store check reads the same declaration.
+            keep = []
+            for k in keys:
+                (declared if derived.declared_status(derived.registry_entry(k))
+                 else keep).append(k)
+            keys = keep
             if not keys:
                 out["feeds"][name] = {"expected": 0, "fresh": 0, "stale": 0,
+                                      "declared": len(declared),
                                       "absent": 0, "pending": 0, "stale_keys": [],
                                       "stale_detail": {}, "absent_keys": [],
                                       "pending_keys": [], "ok": True,
@@ -846,6 +908,8 @@ def freshness(as_of: Optional[str] = None,
                 "absent_keys": sorted(absent)[:8],
                 "pending_keys": sorted(pending)[:8],
                 "pending_detail": {k: pdetail[k] for k in sorted(pdetail)[:8]},
+                "declared": len(declared),
+                "declared_keys": sorted(declared)[:8],
                 # OK = NO STALE KEYS. A pending key is a key no pull has tried.
                 "ok": not stale}
         out["ok"] = all(f["ok"] for f in out["feeds"].values())
@@ -952,6 +1016,22 @@ def _main(argv: list[str]) -> int:
                         print(f"  logger  {ln:24} {note}")
                     print(f"  {name:7} {d.get('total', 0)} ran, "
                           f"{d.get('written', 0)} rows written")
+                # THE THREE OTHER SHAPES (A84): bars, the venues and fed funds
+                # return no success/total, so the feed template printed "0/0 ok"
+                # on the box on 28 Oct while each had written its rows. Each line
+                # is built from what its pull already returns.
+                elif name == "bars":
+                    inst = d.get("instruments") or {}
+                    short = sum(1 for v in inst.values()
+                                if v.get("error") or not v.get("final_bar"))
+                    print(f"  {name:7} {len(inst)} instruments, {short} short")
+                elif name == "prediction_markets":
+                    print(f"  {name} {d.get('markets') or 0} markets, "
+                          f"{d.get('written') or 0} written, "
+                          f"{len(d.get('errors') or {})} errors")
+                elif name == "fed_funds":
+                    print(f"  {name} {len(d.get('served') or [])} served, "
+                          f"{len(d.get('failed') or {})} failed")
                 else:
                     print(f"  {name:7} {d.get('success', 0)}/"
                           f"{d.get('total', 0)} ok, "

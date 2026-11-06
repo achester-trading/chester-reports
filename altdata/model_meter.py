@@ -249,3 +249,169 @@ def month_lines(db_path: Optional[str], month: str) -> list[str]:
              f"{tot[2]:,} output tokens"]
             + [f"{rep}: {v[0]:,} calls, {v[1]:,} input / {v[2]:,} output tokens"
                for rep, v in sorted(by.items())])
+
+
+# ---------------------------------------------------------------------------
+# A SECOND PROVIDER (A94; Learning Loop v2 LL-6, D38: Gemini)
+# ---------------------------------------------------------------------------
+# The forecasters' second provider, behind the same meter: its calls land in
+# model_calls under their own model id, so the lines below split them by
+# provider without a schema change. Its client is the standard library's HTTP:
+# no new dependency. The key is read through altdata.secrets (which registers it
+# for redaction), sent as a header and never in a URL, never logged, never in an
+# error's text. A provider's calls are refused past its daily budget in
+# config/forecasters.yaml, which starts at zero: nothing spends by surprise.
+FORECASTERS_CONFIG = Path(__file__).resolve().parent.parent / "config" / "forecasters.yaml"
+PROVIDER_PREFIXES = (("claude", "anthropic"), ("gemini", "gemini"))
+
+
+class BudgetExhausted(RuntimeError):
+    """The provider's daily call budget is spent (or is zero)."""
+
+
+class ProviderError(RuntimeError):
+    """A provider's call failed; the text carries no key."""
+
+
+def provider_of(model: Optional[str]) -> str:
+    m = str(model or "").lower()
+    return next((p for pre, p in PROVIDER_PREFIXES if m.startswith(pre)), "other")
+
+
+def forecasters_config(path: Optional[Path] = None) -> dict:
+    import yaml                                                 # noqa: PLC0415
+    p = Path(path or FORECASTERS_CONFIG)
+    return (yaml.safe_load(p.read_text(encoding="utf-8")) or {}) if p.is_file() else {}
+
+
+def budget(provider: str, cfg: Optional[dict] = None) -> int:
+    """The provider's calls a day (0 when unset: nothing runs until it is set)."""
+    b = ((cfg if cfg is not None else forecasters_config()).get("budgets") or {}).get(provider) or {}
+    return int(b.get("calls_per_day") or 0)
+
+
+def _day_models(db_path: Optional[str], day: str) -> list[tuple]:
+    """(model, input, output) for every call on the ET day."""
+    from . import observations                                  # noqa: PLC0415
+    path = Path(db_path or observations.DEFAULT_DB)
+    if not path.exists():
+        return []
+    d = dt.date.fromisoformat(day[:10])
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND "
+                            "name='model_calls'").fetchone():
+            return []
+        return conn.execute("SELECT model, input_tokens, output_tokens FROM "
+                            "model_calls WHERE called_at >= ? AND called_at < ?",
+                            _et_bounds(d, d)).fetchall()
+    finally:
+        conn.close()
+
+
+def calls_today(db_path: Optional[str], provider: str, day: Optional[str] = None) -> int:
+    from . import session                                       # noqa: PLC0415
+    rows = _day_models(db_path, day or session.session_date())
+    return sum(1 for r in rows if provider_of(r[0]) == provider)
+
+
+class GeminiReply:
+    def __init__(self, model: str, text: str, usage: dict) -> None:
+        self.model, self.text = model, text
+        self.usage = type("Usage", (), {
+            "input_tokens": usage.get("promptTokenCount"),
+            "output_tokens": usage.get("candidatesTokenCount")})()
+
+
+class GeminiClient:
+    """generateContent over HTTPS: the timeout, one retry on 429 or 5xx, and an
+    error's text with no key in it. `opener` and `sleep` are the gate's."""
+
+    def __init__(self, key: str, endpoint: str, timeout: float = TIMEOUT_SECONDS,
+                 retries: int = MAX_RETRIES, opener=None, sleep=None) -> None:
+        self.__key = key
+        self.endpoint, self.timeout, self.retries = endpoint, float(timeout), int(retries)
+        self._opener, self._sleep = opener, sleep
+
+    def __repr__(self) -> str:
+        return f"GeminiClient(endpoint={self.endpoint!r}, key=[REDACTED])"
+
+    def generate(self, model: str, prompt: str, max_output_tokens: int = 1024) -> GeminiReply:
+        import json                                             # noqa: PLC0415
+        import time as _t                                       # noqa: PLC0415
+        import urllib.error                                     # noqa: PLC0415
+        import urllib.request                                   # noqa: PLC0415
+        from . import secrets                                   # noqa: PLC0415
+        body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
+                           "generationConfig": {"maxOutputTokens": max_output_tokens,
+                                                "temperature": 0}}).encode("utf-8")
+        req = urllib.request.Request(
+            self.endpoint.format(model=model), data=body, method="POST",
+            headers={"Content-Type": "application/json", "x-goog-api-key": self.__key})
+        opener = self._opener or urllib.request.urlopen
+        sleep = self._sleep or _t.sleep
+        data: dict = {}
+        for attempt in range(self.retries + 1):
+            try:
+                with opener(req, timeout=self.timeout) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                break
+            except urllib.error.HTTPError as exc:
+                why = f"gemini HTTP {exc.code}"
+                if exc.code in (429, 500, 502, 503, 504) and attempt < self.retries:
+                    sleep(2 ** attempt)
+                    continue
+                raise ProviderError(secrets.redact(why)) from None
+            except Exception as exc:                            # noqa: BLE001
+                why = f"gemini {type(exc).__name__}"
+                if attempt < self.retries:
+                    sleep(2 ** attempt)
+                    continue
+                raise ProviderError(secrets.redact(why)) from None
+        parts = (((data.get("candidates") or [{}])[0].get("content") or {}).get("parts")
+                 or [{}])
+        text = "".join(str(p.get("text") or "") for p in parts)
+        return GeminiReply(data.get("modelVersion") or model, text,
+                           data.get("usageMetadata") or {})
+
+
+def gemini_client(cfg: Optional[dict] = None, opener=None) -> tuple[Any, str]:
+    """(the client, "") or (None, why). The key never enters the why."""
+    from . import secrets                                       # noqa: PLC0415
+    g = (cfg if cfg is not None else forecasters_config()).get("gemini") or {}
+    name = g.get("key_name") or ("GEMINI" + "_API_KEY")
+    if not secrets.present(name):
+        return None, "key not configured"
+    return GeminiClient(secrets.get(name), g.get("endpoint") or "",
+                        g.get("timeout_seconds", TIMEOUT_SECONDS),
+                        g.get("retries", MAX_RETRIES), opener=opener), ""
+
+
+def create_metered(provider: str, client_: Any, *, model: str, prompt: str,
+                   max_tokens: int = 1024, cfg: Optional[dict] = None) -> Any:
+    """One call to `provider`, refused past its daily budget, then the row. The
+    budget counts the scope's database's rows for the provider today."""
+    allowed = budget(provider, cfg)
+    used = calls_today(_SCOPE.get().get("db_path"), provider)
+    if used >= allowed:
+        raise BudgetExhausted(f"budget {allowed} call(s) a day, {used} used")
+    if provider == "gemini":
+        resp = client_.generate(model, prompt, max_output_tokens=max_tokens)
+    else:
+        resp = client_.messages.create(model=model, max_tokens=max_tokens,
+                                       messages=[{"role": "user", "content": prompt}])
+    record(resp, model)
+    return resp
+
+
+def provider_lines(db_path: Optional[str], day: str, cfg: Optional[dict] = None) -> list[str]:
+    """The day's calls and tokens by provider, each beside its forecaster budget."""
+    rows = _day_models(db_path, day)
+    out = []
+    for p in ("anthropic", "gemini"):
+        mine = [r for r in rows if provider_of(r[0]) == p]
+        out.append(f"Model ({p}): {len(mine):,} call(s), "
+                   f"{sum(_n(r[1]) for r in mine):,} input / "
+                   f"{sum(_n(r[2]) for r in mine):,} output tokens today; "
+                   f"forecaster budget {budget(p, cfg)} a day")
+    return out

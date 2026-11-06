@@ -74,7 +74,9 @@ def config() -> dict:
     global _CFG
     if _CFG is None:
         import yaml  # noqa: PLC0415
-        _CFG = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+        from . import price_sources                             # noqa: PLC0415
+        _CFG = price_sources.resolve_tree(
+            yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {})
     return _CFG
 
 
@@ -111,6 +113,22 @@ def shift_key(a: str, b: str) -> str:
 
 def break_key(asset: str, bench: str) -> str:
     return f"corr.{asset}__{bench}.break"
+
+
+def member_inputs(key: str, cfg: Optional[dict] = None) -> list[str]:
+    """The two legs' store keys behind a corr.* key (the registry's
+    `member_inputs_from`; the feed repair of 24 Oct 2026), so the staleness
+    rule inherits a weekly-posted leg's publication lag."""
+    body = key.removeprefix("corr.").rsplit(".", 1)[0]
+    if "__" not in body:
+        return []
+    ins = inputs(cfg)
+    out = []
+    for leg in body.split("__", 1):
+        k = (ins.get(leg) or {}).get("key")
+        if k:
+            out.append(str(k))
+    return out
 
 
 def stored_key(key: str, cfg: Optional[dict] = None) -> str:

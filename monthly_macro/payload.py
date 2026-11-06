@@ -171,17 +171,27 @@ def regime_block(as_of: Optional[str] = None,
                 for p in pillars.for_dial(name)],
         }
         if name == "vol":
-            ts = d.get("term_structure") or {}
+            ts = dict(d.get("term_structure") or {})
+            # HELD (D45, 31 Oct 2026): the Cboe legs print the hold (the stored
+            # object is read as it is; altdata.refusals.held_leg).
+            from altdata import refusals                        # noqa: PLC0415
+            for leg_name in ("champion", "basis"):
+                h = refusals.held_leg(ts.get(leg_name), store, as_of)
+                if h:
+                    ts[leg_name] = h
             row["term_structure"] = {
                 "published_by": ts.get("published_by"),
                 "published_state": ts.get("state"),
                 "champion": {k: (ts.get("champion") or {}).get(k)
-                             for k in ("metric", "state", "ratio", "percentile")},
+                             for k in ("metric", "state", "ratio", "percentile",
+                                       "absent_reason")},
                 "challenger": {k: (ts.get("challenger") or {}).get(k)
                                for k in ("metric", "state", "ratio",
                                          "percentile")},
                 "legs_agree": ts.get("legs_agree"),
-                "basis": (ts.get("basis") or {}).get("value"),
+                "basis": ((ts.get("basis") or {}).get("absent_reason")
+                          if (ts.get("basis") or {}).get("held") else
+                          (ts.get("basis") or {}).get("value")),
                 "dual_run_until": ts.get("dual_run_until"),
             }
             row["realized_implied"] = {
@@ -321,12 +331,15 @@ def top_bottom_block(store: Optional[Any] = None) -> dict:
             vr = db.as_of("top_bottom.verdict")
             out["verdict"] = (vr[-1].get("value_text") if vr else None)
         else:
+            # 6i-4 (A79): the harness is built and stores no composite (decision 3
+            # of 25 Oct 2026); its overlays, record and false-positive rate print
+            # in their own slow sub-section (daily_cascade/tb_harness_block.py).
             out["reason"] = (
-                "top_bottom.composite is not in the store. The Top & Bottom "
-                "harness is not built -- it is a report in the registry and an "
-                "unbuilt pipeline -- and this section reads its state variable "
-                "rather than computing one, because a composite invented here "
-                "would have no harness behind it and no way to be calibrated")
+                "top_bottom.composite is not in the store, and decision 3 (25 Oct "
+                "2026) stores none: the Top & Bottom harness reads Part 23's "
+                "overlays instead, printed with its episode record and its "
+                "false-positive rate in their own sub-section, and this section "
+                "computes no composite of its own")
 
         # --- THE BEAR-RALLY BASE RATE, on the top-side language (31.1) --------
         # Read from baserate.*, which is computed from the store, and cited beside
@@ -789,6 +802,15 @@ def build(as_of: Optional[str] = None, run_id: Optional[str] = None,
         out["top_bottom"] = top_bottom_block(store=db)
         out["alternative_assets"] = alternative_assets_block(cutoff, store=db)
         out["register_month"] = register_month_block(cutoff)
+        if period == "quarter":
+            # 6f tranche 4: the Quarterly's split by alignment at entry (DTH
+            # §XXIII's test), over the previous calendar quarter. Report only.
+            try:
+                from register import scoreboard
+                out["register_month"]["alignment_split"] = scoreboard.alignment_split(cutoff)
+            except Exception as exc:                           # noqa: BLE001
+                out["register_month"]["alignment_split"] = {
+                    "not_built": f"{type(exc).__name__}: {exc}"}
         out["appendix"] = appendix_block(cutoff, store=db)
         # 6d: the calibration-archive gate's progress, printed in the appendix.
         # Confidence-modification from venue odds is not built and may not be

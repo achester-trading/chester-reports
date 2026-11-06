@@ -1,0 +1,48 @@
+day,horizon,z,move_bp,kw_share,kw_leg,acm_share,acm_leg,leg,y10_5s_bp,y10_20s_bp,continued
+1992-10-20,10,2.04,62.0,0.35,expected short rates,-0.27,expected short rates,expected short rates,-8.0,-8.0,False
+1994-04-04,10,2.2,67.0,0.47,expected short rates,0.54,the term premium,disagree,-24.0,-3.0,False
+2000-05-08,10,2.02,57.0,0.4,expected short rates,0.37,expected short rates,expected short rates,-10.0,-43.0,False
+2001-11-15,10,2.07,49.0,0.49,expected short rates,0.42,expected short rates,expected short rates,25.0,45.0,True
+2002-03-08,10,2.11,49.0,0.47,expected short rates,0.41,expected short rates,expected short rates,2.0,-8.0,False
+2002-08-13,10,-2.23,-53.0,0.45,expected short rates,0.36,expected short rates,expected short rates,5.0,-5.0,True
+2002-10-15,10,2.04,44.0,0.41,expected short rates,0.47,expected short rates,expected short rates,20.0,-23.0,False
+2003-03-21,10,2.23,48.0,0.55,the term premium,0.45,expected short rates,disagree,-19.0,-11.0,False
+2003-05-16,10,-2.11,-48.0,0.5,the term premium,0.72,the term premium,the term premium,-12.0,-28.0,True
+2003-06-27,10,2.11,45.0,0.52,the term premium,0.7,the term premium,the term premium,16.0,73.0,True
+2003-10-15,10,2.2,47.0,0.51,the term premium,0.75,the term premium,the term premium,-14.0,-13.0,False
+2004-04-05,10,2.36,50.0,0.52,the term premium,0.64,the term premium,the term premium,11.0,32.0,True
+2007-06-12,21,2.14,59.0,0.56,the term premium,0.63,the term premium,the term premium,-17.0,-17.0,False
+2007-11-21,10,-2.03,-38.0,0.2,expected short rates,-0.66,expected short rates,expected short rates,-6.0,4.0,False
+2008-01-09,10,-2.2,-41.0,0.55,the term premium,0.38,expected short rates,disagree,-8.0,-8.0,True
+2008-03-10,10,-2.42,-45.0,0.2,expected short rates,-0.34,expected short rates,expected short rates,-12.0,12.0,False
+2008-04-25,10,2.36,42.0,0.54,the term premium,-0.32,expected short rates,disagree,-2.0,-6.0,False
+2008-09-30,10,2.1,37.0,0.6,the term premium,1.39,the term premium,the term premium,-35.0,8.0,True
+2009-03-18,10,-2.59,-50.0,0.39,expected short rates,1.23,the term premium,disagree,30.0,35.0,False
+2009-05-27,10,2.94,54.0,0.44,expected short rates,1.1,the term premium,disagree,-15.0,1.0,True
+2009-12-28,21,2.09,57.0,0.48,expected short rates,0.67,the term premium,disagree,-8.0,-19.0,False
+2010-05-06,10,-2.03,-39.0,0.47,expected short rates,0.41,expected short rates,expected short rates,14.0,-21.0,True
+2010-08-16,10,-2.13,-41.0,0.47,expected short rates,1.38,the term premium,disagree,2.0,10.0,False
+2010-12-07,21,2.29,62.0,0.55,the term premium,0.88,the term premium,the term premium,34.0,35.0,True
+2011-02-08,10,2.17,40.0,0.52,the term premium,0.47,expected short rates,disagree,-14.0,-27.0,False
+2011-08-04,10,-2.92,-56.0,0.47,expected short rates,1.15,the term premium,disagree,-13.0,-32.0,True
+2011-10-18,10,2.1,39.0,0.42,expected short rates,1.37,the term premium,disagree,-5.0,-18.0,False
+2012-03-19,10,2.12,39.0,0.51,the term premium,1.07,the term premium,the term premium,-13.0,-39.0,False
+2013-06-24,21,2.01,55.0,0.58,the term premium,0.78,the term premium,the term premium,-7.0,-4.0,False
+2015-01-15,10,-2.11,-40.0,0.56,the term premium,0.5,expected short rates,disagree,4.0,25.0,False
+2015-06-10,10,2.01,36.0,0.45,expected short rates,0.98,the term premium,disagree,-18.0,-18.0,False
+2016-07-08,10,-2.0,-37.0,0.48,expected short rates,1.03,the term premium,disagree,23.0,22.0,False
+2016-11-14,10,2.12,37.0,0.44,expected short rates,0.86,the term premium,disagree,10.0,25.0,True
+2019-08-08,10,-2.03,-36.0,0.46,expected short rates,0.78,the term premium,disagree,-20.0,-17.0,True
+2020-02-28,10,-2.72,-48.0,0.43,expected short rates,0.45,expected short rates,expected short rates,-39.0,-41.0,True
+2021-02-25,10,2.32,39.0,0.51,the term premium,1.21,the term premium,the term premium,0.0,9.0,True
+2022-03-15,10,2.62,43.0,0.45,expected short rates,0.19,expected short rates,expected short rates,23.0,57.0,True
+2022-06-10,10,2.39,40.0,0.44,expected short rates,0.14,expected short rates,expected short rates,10.0,-19.0,False
+2023-05-25,10,2.57,44.0,0.46,expected short rates,0.16,expected short rates,expected short rates,-14.0,-11.0,False
+2023-08-03,10,2.07,35.0,0.47,expected short rates,1.17,the term premium,disagree,-11.0,-11.0,False
+2023-09-27,10,2.13,36.0,0.54,the term premium,1.55,the term premium,the term premium,12.0,25.0,True
+2024-02-15,10,2.17,37.0,0.52,the term premium,0.7,the term premium,the term premium,2.0,7.0,True
+2024-04-11,10,2.13,36.0,0.51,the term premium,0.29,expected short rates,disagree,8.0,-11.0,False
+2024-08-02,10,-2.66,-45.0,0.44,expected short rates,0.42,expected short rates,expected short rates,14.0,11.0,False
+2024-10-29,21,2.08,53.0,0.57,the term premium,0.66,the term premium,the term premium,-2.0,-3.0,False
+2024-12-19,10,2.35,40.0,0.57,the term premium,0.98,the term premium,the term premium,5.0,0.0,False
+2025-04-21,10,2.41,41.0,0.43,expected short rates,1.43,the term premium,disagree,-19.0,4.0,True

@@ -1,6 +1,8 @@
 # Proposals for the Doctrine monthly of 7-8 November 2026 (Tranche H)
 
-**Rule-31 drafts (library-st-l, session B, 19 October 2026), for Ari's accept-all and the monthly's agenda.** The signal-triage order's Tranche H lists five by-hand items. Each is drafted here as a proposal: none is a rule, a register status or a right until the monthly rules on it. Each states the register's own words where it quotes them, and the evidence the ledgers on chain-2 give.
+**Rule-31 drafts (library-st-l, session B, 19 October 2026), for the operator's accept-all and the monthly's agenda.** The signal-triage order's Tranche H lists five by-hand items. Each is drafted here as a proposal: none is a rule, a register status or a right until the monthly rules on it. Each states the register's own words where it quotes them, and the evidence the ledgers on chain-2 give.
+
+**Status at 31 Oct 2026 (B96).** None of the five is ruled. On the Doctrine #2 pack (`docs/briefs/doctrine-2-pack-2026-11.md`) they are D2-36 to D2-40. Proposal 2's bridge question (`calc.infl_vol`, D3) is D2-18. No ledger cited below has a later edition on main.
 
 ## 1. Tail-register edits (SR-3, China's external position)
 
@@ -35,3 +37,5 @@ The register's note, quoted: "Drawdown of a constant-duration fund is yield arit
 **Evidence.** SR-22's absorption ledger FAILS for the contrarian read (`docs/ledgers/sr-22-ledger-2026-10-18.md`: median 3-month 10-year change −2.0 bp, a fall in 51.8% of 1,034 auctions, against the rule's 60%), so the stress flag stays display only, and ABS_STRESS prints its firing base rate beside it.
 
 **Proposal.** Adopt the note as a reading rule: a price low in a constant-duration fund is read as a yield level, never as a level of its own.
+
+**Added by B89 (30 Oct 2026):** the Cboe terms check for the two live Cboe readers (D40), with its ruling options, is `docs/briefs/cboe-terms-check-2026-10.md`.

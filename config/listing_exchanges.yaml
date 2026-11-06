@@ -13,7 +13,7 @@
 #
 # THE CURRENCY RULE (answer 3): a listing in Nasdaq Trader's files trades on a US
 # exchange in USD. The definitions page does not say so in words; the rule is
-# Ari's, stated here and in altdata/security_master.py.
+# the operator's, stated here and in altdata/security_master.py.
 version: 1
 sources:
   codes: https://www.nasdaqtrader.com/trader.aspx?id=symboldirdefs

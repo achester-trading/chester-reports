@@ -38,7 +38,7 @@ from typing import Any, Optional
 from altdata import session
 
 from .. import config as acfg
-from .. import files, intake, manifest, promote, rules
+from .. import families, files, intake, manifest, promote, rules
 from .. import hypotheses as hyp
 from .. import validate as av
 
@@ -124,7 +124,7 @@ def run(ledger, store, hid: str, as_of: Optional[str] = None) -> dict:
         return run_engine(ledger, store, h, as_of, first_run)
     cmp = rules.compile_rule(h["rule_dsl"], store)
     con, cfg = acfg.constitution(), acfg.settings()
-    family = h["family"]
+    family = families.count_key(h)                     # B98: the family_ref
     if first_run:
         n_var = len(cmp.variants)
         for _ in range(n_var):

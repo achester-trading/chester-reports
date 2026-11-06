@@ -140,7 +140,7 @@ untested level, and a resolved and an unresolved lean, on one target session.
 Also: a re-run writes nothing, a scored row stays as scored, a withheld read logs
 no lean, a session without bars waits, and the summary counts.
 
-## The session-set choices, for Ari
+## The session-set choices, for the operator
 
 All of them are in `config/es_block.yaml`, marked `session-set`.
 
@@ -243,7 +243,7 @@ levels' outcomes so far, once a 07:00 print has been logged. The fixture tape
 above has no 07:00 print. The -33.79 shift is an artefact of the synthetic tape,
 which has no real calendar spread at the September roll.
 
-## Box commands, for Ari to run (nothing here was run on the box)
+## Box commands, for the operator to run (nothing here was run on the box)
 
 After the merge, inside the windows. No unit file changed, so nothing to deploy
 and nothing to restart: `fetch_overnight.sh` reaches the box at the next 06:45 run
@@ -338,7 +338,7 @@ validate` passed on that tree at about 00:59 ET (pytest, ruff, rule-version,
 schema). chester-meme has no CI.
 
 At about 01:00 ET a second session, `chester-meme-59` (the overnight chester-meme
-session, on a brief of its own from Ari), began writing in the same checkout, on
+session, on a brief of its own from the operator), began writing in the same checkout, on
 the same branch: a different `restricted.py`, a `0009_restricted_detail`
 migration, and changes to candidates, scores and config. I stopped writing there
 and told it what I had written. It acknowledged, saved my work as a git stash

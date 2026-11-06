@@ -164,6 +164,56 @@ def stale(source: str, keys: Iterable[str], reason: str,
             "last_observed": held}
 
 
+REFUSED = "REFUSED"
+
+
+def refusal_text(source: str, registry: Optional[dict] = None) -> Optional[str]:
+    """altdata.refusals.text: 'not tracked: <source> refuses automated reads
+    since <date>' or None (the feed repair of 24 Oct 2026)."""
+    from .. import refusals                                     # noqa: PLC0415
+    return refusals.text(source, registry)
+
+
+def refused(source: str, run_id: Optional[str] = None,
+            registry: Optional[dict] = None) -> Optional[dict]:
+    """The summary of a run that requests nothing because the source refuses
+    automated reads; None when it does not."""
+    text = refusal_text(source, registry)
+    if not text:
+        return None
+    log.info("%s: REFUSED -- %s (nothing requested)", source, text)
+    return {"source": source, "status": REFUSED, "reason": text, "written": 0,
+            "run_id": run_id, "session": session.session_date()}
+
+
+HELD = "HELD"
+
+
+def held(source: str, run_id: Optional[str] = None,
+         registry: Optional[dict] = None, db=None,
+         keys: Iterable[str] = ()) -> Optional[dict]:
+    """The summary of a run that requests nothing because the source is on a
+    declared hold (D45, 31 Oct 2026: Cboe's terms); None when it is not. The
+    stored rows are kept; `last_stored` is the newest date among `keys` when a
+    store is given."""
+    from .. import refusals                                     # noqa: PLC0415
+    h = refusals.hold(source, registry)
+    if not h:
+        return None
+    last = None
+    if db is not None:
+        dates = [refusals.last_stored(db, k) for k in keys]
+        dates = [d for d in dates if d]
+        last = max(dates) if dates else None
+    text = refusals.held_text(source, last, registry)
+    log.info("%s: HELD -- %s (nothing requested; held since %s: %s)",
+             source, text, h.get("since"), h.get("reason"))
+    return {"source": source, "status": HELD, "reason": text, "written": 0,
+            "held_since": h.get("since"), "held_reason": h.get("reason"),
+            "last_stored": last, "run_id": run_id,
+            "session": session.session_date()}
+
+
 def pending(source: str, reason: str, run_id: Optional[str] = None) -> dict:
     """The summary of a clean, empty run: a source never yet dropped. Writes
     nothing, and there is nothing stored to keep."""

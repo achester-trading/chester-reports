@@ -1,9 +1,9 @@
-# T3.1 — the Monthly after its first dry run: Ari's notes, two rounds (9 Oct 2026)
+# T3.1 — the Monthly after its first dry run: the operator's notes, two rounds (9 Oct 2026)
 
 | | |
 |---|---|
 | Status | Ruled 9 Oct 2026 in chat (the operator's notes on the 8 Oct `[DRY RUN]` Monthly, rounds one and two). Binds session B's T3.1 build. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Scope | The stacked Monthly only (`monthly_macro/stack.py`, the shared stack code at cadence "monthly", `config/reporting_stack.yaml`). The Weekly and the close change only where a shared builder changes and the change is cadence-gated. |
 | Amends | Doctrine monthly item 7a (no content change to Monthly v2 Phase A before the 23 Oct dry run) — the operator's own ruling, amended by these notes: the executive summary (item 20) and the themes paragraphs (item 19) are content. Everything else is shape. |
 | Lands | Branch `t3-1-monthly-notes` during the freeze (13–15 Oct); merge to main Fri 16 Oct inside a window; first seen in the 23 Oct dry run. |

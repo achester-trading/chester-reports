@@ -211,7 +211,7 @@ itself is held by `validate_alpha_lab_4` groups B to D.
   - the manifest's hash differs with the grammar;
   - the proposer stays on v1.
 
-## Box commands (for Ari; inside a window; dry run first)
+## Box commands (for the operator; inside a window; dry run first)
 
 ```bash
 cd ~/chester-reports
@@ -445,7 +445,7 @@ So it is not keyless within its terms, and nothing is pulled:
 
 **CD-11 (Dune) is not built:** it needs `DUNE_API_KEY` in `.env`.
 
-## Box commands (for Ari; inside a window; dry run first)
+## Box commands (for the operator; inside a window; dry run first)
 
 ```bash
 cd ~/chester-reports

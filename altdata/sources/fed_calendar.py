@@ -10,7 +10,7 @@ report, and never raises.
 
 SOURCE. https://www.federalreserve.gov/json/calendar.json -- the Board's own
 calendar, public, no key; federalreserve.gov publishes no robots.txt rule against
-it. Each entry: title ("Speech - Governor Christopher J. Waller"), description,
+it. Each entry: title ("Speech - Governor <name>"), description,
 location, type (Speeches, Testimony, FOMC Meetings, ...), month ("2026-10"), days
 ("8", or a range), time ("4:30 a.m."). Times are US Eastern, as the Board's
 calendar page states them. An entry with no time is stored with its day only and

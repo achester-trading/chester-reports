@@ -42,6 +42,8 @@ rows go to the dry-run namespace only.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import os
 import sys
@@ -625,6 +627,7 @@ def main() -> int:
         sid = [r for r in led.all_rows() if r["source"] == "weekly_stance"][0]
         led.resolve(sid["probability_id"], 1)
     from altdata import session
+    # THE GATE'S CLOCK (B106): reads today on purpose -- graded calls as of the run's instant. Next attention: none.
     calls = weekly_stack.graded_calls(session.utc_iso(), db)
     check([r["source"] for r in calls["rows"]] == ["weekly_stance"]
           and calls["candidates"] == [{"source": "dryrun.book_b_candidate", "n": 2,

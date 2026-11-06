@@ -37,6 +37,8 @@ the live store and never opens a socket. No voice or view here is a real one.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import json
 import os
@@ -177,7 +179,27 @@ def scan_cfg() -> dict:
     return cfg
 
 
+# THE GATE'S CLOCK (B101b, 1 Nov 2026; A88's and B101's pattern). The scan and the
+# store stamp their writes with session.utc_now() -- the 13F pull's retrieved_at
+# among them -- while the Monthly's block is read as of the fixed
+# 2026-11-01T12:00Z. From that instant on, the fixture's 13F filing was retrieved
+# "after" the cutoff and rightly invisible, and section 4's 13F column printed a
+# dash. The clock is pinned, for the gate's run only, to an instant after every
+# fixture row and before that cutoff; the two cutoffs below that followed the scan's
+# clock (T3.2) read the same pinned clock. The code under test keeps its rule.
+GATE_NOW = "2026-11-01T11:00:00+00:00"
+
+
+def pin_clock() -> None:
+    import datetime as dt
+    from altdata import session
+    session.utc_now = lambda: dt.datetime.fromisoformat(GATE_NOW)
+
+
 def main() -> int:
+    pin_clock()
+    print(f"the gate's clock is pinned to {GATE_NOW}")
+    from altdata import session
     from altdata import voices as vmod
     from altdata import narratives as nr
     from altdata import events as ev_mod
@@ -461,7 +483,7 @@ def main() -> int:
     # The scan stamps its run with the real clock, so the cutoff is the real
     # clock too: a fixed instant made this check fail on any run after it.
     import datetime as _dt
-    line = vb.daily_line("2026-10-05", _dt.datetime.now(_dt.timezone.utc).isoformat(), DB)
+    line = vb.daily_line("2026-10-05", session.utc_now().isoformat(), DB)
     check(any("Unreachable on the latest scan: Fixture Blocked; Fixture Down" in t
               for t in line["lines"]),
           "the daily line names each unreachable source")
@@ -473,7 +495,7 @@ def main() -> int:
                           retrieved_at="2026-09-30T11:00:00+00:00"))
     # The real clock here too (T3.2): the fixed 2026-10-10T12:00Z cutoff hid
     # the scan's own run, stamped after it, from 12:00 UTC on 10 Oct onwards.
-    wk = vb.week_section("2026-10-10", _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    wk = vb.week_section("2026-10-10", session.utc_now().isoformat(),
                          DB)
     stale = [r for r in wk["table"]["rows"] if r[0].startswith("Stale Voice")]
     check(stale and stale[0][2].startswith("UNREACHABLE")
@@ -719,9 +741,19 @@ def main() -> int:
     full = vmod.load_config()
     off = {x["id"]: x for x in full["sources"] if x.get("enabled") is False}
     check(set(off) == {"cnbc_market_insider", "cnbc_investing", "goldman_insights",
-                       "morgan_stanley_ideas", "nuveen_insights"}
-          and all(x.get("unreachable_reason") for x in off.values()),
-          "3: the sources the box cannot read are marked unreachable with their reason")
+                       "morgan_stanley_ideas", "nuveen_insights", "yahoo_finance"}
+          and all(x.get("unreachable_reason") for x in off.values())
+          and "404" in off["yahoo_finance"]["unreachable_reason"],
+          "3: the sources the box cannot read are marked unreachable with their reason "
+          "(Yahoo Finance's 404 since the feed repair of 24 Oct 2026)")
+    tro = next(x for x in full["sources"] if x["id"] == "troweprice_insights")
+    tmo = vsn.source_timeouts(full["sources"])
+    fx = vsn.Fetcher("ua", 0, timeouts=tmo)
+    check(tro.get("timeout_seconds") == 60
+          and fx.timeout_for(tro["url"]) == 60.0
+          and fx.timeout_for("https://www.gmo.com/americas/research-library/") == vsn.TIMEOUT,
+          "3: T. Rowe Price's timeout raised once to 60 seconds for its host only; "
+          "every other host keeps the scan's 25")
     check(full["max_model_calls_per_day"] == 60
           and all(x.get("group") in ("official", "desk", "news") for x in full["sources"]),
           "4: the day's cap is 60 calls; every source is grouped")

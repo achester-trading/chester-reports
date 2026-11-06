@@ -44,6 +44,8 @@ tools/validate_monthly_store.py.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import sys
 from pathlib import Path
 import os as _gt_os                                            # noqa: E402
@@ -302,9 +304,11 @@ def group_c(built: dict) -> None:
 def group_d(live: bool = False) -> None:
     print(f"\n{LINE}\nD. REPLAY: A PAST MONTH AS-OF ITS OWN CUTOFF\n{LINE}")
     import datetime as dt
+    from altdata import session
     from monthly_macro import payload
 
-    cutoff_day = dt.date.today().replace(day=1) - dt.timedelta(days=1)
+    cutoff_day = (session.session_date_obj().replace(day=1)
+                  - dt.timedelta(days=1))
     cutoff = f"{cutoff_day.isoformat()}T23:59:59Z"
     print(f"  replaying as-of {cutoff}")
     try:
@@ -777,7 +781,7 @@ def group_h() -> None:
         # Today's object knowable FIVE MINUTES AGO: stamped at 21:00 UTC it would
         # be in the future before the close, and the build would read last
         # month's object as "now" and find nothing changed.
-        seen = (dt.datetime.now(dt.timezone.utc)
+        seen = (__import__("altdata").session.utc_now()
                 - dt.timedelta(minutes=5)).isoformat()
         with observations.ObservationStore(db) as st:
             for day, credit, at in ((prev, "easy", f"{prev}T21:00:00+00:00"),
@@ -1030,11 +1034,18 @@ def group_h() -> None:
               "fixture's FOMC is present, ISM is missing and footnoted")
         # QUARTERLY AND ONE-OFF ITEMS ONLY IN THEIR OWN MONTHS.
         ref = cov["Treasury quarterly refunding"]["windows"]
-        months_of = {w["name"]: {int(w["first"][5:7]), int(w["last"][5:7])}
+        months_of = {w["name"]: set(window_months(w["first"], w["last"]))
                      for w in la["windows"]}
-        refund_due = {n for n, ms in months_of.items()
-                      if ms & {2, 5, 8, 11} or any(m in (2, 5, 8, 11) for m in
-                                                   range(min(ms), max(ms) + 1))}
+        refund_due = {n for n, ms in months_of.items() if ms & {2, 5, 8, 11}}
+        # THE YEAR-END WRAP (B101b, ruled 1 Nov 2026): a window across 31 Dec
+        # holds exactly its own months, so December-January is never due.
+        dj = window_months("2026-12-01", "2027-01-31")
+        nj = window_months("2026-11-01", "2027-01-31")
+        check(dj == [12, 1] and nj == [11, 12, 1]
+              and window_months("2026-10-15", "2026-10-31") == [10]
+              and not set(dj) & {2, 5, 8, 11} and set(nj) & {2, 5, 8, 11},
+              f"a window across the year end holds exactly its own months "
+              f"(December-January {dj}, not due; November-January {nj}, due)")
         check(all((ref[n].get("expected") is False) == (n not in refund_due)
                   for n in ref)
               and not any(g.startswith("Treasury quarterly refunding for ")
@@ -1069,6 +1080,22 @@ def group_h() -> None:
               "the audit holds 'volatility regime' to the regime's stored read and "
               "'volatility against its five-year history' (or 'realized "
               "volatility') to the other's -- each name its own value")
+        # B84: theme:sentiment, the 28 Oct dry run, withheld twice for
+        # "inflation is called rising, stored stable" -- the sentence is about
+        # inflation EXPECTATIONS, which did rise. The dimension's own claim still
+        # fails.
+        ims = {"inflation": {"kind": "dimension", "state": "stable",
+                             "vocabulary": ["falling", "stable", "rising"]}}
+        sent = ("That combination, depressed sentiment alongside rising inflation "
+                "expectations, sits awkwardly beside positioning data that shows "
+                "no retreat from risk.")
+        check(not nv.state_contradictions(sent, ims)
+              and nv.state_contradictions("Sentiment fell alongside rising "
+                                          "inflation.", ims)
+              and nv.state_contradictions("Inflation is rising.", ims),
+              "'rising inflation expectations' is not a claim about the inflation "
+              "dimension (theme:sentiment, 28 Oct); 'rising inflation' and "
+              "'inflation is rising' against a stored stable still fail")
         sysp = prose_mod.system_prompt("X", "y")
         check("open with the claim" in sysp and "implication for positioning" in sysp
               and "No headings, no bullet points" in sysp,
@@ -1238,7 +1265,10 @@ def group_i() -> None:
     check(all(x.strip() for x in lines) and filled and marked
           and all(("withdrawn" in x or "not determinable" in x or "deferred" in x
                    or "zero rebalancing" in x or "Attribution" in x or "ON" in x
-                   or "off" in x or "not rendered" in x) for x in other),
+                   or "off" in x or "not rendered" in x
+                   # Batch 15 item 75 (b56): the mega-IPO watch says why it is
+                   # empty; an empty ledger says so.
+                   or "not yet public" in x or "no ledger entry" in x) for x in other),
           f"every line is populated with its as-of ({len(filled)}) or marked NOT "
           f"AVAILABLE / NOT TRACKED with its source ({len(marked)}); the rest say why "
           f"they are not read ({len(other)})")
@@ -1295,6 +1325,105 @@ def group_j() -> None:
     check(all(stack.section_words(t) == 0 and t.get("paragraph_wanted") is False
               for t in subs.values()),
           "still lines only: zero words in the Monthly's budget")
+
+
+def group_k() -> None:
+    """A95: THE MONTHLY OF 1 NOV 2026, ITS WITHHELD SECTIONS
+    (tests/fixtures/monthly_first_edition_2026-11-01.json). The one revision hears
+    every fault the draft carries, not only the first; the policy-word message
+    quotes the sentence at fault and names the fix, so the retry's failing span is
+    that sentence; an intensity word's message names its fix; a rate or share
+    reaches the writer as a percent and a raw large level with its separators;
+    the misfit data names a read, not a dimension. Every check is unchanged:
+    each must-fail case still fails."""
+    import json
+    import logging
+    print(f"\n{LINE}\nK. THE MONTHLY OF 1 NOV 2026: WHAT IT WITHHELD (A95)\n{LINE}")
+    from altdata import bars as bars_mod
+    from altdata import numeral_audit as na
+    from daily_cascade import audit_retry, stack_prose as sp
+    from monthly_macro import prose as mp, v2
+    import validate_audit_fixes as vaf
+    fx = json.loads((REPO / "tests" / "fixtures" / "monthly_first_edition_2026-11-01"
+                     ".json").read_text(encoding="utf-8"))
+    sec = vaf.monthly_plumbing()
+    d1 = fx["retry_all_faults"]["text"]
+    res, seen = vaf.run_monthly([sec], [d1, d1], kind="v2")
+    r2 = seen[1] if len(seen) > 1 else ""
+    check("7580.07" in r2 and "+29,000" in r2 and mp.ALSO.strip("; ") in r2
+          and not res.get("published") and "separators" in str(res.get("reason")),
+          f"{fx['retry_all_faults']['case']}: the revision now hears both, and the "
+          f"verdict is unchanged ({res.get('state')})")
+    fixed = d1.replace("7580.07", "7,580.07").replace("+29,000 while", "+29,000 jobs while")
+    res, _ = vaf.run_monthly([sec], [d1, fixed], kind="v2")
+    check(res.get("published") and res.get("attempts") == 2,
+          "a revision that mends both faults publishes on the second attempt")
+    res, seen = vaf.run_monthly([sec], [fixed], kind="v2")
+    check(res.get("published") and res.get("attempts") == 1,
+          "a clean draft publishes at once, with nothing added")
+    pol = fx["policy"]
+    msgs = sp.policy_word_faults(pol["draft"])
+    spans = audit_retry.failing_spans("withheld: " + "; ".join(msgs), pol["draft"])
+    check(msgs and all(pol["sentence_starts"] in m and "separate sentences" in m
+                       for m in msgs)
+          and spans and all(s.startswith(pol["sentence_starts"]) for s in spans),
+          f"stack:priced: the policy-word message quotes the sentence at fault and "
+          f"names the fix; the retry's failing span is that sentence ({len(msgs)} "
+          f"fault(s), spans {[s[:24] for s in spans]})")
+    check(sp.policy_word_faults("Odds of hiking rose as the recession market fell.")
+          and not sp.policy_word_faults("Futures price a hike in December."),
+          "the policy-word rule itself is unchanged")
+    sf = sp.style_faults(fx["intensity"]["text"], bars_mod.load_config())
+    check(any("'sharply' with no figure in its sentence" in f
+              and "put the figure that measures it" in f for f in sf),
+          f"block:plumbing:yields: 'sharply' is still withheld, and the message names "
+          f"the fix ({[f[:60] for f in sf]})")
+    ps = fx["percent_share"]
+    rows = mp._series(ps["rows"])
+    a, b = na.audit(ps["pass"], {"series": rows}), na.audit(ps["fail"], {"series": rows})
+    check(rows[0].get("latest_pct") == 4.2 and "latest_level" not in rows[0]
+          and a.passed and not b.passed,
+          f"pillar:1 and theme:fed_path: the unemployment rate reaches the writer as "
+          f"a percent, so '4.2%' passes ({a.reason()[:70]}); average weekly hours, a "
+          f"level, written as a percent still fails")
+    sp_ = fx["separated"]
+    rows = mp._series(sp_["rows"])
+    a = na.audit(sp_["pass"], {"series": rows})
+    check(rows[0].get("latest_level_display") == "3,898.9" and a.passed
+          and na.separator_faults(sp_["raw"]),
+          f"theme:fiscal_dollar: a raw large level reaches the writer with its "
+          f"separators ('3,898.9'), which passes; '3898.9' is still withheld")
+    mv = mp._move_row({"label": "S&P 500", "start_level": 7651.0,
+                       "end_level": 7580.07, "change": -0.93, "change_unit": "percent"})
+    check(mv.get("end_level_display") == "7,580.07" and mv.get("end_level") == 7580.07,
+          "month_in_markets: a scorecard level carries its display beside its value")
+    items, _ = v2._dimension_items(
+        {"regime": {"session": "2026-10-30", "dimensions": [
+            {"dimension": "breadth", "state": "broad", "previous_state": "narrow",
+             "changed": True, "percentile": 68.6}]}}, ["breadth"])
+    check(items and not mp.internal_terms(items[0]["text"])
+          and mp.internal_terms(fx["misfit_vocabulary"]),
+          f"stack:misfit: the data says '{items[0]['text'] if items else ''}', not "
+          f"'the breadth dimension'; the draft that wrote it is still withheld")
+    seen_lv: list = []
+
+    class _H(logging.Handler):
+        def emit(self, rec):
+            seen_lv.append((rec.levelno, rec.getMessage()))
+    lg = logging.getLogger(audit_retry.__name__)
+    h = _H()
+    lg.addHandler(h)
+    old = lg.level
+    lg.setLevel(logging.INFO)
+    try:
+        audit_retry.log_attempt("monthly", "x", 1, True, None, None)
+        audit_retry.log_attempt("monthly", "x", 1, False, "a reason", "a draft")
+    finally:
+        lg.removeHandler(h)
+        lg.setLevel(old)
+    check(seen_lv and seen_lv[0][0] == logging.INFO
+          and all(lv == logging.WARNING for lv, _ in seen_lv[1:]),
+          "a published attempt logs at INFO; a withheld one still warns")
 
 
 def isolate_and_seed() -> str:
@@ -1370,15 +1499,45 @@ def isolate_and_seed() -> str:
     return td
 
 
+def window_months(first: str, last: str) -> list[int]:
+    """The calendar months a look-ahead window holds, first to last, in order,
+    walking across the year end (B101b): 2026-12-01..2027-01-31 is [12, 1]."""
+    y, m = int(first[:4]), int(first[5:7])
+    ly, lm = int(last[:4]), int(last[5:7])
+    out = []
+    while (y, m) <= (ly, lm):
+        out.append(m)
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+# THE GATE'S CLOCK (B101, 1 Nov 2026; A88's pattern). Every fixture here is dated
+# from "today" -- the seeded month, the replay cutoff, the look-ahead's windows --
+# so the gate's verdict moved with the calendar: from 1 Nov its look-ahead's last
+# window became "December–January" and the refunding check's own month-span
+# arithmetic counted it as due. The clock is pinned to one fixture session's close
+# for the gate's run only; the code under test keeps its rule.
+GATE_NOW = "2026-10-15T20:45:00+00:00"
+
+
+def dt_fixed(iso: str):
+    import datetime as dt
+    return dt.datetime.fromisoformat(iso)
+
+
 def main() -> int:
+    from altdata import session
+    session.utc_now = lambda: dt_fixed(GATE_NOW)
     print(f"{LINE}\nThe Monthly -- Phase 4b (seeded store; the real one is "
           f"tools/validate_monthly_store.py)\n{LINE}")
+    print(f"  the gate's clock is pinned to {GATE_NOW}")
     isolate_and_seed()
     group_a()
     group_g()
     group_h()
     group_i()
     group_j()
+    group_k()
     built = None
     try:
         from monthly_macro import payload

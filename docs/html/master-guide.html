@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="source-sha256" content="f1c558d02fd18893f55d56624fef1e50517ca1d8f5113dc992a93e6806f7c03a">
+<meta name="source-sha256" content="77e77b8488ddfea1bf2e14699090e1f962446fbd9b2458dc2fec7efdb4d66bcb">
 <title>The Master Guide</title>
 <style>
 :root {
@@ -133,7 +133,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
   <div class="masthead">
 <h1>The Master Guide</h1>
 <h3>How the whole system fits together, what each part may do, and how to use it</h3>
-<p><strong>As of:</strong> 23 October 2026 · <strong>As built:</strong> chain-5 (the fifth chain, stitched 23 Oct 2026 onto main after chain-3's merge: chain-4 (a50-dealer-store, b48-scoreboard and a52-doctrine-2-pack), then a54-relative-volume, a55-box-fixes, b51-registry-html, a56-batch14-a1 and b52-batch14-a2) · <strong>Refreshed:</strong> at every chain merge</p>
+<p><strong>As of:</strong> 29 October 2026 · <strong>As built:</strong> the chain-8 assembly (<code>b86-chain-8-assembly</code>, rehearsed 29 Oct 2026): chain-7 with main's later merges (a61b, a78, a85, a88, b84), then chain-8: s1-stitch-refactor, b70 (with b63 to b69), a80 (with b73), b75, b76, a81, b58, a71 (with a65 to a70) and a79 (with a77). It lands on main as chain-7 and then chain-8 (see Landing next) · <strong>Refreshed:</strong> at every chain merge</p>
   </div>
 
   <div class="controls">
@@ -141,7 +141,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
     <button id="collapseAll">Collapse all</button>
   </div>
 
-  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-0-the-whole-system-in-ten-minutes">Part 0. The whole system in ten minutes</a></li><li><a href="#s3-part-1-the-clock-everything-that-arrives-and-when">Part 1. The clock: everything that arrives, and when</a></li><li><a href="#s4-part-2-the-reports-one-card-each">Part 2. The reports, one card each</a></li><li><a href="#s5-part-3-the-ladder-the-levels-of-trading-output">Part 3. The ladder: the levels of trading output</a></li><li><a href="#s6-part-4-the-inputs-and-what-each-may-do">Part 4. The inputs, and what each may do</a></li><li><a href="#s7-part-5-what-is-proven-so-far">Part 5. What is proven so far</a></li><li><a href="#s8-part-6-a-trade-end-to-end">Part 6. A trade, end to end</a></li><li><a href="#s9-part-7-your-operating-rhythm-the-checklist">Part 7. Your operating rhythm: the checklist</a></li><li><a href="#s10-part-8-where-the-doctrine-and-the-build-differ-for-doctrine-">Part 8. Where the Doctrine and the build differ (for Doctrine #2)</a></li><li><a href="#s11-part-9-the-library-by-what-it-helps-you-do">Part 9. The library, by what it helps you do</a></li><li><a href="#s12-landing-next-as-of-23-october-2026">Landing next (as of 23 October 2026)</a></li><li><a href="#s13-glossary">Glossary</a></li></ol></nav>
+  <nav class="toc"><h2>Contents</h2><ol><li><a href="#s1-front-matter">Front matter</a></li><li><a href="#s2-part-0-the-whole-system-in-ten-minutes">Part 0. The whole system in ten minutes</a></li><li><a href="#s3-part-1-the-clock-everything-that-arrives-and-when">Part 1. The clock: everything that arrives, and when</a></li><li><a href="#s4-part-2-the-reports-one-card-each">Part 2. The reports, one card each</a></li><li><a href="#s5-part-3-the-ladder-the-levels-of-trading-output">Part 3. The ladder: the levels of trading output</a></li><li><a href="#s6-part-4-the-inputs-and-what-each-may-do">Part 4. The inputs, and what each may do</a></li><li><a href="#s7-part-5-what-is-proven-so-far">Part 5. What is proven so far</a></li><li><a href="#s8-part-6-a-trade-end-to-end">Part 6. A trade, end to end</a></li><li><a href="#s9-part-7-your-operating-rhythm-the-checklist">Part 7. Your operating rhythm: the checklist</a></li><li><a href="#s10-part-8-where-the-doctrine-and-the-build-differ-for-doctrine-">Part 8. Where the Doctrine and the build differ (for Doctrine #2)</a></li><li><a href="#s11-part-9-the-library-by-what-it-helps-you-do">Part 9. The library, by what it helps you do</a></li><li><a href="#s12-landing-next-as-of-29-october-2026">Landing next (as of 29 October 2026)</a></li><li><a href="#s13-glossary">Glossary</a></li></ol></nav>
 
     <details class="section" id="s1-front-matter" open>
       <summary class="section-head">
@@ -155,7 +155,7 @@ footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top:
 <li><strong>The Operating Doctrine</strong> (<a href="whitepapers/operating-doctrine-whitepaper.md">operating-doctrine-whitepaper.md</a>) is the rulebook. This Guide quotes its rules and never restates them differently.</li>
 <li><strong>The library guide</strong> (<a href="white-paper-library-guide.md">white-paper-library-guide.md</a>) catalogues the 27 papers.</li>
 </ul>
-<p>Everything below is checked against the code and config on chain-5. Where something is specified but not built, it says "not built" and where the plan stands. Work still on its own branch appears only under <strong>Landing next</strong>, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.</p>
+<p>Everything below is checked against the code and config on the chain-8 assembly, which carries chain-7 and chain-8 whole; until they merge, main holds only what chain-5 and main's later merges carry. Where something is specified but not built, it says "not built" and where the plan stands. Work still on its own branch appears only under <strong>Landing next</strong>, labelled as such. Risk is given in the Card's percentages, never in dollars. No vendor figure, no real position and no Brookfield-group instrument appears here.</p>
 <p><strong>The one picture to keep in mind is a newsroom with a research lab and a trading desk.</strong> The feeds are the wires. The market-state object is the single editor's view of the market. The reports are the editions. The Alpha Lab is the research lab next door. You are the desk, with four books. The Doctrine's rules and switches are compliance. The register, the grader and the ledgers are the scorekeeper.</p>
 <hr />
       </div>
@@ -239,7 +239,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p><strong>In three lines.</strong> Feeds land in a store where every row carries the instant it became knowable. One market state is computed from it each evening, and every report reads that state rather than computing its own. The reports raise readings, flags and candidates; only your Decision Packet permits a trade, and every decision is graded so the rules can change at a sitting.</p>
 <h3>The loop, in words</h3>
 <ol>
-<li><strong>Inputs.</strong> About seventy writers (33 official, 37 external, the yfinance basket of 124 symbols, the option chains, the crypto layer, the scans) land in <strong>the point-in-time store</strong>. Every row carries <code>available_at</code>, the instant the system could have known it, so a replay of an old day sees only what existed then.</li>
+<li><strong>Inputs.</strong> About seventy writers (33 official, 37 external, the yfinance basket of 127 symbols, the option chains, the crypto layer, the scans) land in <strong>the point-in-time store</strong>. Every row carries <code>available_at</code>, the instant the system could have known it, so a replay of an old day sees only what existed then.</li>
 <li><strong>One market state.</strong> The 16:45 close computes the <strong>market-state object</strong>: three dials (Macro, Volatility, Gamma) and eight dimensions, from the declared rules in <code>config/market_state.yaml</code>. It is the only writer. Every other report reads it through <code>regime.latest()</code>; none recomputes it.</li>
 <li><strong>The reports</strong> read the store and the state. They raise outputs on <strong>the ladder</strong> (Part 3): readings and lenses, flags, tells and setups, candidates. None of them may place a trade or write a decision.</li>
 <li><strong>Your Decision Packet.</strong> You decide. A packet carries the edge, the counterparty, the instrument, the size by the Card's percentage, the exit written before entry and the regime stamp. "No Decision Packet, no trade" (Doctrine Rule 18). The register records it; the register's commands are yours alone.</li>
@@ -302,6 +302,22 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Set Book A's stance within its band at the monthly sitting.</td>
 </tr>
 <tr>
+<td>The Weekly Letter</td>
+<td>Sunday 06:12 (chat-side)</td>
+<td>about 15 minutes</td>
+<td>none (a reading of the Weekly)</td>
+<td>none</td>
+<td>Read it first; the Weekly is the reference</td>
+</tr>
+<tr>
+<td>The Monthly Letter</td>
+<td>the 1st, 10:43 (chat-side)</td>
+<td>about 20 minutes</td>
+<td>none (a reading of the Monthly)</td>
+<td>none</td>
+<td>Read it first on the 1st; the Monthly's read and book for the sitting</td>
+</tr>
+<tr>
 <td>The Alternative Assets Quarterly</td>
 <td>second Saturday after quarter-end, 06:00</td>
 <td>90 minutes (configured)</td>
@@ -338,14 +354,19 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </thead>
 <tbody>
 <tr>
-<td>Weekdays 06:50 (optional)</td>
+<td>Weekdays 07:00</td>
+<td>The morning anchor</td>
+<td>10 minutes</td>
+</tr>
+<tr>
+<td>Weekdays 07:17 (optional)</td>
 <td>The X triage push: attention only</td>
 <td>1 minute</td>
 </tr>
 <tr>
-<td>Weekdays 07:00</td>
-<td>The morning anchor</td>
-<td>10 minutes</td>
+<td>Weekdays 08:15 and 15:15 (optional, DTH-1 manual)</td>
+<td>The ES card</td>
+<td>3 minutes</td>
 </tr>
 <tr>
 <td>Weekdays 09:50 (optional)</td>
@@ -363,6 +384,11 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>5 minutes</td>
 </tr>
 <tr>
+<td>Sunday to Friday 18:05 (optional)</td>
+<td>The evening X triage push</td>
+<td>1 minute</td>
+</tr>
+<tr>
 <td>Sunday to Thursday 21:30 (optional)</td>
 <td>The evening note: never act on it at night</td>
 <td>1 minute; 3 on Sunday</td>
@@ -374,12 +400,17 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td>Sunday</td>
-<td>The Weekly and the addendum; select up to three Book B candidates; post-mortems</td>
+<td>The Weekly Letter first; then the Weekly and the addendum; select up to three Book B candidates; post-mortems</td>
 <td>45–60 minutes</td>
 </tr>
 <tr>
+<td>Sunday 18:48 (optional, DTH-1 manual)</td>
+<td>The ES Sunday map</td>
+<td>3 minutes</td>
+</tr>
+<tr>
 <td>First weekend of the month</td>
-<td>The Monthly and the monthly sitting: Book A's stance</td>
+<td>The Monthly Letter first; then the Monthly and the monthly sitting: Book A's stance</td>
 <td>90 minutes</td>
 </tr>
 <tr>
@@ -408,7 +439,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1888" role="img" aria-labelledby="t d">
+<p><figure class="fig"><svg width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1974" role="img" aria-labelledby="t d">
 <title id="f02-t">Figure 2. The clock</title><desc id="f02-d">The box&#x27;s timers and the chat-side tasks on a 24-hour weekday dial, with the week and the month below. Generated from deploy/systemd and docs/master-guide/chat-tasks.yaml.</desc>
 <style>
 .bg{fill:#ffffff}.panel{fill:#f3f5f8}.ink{fill:#16202e}.mute{fill:#5b6675}
@@ -422,7 +453,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 .pill{fill:#243042}.bA{fill:#63a4ff}.bB{fill:#5cc28a}.bC{fill:#e8b04e}.bD{fill:#e07a7a}}
 text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif}
 </style>
-<rect class="bg" x="0" y="0" width="720" height="1888" rx="14"/>
+<rect class="bg" x="0" y="0" width="720" height="1974" rx="14"/>
 <text class="ink" x="24.0" y="44.0" font-size="24" text-anchor="start" font-weight="700">Figure 2. The clock (ET)</text>
 <text class="mute" x="24.0" y="72.0" font-size="16" text-anchor="start" font-weight="400">Blue: the box&#x27;s timers. Orange: chat-side tasks. Ringed: a report you read.</text>
 <circle class="panel" cx="360" cy="420" r="280"/>
@@ -476,11 +507,11 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="onbox" x="559.6" y="438.1" font-size="14" text-anchor="middle" font-weight="700">4</text>
 <circle class="box" cx="585.6" cy="464.9" r="13"/>
 <text class="onbox" x="585.6" y="469.9" font-size="14" text-anchor="middle" font-weight="700">5</text>
-<circle class="chat" cx="555.3" cy="463.3" r="13"/>
-<text class="onbox" x="555.3" y="468.3" font-size="14" text-anchor="middle" font-weight="700">6</text>
-<circle class="box" cx="524.2" cy="464.0" r="13"/>
-<circle fill="none" class="touch" stroke-width="3" cx="524.2" cy="464.0" r="18"/>
-<text class="onbox" x="524.2" y="469.0" font-size="14" text-anchor="middle" font-weight="700">7</text>
+<circle class="box" cx="553.2" cy="471.8" r="13"/>
+<circle fill="none" class="touch" stroke-width="3" cx="553.2" cy="471.8" r="18"/>
+<text class="onbox" x="553.2" y="476.8" font-size="14" text-anchor="middle" font-weight="700">6</text>
+<circle class="chat" cx="520.5" cy="476.0" r="13"/>
+<text class="onbox" x="520.5" y="481.0" font-size="14" text-anchor="middle" font-weight="700">7</text>
 <circle class="box" cx="542.5" cy="560.0" r="13"/>
 <text class="onbox" x="542.5" y="565.0" font-size="14" text-anchor="middle" font-weight="700">8</text>
 <circle class="box" cx="487.8" cy="611.2" r="13"/>
@@ -505,12 +536,16 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="onbox" x="132.7" y="460.0" font-size="14" text-anchor="middle" font-weight="700">17</text>
 <circle class="box" cx="160.8" cy="437.4" r="13"/>
 <text class="onbox" x="160.8" y="442.4" font-size="14" text-anchor="middle" font-weight="700">18</text>
-<circle class="box" cx="130.2" cy="410.0" r="13"/>
-<text class="onbox" x="130.2" y="415.0" font-size="14" text-anchor="middle" font-weight="700">19</text>
+<circle class="chat" cx="190.6" cy="434.8" r="13"/>
+<text class="onbox" x="190.6" y="439.8" font-size="14" text-anchor="middle" font-weight="700">19</text>
+<circle class="chat" cx="130.1" cy="415.0" r="13"/>
+<text class="onbox" x="130.1" y="420.0" font-size="14" text-anchor="middle" font-weight="700">20</text>
+<circle class="box" cx="160.2" cy="411.3" r="13"/>
+<text class="onbox" x="160.2" y="416.3" font-size="14" text-anchor="middle" font-weight="700">21</text>
 <circle class="box" cx="208.4" cy="247.1" r="13"/>
-<text class="onbox" x="208.4" y="252.1" font-size="14" text-anchor="middle" font-weight="700">20</text>
+<text class="onbox" x="208.4" y="252.1" font-size="14" text-anchor="middle" font-weight="700">22</text>
 <circle class="box" cx="238.2" cy="261.3" r="13"/>
-<text class="onbox" x="238.2" y="266.3" font-size="14" text-anchor="middle" font-weight="700">21</text>
+<text class="onbox" x="238.2" y="266.3" font-size="14" text-anchor="middle" font-weight="700">23</text>
 <text class="ink" x="24.0" y="760.0" font-size="20" text-anchor="start" font-weight="700">Weekdays, by time</text>
 <circle class="box" cx="36" cy="790" r="11"/>
 <text class="onbox" x="36.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">1</text>
@@ -520,19 +555,19 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <text class="ink" x="54.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">02:30  Backup sweep</text>
 <circle class="chat" cx="36" cy="850" r="11"/>
 <text class="onbox" x="36.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">3</text>
-<text class="ink" x="54.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">06:00  Grok X digest (Ari&#x27;s automation)</text>
+<text class="ink" x="54.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">06:00  Grok X digests (06:00, 06:15)</text>
 <circle class="box" cx="36" cy="880" r="11"/>
 <text class="onbox" x="36.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">4</text>
 <text class="ink" x="54.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">06:15  Voices scan</text>
 <circle class="box" cx="36" cy="910" r="11"/>
 <text class="onbox" x="36.0" y="915.0" font-size="13" text-anchor="middle" font-weight="700">5</text>
 <text class="ink" x="54.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">06:45  Overnight fetch</text>
-<circle class="chat" cx="36" cy="940" r="11"/>
+<circle class="box" cx="36" cy="940" r="11"/>
 <text class="onbox" x="36.0" y="945.0" font-size="13" text-anchor="middle" font-weight="700">6</text>
-<text class="ink" x="54.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">06:50  X digest triage</text>
-<circle class="box" cx="36" cy="970" r="11"/>
+<text class="ink" x="54.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">07:00  Morning anchor ◉</text>
+<circle class="chat" cx="36" cy="970" r="11"/>
 <text class="onbox" x="36.0" y="975.0" font-size="13" text-anchor="middle" font-weight="700">7</text>
-<text class="ink" x="54.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">07:00  Morning anchor ◉</text>
+<text class="ink" x="54.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">07:17  X digest triage, morning</text>
 <circle class="box" cx="36" cy="1000" r="11"/>
 <text class="onbox" x="36.0" y="1005.0" font-size="13" text-anchor="middle" font-weight="700">8</text>
 <text class="ink" x="54.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">08:30  Heartbeat</text>
@@ -545,107 +580,119 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <circle class="box" cx="36" cy="1090" r="11"/>
 <text class="onbox" x="36.0" y="1095.0" font-size="13" text-anchor="middle" font-weight="700">11</text>
 <text class="ink" x="54.0" y="1096.0" font-size="16" text-anchor="start" font-weight="400">12:30  Capture + 12:30 alert gates ◉</text>
+<circle class="box" cx="36" cy="1120" r="11"/>
+<text class="onbox" x="36.0" y="1125.0" font-size="13" text-anchor="middle" font-weight="700">12</text>
+<text class="ink" x="54.0" y="1126.0" font-size="16" text-anchor="start" font-weight="400">15:49  Auction sampler</text>
 <circle class="box" cx="396" cy="790" r="11"/>
-<text class="onbox" x="396.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">12</text>
-<text class="ink" x="414.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">15:49  Auction sampler</text>
+<text class="onbox" x="396.0" y="795.0" font-size="13" text-anchor="middle" font-weight="700">13</text>
+<text class="ink" x="414.0" y="796.0" font-size="16" text-anchor="start" font-weight="400">16:10  EOD options pass</text>
 <circle class="box" cx="396" cy="820" r="11"/>
-<text class="onbox" x="396.0" y="825.0" font-size="13" text-anchor="middle" font-weight="700">13</text>
-<text class="ink" x="414.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">16:10  EOD options pass</text>
+<text class="onbox" x="396.0" y="825.0" font-size="13" text-anchor="middle" font-weight="700">14</text>
+<text class="ink" x="414.0" y="826.0" font-size="16" text-anchor="start" font-weight="400">16:25  Vendor writer</text>
 <circle class="box" cx="396" cy="850" r="11"/>
-<text class="onbox" x="396.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">14</text>
-<text class="ink" x="414.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">16:25  Vendor writer</text>
+<text class="onbox" x="396.0" y="855.0" font-size="13" text-anchor="middle" font-weight="700">15</text>
+<text class="ink" x="414.0" y="856.0" font-size="16" text-anchor="start" font-weight="400">16:31  Vendor chains</text>
 <circle class="box" cx="396" cy="880" r="11"/>
-<text class="onbox" x="396.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">15</text>
-<text class="ink" x="414.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">16:31  Vendor chains</text>
+<text class="onbox" x="396.0" y="885.0" font-size="13" text-anchor="middle" font-weight="700">16</text>
+<text class="ink" x="414.0" y="886.0" font-size="16" text-anchor="start" font-weight="400">16:45  The close ◉</text>
 <circle class="box" cx="396" cy="910" r="11"/>
-<text class="onbox" x="396.0" y="915.0" font-size="13" text-anchor="middle" font-weight="700">16</text>
-<text class="ink" x="414.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">16:45  The close ◉</text>
+<text class="onbox" x="396.0" y="915.0" font-size="13" text-anchor="middle" font-weight="700">17</text>
+<text class="ink" x="414.0" y="916.0" font-size="16" text-anchor="start" font-weight="400">17:25  Crypto basket</text>
 <circle class="box" cx="396" cy="940" r="11"/>
-<text class="onbox" x="396.0" y="945.0" font-size="13" text-anchor="middle" font-weight="700">17</text>
-<text class="ink" x="414.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">17:25  Crypto basket</text>
-<circle class="box" cx="396" cy="970" r="11"/>
-<text class="onbox" x="396.0" y="975.0" font-size="13" text-anchor="middle" font-weight="700">18</text>
-<text class="ink" x="414.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">17:40  Alpha nightly</text>
-<circle class="box" cx="396" cy="1000" r="11"/>
-<text class="onbox" x="396.0" y="1005.0" font-size="13" text-anchor="middle" font-weight="700">19</text>
-<text class="ink" x="414.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">18:10  Alpha proposer</text>
+<text class="onbox" x="396.0" y="945.0" font-size="13" text-anchor="middle" font-weight="700">18</text>
+<text class="ink" x="414.0" y="946.0" font-size="16" text-anchor="start" font-weight="400">17:40  Alpha nightly</text>
+<circle class="chat" cx="396" cy="970" r="11"/>
+<text class="onbox" x="396.0" y="975.0" font-size="13" text-anchor="middle" font-weight="700">19</text>
+<text class="ink" x="414.0" y="976.0" font-size="16" text-anchor="start" font-weight="400">17:40  Grok evening digest (Sun-Fri)</text>
+<circle class="chat" cx="396" cy="1000" r="11"/>
+<text class="onbox" x="396.0" y="1005.0" font-size="13" text-anchor="middle" font-weight="700">20</text>
+<text class="ink" x="414.0" y="1006.0" font-size="16" text-anchor="start" font-weight="400">18:05  X triage, evening (Sun-Fri)</text>
 <circle class="box" cx="396" cy="1030" r="11"/>
-<text class="onbox" x="396.0" y="1035.0" font-size="13" text-anchor="middle" font-weight="700">20</text>
-<text class="ink" x="414.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">21:15  Meme ingest</text>
+<text class="onbox" x="396.0" y="1035.0" font-size="13" text-anchor="middle" font-weight="700">21</text>
+<text class="ink" x="414.0" y="1036.0" font-size="16" text-anchor="start" font-weight="400">18:10  Alpha proposer</text>
 <circle class="box" cx="396" cy="1060" r="11"/>
-<text class="onbox" x="396.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">21</text>
-<text class="ink" x="414.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">21:30  chester-evening-note</text>
-<text class="ink" x="24.0" y="1150.0" font-size="20" text-anchor="start" font-weight="700">The week</text>
-<rect class="panel" x="26.0" y="1166" width="92.0" height="34" rx="6"/>
-<text class="ink" x="72.0" y="1189.0" font-size="16" text-anchor="middle" font-weight="700">Mon</text>
-<rect class="panel" x="122.0" y="1166" width="92.0" height="34" rx="6"/>
-<text class="ink" x="168.0" y="1189.0" font-size="16" text-anchor="middle" font-weight="700">Tue</text>
-<rect class="panel" x="218.0" y="1166" width="92.0" height="34" rx="6"/>
-<text class="ink" x="264.0" y="1189.0" font-size="16" text-anchor="middle" font-weight="700">Wed</text>
-<circle class="chat" cx="230.0" cy="1212" r="6"/>
-<rect class="panel" x="314.0" y="1166" width="92.0" height="34" rx="6"/>
-<text class="ink" x="360.0" y="1189.0" font-size="16" text-anchor="middle" font-weight="700">Thu</text>
-<circle class="chat" cx="326.0" cy="1212" r="6"/>
-<circle class="chat" cx="342.0" cy="1212" r="6"/>
-<rect class="panel" x="410.0" y="1166" width="92.0" height="34" rx="6"/>
-<text class="ink" x="456.0" y="1189.0" font-size="16" text-anchor="middle" font-weight="700">Fri</text>
-<rect class="panel" x="506.0" y="1166" width="92.0" height="34" rx="6"/>
-<text class="ink" x="552.0" y="1189.0" font-size="16" text-anchor="middle" font-weight="700">Sat</text>
-<circle class="box" cx="518.0" cy="1212" r="6"/>
-<circle class="chat" cx="534.0" cy="1212" r="6"/>
-<circle class="chat" cx="550.0" cy="1212" r="6"/>
-<rect class="panel" x="602.0" y="1166" width="92.0" height="34" rx="6"/>
-<text class="ink" x="648.0" y="1189.0" font-size="16" text-anchor="middle" font-weight="700">Sun</text>
-<circle class="box" cx="614.0" cy="1212" r="6"/>
-<circle class="box" cx="630.0" cy="1212" r="6"/>
-<circle class="box" cx="646.0" cy="1212" r="6"/>
-<rect class="chat" x="24" y="1233" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1248.0" font-size="16" text-anchor="start" font-weight="400">Wed 16:25  FlashAlpha vendor pull (Wednesday close)</text>
-<rect class="chat" x="24" y="1261" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1276.0" font-size="16" text-anchor="start" font-weight="400">Thu 07:05  FlashAlpha vendor reconcile (Thursday morning)</text>
-<rect class="chat" x="24" y="1289" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1304.0" font-size="16" text-anchor="start" font-weight="400">Thu 12:10  AAII weekly read</text>
-<rect class="box" x="24" y="1317" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1332.0" font-size="16" text-anchor="start" font-weight="400">Sat 06:00  Saturday prices</text>
-<rect class="chat" x="24" y="1345" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1360.0" font-size="16" text-anchor="start" font-weight="400">Sat 07:50  Alpha Lab Saturday brief</text>
-<rect class="chat" x="24" y="1373" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1388.0" font-size="16" text-anchor="start" font-weight="400">Sat 08:00  Weekly crypto tech scan (Pearl and new mechanisms)</text>
-<rect class="box" x="24" y="1401" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1416.0" font-size="16" text-anchor="start" font-weight="400">Sun 05:00  The Weekly ◉</text>
-<rect class="box" x="24" y="1429" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1444.0" font-size="16" text-anchor="start" font-weight="400">Sun 06:00  Alpha weekly</text>
-<rect class="box" x="24" y="1457" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1472.0" font-size="16" text-anchor="start" font-weight="400">Sun 10:15  Restore test</text>
-<text class="ink" x="24.0" y="1516.0" font-size="20" text-anchor="start" font-weight="700">The month and the quarter</text>
-<rect class="panel" x="24" y="1532" width="672" height="34" rx="6"/>
-<text class="mute" x="34.8" y="1555.0" font-size="15" text-anchor="middle" font-weight="400">1</text>
-<text class="mute" x="186.6" y="1555.0" font-size="15" text-anchor="middle" font-weight="400">8</text>
-<text class="mute" x="338.3" y="1555.0" font-size="15" text-anchor="middle" font-weight="400">15</text>
-<text class="mute" x="490.1" y="1555.0" font-size="15" text-anchor="middle" font-weight="400">22</text>
-<text class="mute" x="641.8" y="1555.0" font-size="15" text-anchor="middle" font-weight="400">29</text>
-<circle class="box" cx="34.8" cy="1578" r="6"/>
-<circle class="chat" cx="273.3" cy="1578" r="6"/>
-<circle class="chat" cx="446.7" cy="1578" r="6"/>
-<circle class="chat" cx="555.1" cy="1578" r="6"/>
-<rect class="box" x="24" y="1599" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1614.0" font-size="16" text-anchor="start" font-weight="400">day 1, 07:30  The Monthly ◉</text>
-<rect class="chat" x="24" y="1627" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1642.0" font-size="16" text-anchor="start" font-weight="400">day 12, 06:58  Publication watch (also the 27th)</text>
-<rect class="chat" x="24" y="1655" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1670.0" font-size="16" text-anchor="start" font-weight="400">day 20, 09:00  AI-risk drift (even months)</text>
-<rect class="chat" x="24" y="1683" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1698.0" font-size="16" text-anchor="start" font-weight="400">day 25, 06:57  Monthly signal scan</text>
-<rect class="chat" x="24" y="1711" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1726.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:30  Alt assets scan (planned)</text>
-<rect class="chat" x="24" y="1739" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1754.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:56  JPM Guide read (6th, quarterly)</text>
-<rect class="chat" x="24" y="1767" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1782.0" font-size="16" text-anchor="start" font-weight="400">by event, 07:10  MSTR / MSCI watch (2-30 Nov, 1 Dec)</text>
-<rect class="box" x="24" y="1795" width="10" height="20" rx="3"/>
-<text class="ink" x="42.0" y="1810.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:00  Alt Assets Quarterly (not enabled)</text>
-<text class="mute" x="24.0" y="1848.0" font-size="15" text-anchor="start" font-weight="400">Times are ET. A task held in UTC moves an hour</text>
-<text class="mute" x="24.0" y="1870.0" font-size="15" text-anchor="start" font-weight="400">when daylight saving ends on 1 Nov.</text>
+<text class="onbox" x="396.0" y="1065.0" font-size="13" text-anchor="middle" font-weight="700">22</text>
+<text class="ink" x="414.0" y="1066.0" font-size="16" text-anchor="start" font-weight="400">21:15  Meme ingest</text>
+<circle class="box" cx="396" cy="1090" r="11"/>
+<text class="onbox" x="396.0" y="1095.0" font-size="13" text-anchor="middle" font-weight="700">23</text>
+<text class="ink" x="414.0" y="1096.0" font-size="16" text-anchor="start" font-weight="400">21:30  chester-evening-note</text>
+<text class="ink" x="24.0" y="1180.0" font-size="20" text-anchor="start" font-weight="700">The week</text>
+<rect class="panel" x="26.0" y="1196" width="92.0" height="34" rx="6"/>
+<text class="ink" x="72.0" y="1219.0" font-size="16" text-anchor="middle" font-weight="700">Mon</text>
+<circle class="chat" cx="38.0" cy="1242" r="6"/>
+<rect class="panel" x="122.0" y="1196" width="92.0" height="34" rx="6"/>
+<text class="ink" x="168.0" y="1219.0" font-size="16" text-anchor="middle" font-weight="700">Tue</text>
+<rect class="panel" x="218.0" y="1196" width="92.0" height="34" rx="6"/>
+<text class="ink" x="264.0" y="1219.0" font-size="16" text-anchor="middle" font-weight="700">Wed</text>
+<rect class="panel" x="314.0" y="1196" width="92.0" height="34" rx="6"/>
+<text class="ink" x="360.0" y="1219.0" font-size="16" text-anchor="middle" font-weight="700">Thu</text>
+<circle class="chat" cx="326.0" cy="1242" r="6"/>
+<rect class="panel" x="410.0" y="1196" width="92.0" height="34" rx="6"/>
+<text class="ink" x="456.0" y="1219.0" font-size="16" text-anchor="middle" font-weight="700">Fri</text>
+<rect class="panel" x="506.0" y="1196" width="92.0" height="34" rx="6"/>
+<text class="ink" x="552.0" y="1219.0" font-size="16" text-anchor="middle" font-weight="700">Sat</text>
+<circle class="box" cx="518.0" cy="1242" r="6"/>
+<circle class="chat" cx="534.0" cy="1242" r="6"/>
+<circle class="chat" cx="550.0" cy="1242" r="6"/>
+<rect class="panel" x="602.0" y="1196" width="92.0" height="34" rx="6"/>
+<text class="ink" x="648.0" y="1219.0" font-size="16" text-anchor="middle" font-weight="700">Sun</text>
+<circle class="box" cx="614.0" cy="1242" r="6"/>
+<circle class="box" cx="630.0" cy="1242" r="6"/>
+<circle class="chat" cx="646.0" cy="1242" r="6"/>
+<circle class="box" cx="662.0" cy="1242" r="6"/>
+<circle class="chat" cx="678.0" cy="1242" r="6"/>
+<rect class="chat" x="24" y="1263" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1278.0" font-size="16" text-anchor="start" font-weight="400">Mon-Fri 08:15  ES card (08:15, 15:15)</text>
+<rect class="chat" x="24" y="1291" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1306.0" font-size="16" text-anchor="start" font-weight="400">Thu 12:10  AAII weekly read</text>
+<rect class="box" x="24" y="1319" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1334.0" font-size="16" text-anchor="start" font-weight="400">Sat 06:00  Saturday prices</text>
+<rect class="chat" x="24" y="1347" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1362.0" font-size="16" text-anchor="start" font-weight="400">Sat 07:00  Weekly crypto tech scan (Pearl and new mechanisms)</text>
+<rect class="chat" x="24" y="1375" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1390.0" font-size="16" text-anchor="start" font-weight="400">Sat 07:50  Alpha Lab Saturday brief</text>
+<rect class="box" x="24" y="1403" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1418.0" font-size="16" text-anchor="start" font-weight="400">Sun 05:00  The Weekly ◉</text>
+<rect class="box" x="24" y="1431" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1446.0" font-size="16" text-anchor="start" font-weight="400">Sun 06:00  Alpha weekly</text>
+<rect class="chat" x="24" y="1459" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1474.0" font-size="16" text-anchor="start" font-weight="400">Sun 06:12  Weekly Letter</text>
+<rect class="box" x="24" y="1487" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1502.0" font-size="16" text-anchor="start" font-weight="400">Sun 10:15  Restore test</text>
+<rect class="chat" x="24" y="1515" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1530.0" font-size="16" text-anchor="start" font-weight="400">Sun 18:48  ES Sunday map</text>
+<text class="ink" x="24.0" y="1574.0" font-size="20" text-anchor="start" font-weight="700">The month and the quarter</text>
+<rect class="panel" x="24" y="1590" width="672" height="34" rx="6"/>
+<text class="mute" x="34.8" y="1613.0" font-size="15" text-anchor="middle" font-weight="400">1</text>
+<text class="mute" x="186.6" y="1613.0" font-size="15" text-anchor="middle" font-weight="400">8</text>
+<text class="mute" x="338.3" y="1613.0" font-size="15" text-anchor="middle" font-weight="400">15</text>
+<text class="mute" x="490.1" y="1613.0" font-size="15" text-anchor="middle" font-weight="400">22</text>
+<text class="mute" x="641.8" y="1613.0" font-size="15" text-anchor="middle" font-weight="400">29</text>
+<circle class="chat" cx="34.8" cy="1636" r="6"/>
+<circle class="box" cx="34.8" cy="1636" r="6"/>
+<circle class="chat" cx="273.3" cy="1636" r="6"/>
+<circle class="chat" cx="446.7" cy="1636" r="6"/>
+<circle class="chat" cx="555.1" cy="1636" r="6"/>
+<rect class="chat" x="24" y="1657" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1672.0" font-size="16" text-anchor="start" font-weight="400">day 1, 10:43  Monthly Letter</text>
+<rect class="box" x="24" y="1685" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1700.0" font-size="16" text-anchor="start" font-weight="400">day 1, 07:30  The Monthly ◉</text>
+<rect class="chat" x="24" y="1713" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1728.0" font-size="16" text-anchor="start" font-weight="400">day 12, 06:58  Publication watch (also the 27th)</text>
+<rect class="chat" x="24" y="1741" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1756.0" font-size="16" text-anchor="start" font-weight="400">day 20, 08:00  AI-risk drift (even months)</text>
+<rect class="chat" x="24" y="1769" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1784.0" font-size="16" text-anchor="start" font-weight="400">day 25, 06:57  Monthly signal scan</text>
+<rect class="chat" x="24" y="1797" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1812.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:30  Alt assets scan (planned)</text>
+<rect class="chat" x="24" y="1825" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1840.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:56  JPM Guide read (6th, quarterly)</text>
+<rect class="chat" x="24" y="1853" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1868.0" font-size="16" text-anchor="start" font-weight="400">by event, 07:10  MSTR / MSCI watch (2-30 Nov)</text>
+<rect class="box" x="24" y="1881" width="10" height="20" rx="3"/>
+<text class="ink" x="42.0" y="1896.0" font-size="16" text-anchor="start" font-weight="400">quarterly, 06:00  Alt Assets Quarterly (not enabled)</text>
+<text class="mute" x="24.0" y="1934.0" font-size="15" text-anchor="start" font-weight="400">Times are ET. The two tasks held in UTC print</text>
+<text class="mute" x="24.0" y="1956.0" font-size="15" text-anchor="start" font-weight="400">their winter ET times (daylight saving ended 1 Nov).</text>
 </svg>
 <figcaption>Figure 2 — The clock: the box&#x27;s timers and the chat-side tasks on a 24-hour weekday dial, with the week and the month below; generated from deploy/systemd and docs/master-guide/chat-tasks.yaml</figcaption></figure></p>
 <p><strong>In three lines.</strong> Twenty-eight timers run on the box, all in ET; seven of them produce something you read. Thirteen chat-side entries (twelve claude.ai tasks, one of them planned and not yet created, plus your own Grok automation) feed you directly or feed the box through Drive. A few items arrive only when an event makes them: the 12:30 alert, volatility events and release days.</p>
@@ -900,7 +947,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 - The old monthly restore drill is retired (a47-chain3, ruling 6): its unit files are gone, and the weekly restore test is the one restore check.
 - The fourth chain adds no timer and changes none: the open and evening notes' services gain one comment each (their limits kept as starting values), and the dealer store and Batch 12's two writers ride units that already run.</p>
 <h3>Table 2. The chat-side tasks, and your own automation</h3>
-<p>The repo's record of these is <code>docs/master-guide/chat-tasks.yaml</code> (no prompts, no secrets). A status is one of five words: active, pilot, retiring, retired and <strong>planned</strong> (a task specified but not yet created; accepted as a status word on 19 October 2026, R15). Times are ET. <strong>A task the scheduler holds in UTC moves an hour on the ET clock when daylight saving ends on Sunday 1 November</strong>: 12:00 UTC is 08:00 ET until then and 07:00 ET after.</p>
+<p>The repo's record of these is <code>docs/master-guide/chat-tasks.yaml</code> (no prompts, no secrets). A status is one of five words: active, pilot, retiring, retired and <strong>planned</strong> (a task specified but not yet created; accepted as a status word on 19 October 2026, R15). Times are ET. <strong>Two tasks are held in UTC by the scheduler</strong> (the Weekly crypto tech scan and the AI-risk consensus-drift scan); the ET times printed for them are their winter times, daylight saving having ended on 1 November. The register is at version 2 (1 November 2026, B102), which adds the evening X pair and the readable editions (the subsection in Part 2).</p>
 <!-- table:chat-tasks -->
 <table>
 <thead>
@@ -915,26 +962,42 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </thead>
 <tbody>
 <tr>
-<td>Grok X digest (Ari's automation)</td>
-<td>daily 06:00</td>
-<td>Drive chester-x-digest/x-digest-YYYY-MM-DD.md</td>
-<td>the X digest triage; the box's nightly sweep copies the folder into the inbox (scripts/rclone_sync.sh)</td>
+<td>Grok X digests, morning (the operator's automations)</td>
+<td>daily 06:00 (A, crypto) and 06:15 (B, equity-vol and macro); the operator's Grok plan allows two automations</td>
+<td>Drive chester-x-digest/x-digest-YYYY-MM-DD.md (chapter A, sections A1-A10) and x-digest-eqmacro-YYYY-MM-DD.md (chapter B); from 2 Nov each ends with a P. Principals section (the posts of a fixed seed list of founders, CEOs and officials whose own posts move markets; crypto handles in A, the rest in B; the triage applies the role tags)</td>
+<td>the morning X triage; the box's nightly sweep copies x-digest-YYYY-MM-DD.md into the inbox (scripts/rclone_sync.sh; the B file is not swept)</td>
 <td>attention only; an X post never earns measurement rights by volume alone</td>
 <td>pilot</td>
 </tr>
 <tr>
-<td>X digest triage</td>
-<td>daily 06:50</td>
-<td>Drive chester-vendor-checks/x-triage/ (x-attention-ledger.csv, x-voices-ledger.csv) and a push summary</td>
-<td>the box's sweep copies the ledgers in; the Digital Assets addendum reads them (daily_cascade/digital_addendum.py)</td>
-<td>attention, voices and rumour tracking only; candidates go to the intake for Ari's ruling</td>
+<td>X digest triage, morning</td>
+<td>daily 07:17</td>
+<td>Drive chester-vendor-checks/x-triage/x-triage-YYYY-MM-DD.md; the ledgers x-attention-ledger.csv, x-attention-ledger-eqmacro.csv, x-voices-ledger.csv, x-rumour-ledger.csv; a push</td>
+<td>the box's sweep copies the ledgers in; the Digital Assets addendum reads them (daily_cascade/digital_addendum.py); the ES day-trading card reads the day's triage file</td>
+<td>attention, voices and rumour tracking only; candidates go to the intake for the operator's ruling</td>
 <td>pilot</td>
+</tr>
+<tr>
+<td>Grok X digest, evening (the operator's automation)</td>
+<td>Sunday to Friday 17:40</td>
+<td>Drive chester-x-digest/x-digest-evening-YYYY-MM-DD.md (format E v2, with the Principals section)</td>
+<td>the evening X triage</td>
+<td>attention and rumour tracking only</td>
+<td>planned</td>
+</tr>
+<tr>
+<td>X digest triage, evening</td>
+<td>Sunday to Friday 18:05</td>
+<td>Drive chester-vendor-checks/x-triage/x-triage-evening-YYYY-MM-DD.md; chapter-E rows in x-rumour-ledger.csv; a push</td>
+<td>the 21:30 evening note's 'X after hours' block (item 115, Tranche B after 8 Nov, not built; the sweep does not yet pull the evening file)</td>
+<td>report-only; attention and rumour tracking; no figure in the block is the system's measure</td>
+<td>planned (created 30 Oct, paused 1 Nov until its Grok input exists)</td>
 </tr>
 <tr>
 <td>AAII weekly read</td>
 <td>Thursday 12:10</td>
-<td>Drive chester-vendor-checks/aaii/aaii-weekly.csv (one row a week)</td>
-<td>the sweep pulls it into ~/chester-data/inbox/aaii; altdata/sources/aaii.py reads it</td>
+<td>Drive chester-vendor-checks/aaii/weekly/YYYY-MM-DD.csv (one file a week, since 24 Oct; the older aaii-weekly.csv is read-only history)</td>
+<td>the sweep pulls only chester-vendor-checks/aaii/aaii-weekly.csv into ~/chester-data/inbox/aaii (scripts/rclone_sync.sh, on main and on b82-aaii-bearish-share alike), which altdata/sources/aaii.py reads; the weekly/ folder is not swept yet (a gap for the merge week, docs/briefs/b102-notes.md)</td>
 <td>a reading (positioning), no decision right</td>
 <td>active</td>
 </tr>
@@ -948,16 +1011,16 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td>Weekly crypto tech scan (Pearl and new mechanisms)</td>
-<td>Saturday 12:00 UTC (08:00 ET until 1 Nov, 07:00 ET after)</td>
+<td>Saturday 12:00 UTC (07:00 ET in winter)</td>
 <td>a message only</td>
-<td>Ari</td>
+<td>the operator</td>
 <td>none (a read)</td>
 <td>retiring</td>
 </tr>
 <tr>
 <td>Publication watch (the reading shelf)</td>
 <td>the 12th and 27th, 06:58</td>
-<td>a reading-watch file that Ari commits to docs/scans/</td>
+<td>a reading-watch file that the operator commits to docs/scans/</td>
 <td>the library (the papers' refresh queue)</td>
 <td>none (a read)</td>
 <td>active</td>
@@ -965,14 +1028,14 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <tr>
 <td>Monthly signal scan</td>
 <td>the 25th, 06:57</td>
-<td>docs/scans/signal-scan-YYYY-MM.md, for Ari to rule on</td>
-<td>the signal-triage register (Ari's rulings)</td>
+<td>docs/scans/signal-scan-YYYY-MM.md, for the operator to rule on</td>
+<td>the signal-triage register (the operator's rulings)</td>
 <td>none until ruled</td>
 <td>active</td>
 </tr>
 <tr>
 <td>AI-risk consensus-drift scan</td>
-<td>the 20th of even months, 13:00 UTC (09:00 ET until 1 Nov, 08:00 ET after)</td>
+<td>the 20th of even months, 13:00 UTC (08:00 ET in winter)</td>
 <td>one line for Disruptive Themes</td>
 <td>Disruptive Themes (human-gated)</td>
 <td>none (a read)</td>
@@ -982,13 +1045,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>JPM Guide to the Markets read</td>
 <td>the 6th of January, April, July and October, 06:56</td>
 <td>docs/scans/jpm-gtm-YYYYqN.md</td>
-<td>Ari's rulings (change-order-jpm-gtm-2026-10-03.md)</td>
+<td>the operator's rulings (change-order-jpm-gtm-2026-10-03.md)</td>
 <td>none until ruled</td>
 <td>active</td>
 </tr>
 <tr>
 <td>MSTR / MSCI event watch</td>
-<td>weekdays 2-30 Nov, 07:10 (Thanksgiving skipped), and a post-effective read on 1 Dec, 07:10</td>
+<td>weekdays 2-30 Nov, 07:10 (Thanksgiving skipped); the post-effective read on 1 Dec is not yet scheduled (a one-shot to be created in late November)</td>
 <td>Drive chester-vendor-checks/mstr-msci-watch/mstr-msci-watch.csv, and a short push</td>
 <td>the Digital Assets addendum's dated calendar</td>
 <td>none (a read)</td>
@@ -1000,7 +1063,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Drive chester-vendor-checks (one JSON)</td>
 <td>the reconcile below</td>
 <td>a cross-check only; never a source</td>
-<td>retiring</td>
+<td>retired</td>
 </tr>
 <tr>
 <td>FlashAlpha vendor reconcile (Thursday morning)</td>
@@ -1008,7 +1071,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Drive chester-vendor-checks/flashalpha-ledger.md, and an email</td>
 <td>a session pastes rows into docs/ledgers/</td>
 <td>a cross-check only; never a source</td>
-<td>retiring</td>
+<td>retired</td>
 </tr>
 <tr>
 <td>Alternative assets quarterly scan</td>
@@ -1018,11 +1081,43 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>none (a read)</td>
 <td>planned</td>
 </tr>
+<tr>
+<td>Weekly Letter</td>
+<td>Sunday 06:12</td>
+<td>a private page with the charts and the PDF; the text edition Drive chester-letters/weekly-letter-YYYY-MM-DD.html; a row on the Letters index page; an email with the links; a push</td>
+<td>the operator; the ES Sunday map reads it; the Monthly Letter reads it; nothing in the repo or on the box reads it</td>
+<td>none: a reading of the edition, every figure copied from it, the edition's validation status applying to each</td>
+<td>active</td>
+</tr>
+<tr>
+<td>Monthly Letter</td>
+<td>the 1st, 10:43</td>
+<td>the same four things, as monthly-letter-YYYY-MM.html</td>
+<td>the operator; the Weekly Letter reads it; nothing in the repo or on the box reads it</td>
+<td>none, as the Weekly Letter</td>
+<td>active (first edition, October 2026, written by hand on 1 Nov; first scheduled run 1 Dec)</td>
+</tr>
+<tr>
+<td>ES day-trading card (DTH-1's manual edition)</td>
+<td>weekdays 08:15 and 15:15</td>
+<td>Drive chester-cards/card-YYYY-MM-DD-am.html and -pm.html; an email; a push</td>
+<td>the operator only: the system never reads a card</td>
+<td>none: the operator's private tool; Claude writes the card and places no orders</td>
+<td>active</td>
+</tr>
+<tr>
+<td>ES Sunday map</td>
+<td>Sunday 18:48</td>
+<td>Drive chester-cards/map-YYYY-MM-DD.html; an email; a push</td>
+<td>the operator only</td>
+<td>none, as the card</td>
+<td>active</td>
+</tr>
 </tbody>
 </table>
 <!-- /table -->
 
-<p><strong>The two FlashAlpha chat tasks are retiring.</strong> Batch 11's ruling D7 (19 October, as built) retires them at chain-2's merge, in place of the box sheet's 29 October date: the chat deletes both the morning after. The box's 16:25 vendor writer and its divergence gate take their place, and FlashAlpha stays a cross-check, never a source.</p>
+<p><strong>The two FlashAlpha chat tasks are retired.</strong> Batch 11's ruling D7 retired them at chain-2's merge (20 October), and both were deleted from the scheduler. The box's 16:25 vendor writer and its divergence gate took their place, and FlashAlpha stays a cross-check, never a source. Their rows stay in the register for the history.</p>
 <h3>Table 3. What arrives only when something happens</h3>
 <table>
 <thead>
@@ -1117,6 +1212,10 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td><strong>Disruptive Themes</strong></td>
 <td>Re-cadenced to quarterly and folded into the <strong>Quarterly Structural</strong>, which is <strong>not built</strong>. The Monthly prints one line saying so.</td>
 </tr>
+<tr>
+<td><strong>(no original)</strong></td>
+<td>The <strong>readable editions</strong>, chat-side since 25 October: the Weekly Letter and the Monthly Letter in front of the two stacked editions, the Letters index, the ES cards and the Sunday map (DTH-1's manual edition), the X triage pushes. None has rights; none is read by the box. The subsection below.</td>
+</tr>
 </tbody>
 </table>
 <p>The live cards follow. Each names its entry point, so the gate can hold it to the code.</p>
@@ -1159,7 +1258,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Entry point:</strong> <code>daily_cascade/close_report.py</code> (<code>chester-daily-close.timer</code>, weekdays 16:45), building through <code>daily_cascade/stack_close.py</code>.</li>
 <li><strong>Purpose:</strong> the day's record. It is the <strong>only writer of the market-state object</strong>, and it writes each outlook to the ledger before it prints it.</li>
 <li><strong>Horizon and books:</strong> every book, as record (fills, carry, switches).</li>
-<li><strong>When and how long:</strong> weekdays 16:45, email plus PDF. Target <strong>five minutes</strong>, 1,000 words and three charts (<code>config/reporting_stack.yaml</code>).</li>
+<li><strong>When and how long:</strong> weekdays 16:45, email plus PDF. Target <strong>ten minutes</strong>, about 2,250 words and three charts (<code>config/reporting_stack.yaml</code>; D19/D20, 24 Oct 2026: a target, never a cap, with one foot line when over).</li>
 <li><strong>The sections that matter most:</strong> the ten-section stack at daily depth: the read (with the bank-stress classifier's line, only when it prints), the tape, <strong>mechanics</strong> (the dealer block), what doesn't fit, plumbing and rates (with the bank-stress item beside item 34's cluster, priority 1 when a flag is on), positioning, what's priced, narratives, <strong>ahead</strong>, <strong>the book</strong>. Then the detail tables (the state, the contradictions, moves past 2.5σ, and <strong>relative options volume</strong>: the names at 1.5 times their 20-session average, five at most, "volume, no side", OS-12) and the glossary; the next close's mechanics says how many of yesterday's flagged names became OI builds. The Alpha Lab line and the meme drafts line print near the book.</li>
 <li><strong>Highest rung:</strong> a <strong>setup proposed</strong> by the dealer block (pin fade, negative-gamma continuation, forced flow), which ends "The block proposes; the books decide; nothing here writes the register."</li>
 <li><strong>Not allowed:</strong> to write the register or to size anything.</li>
@@ -1172,7 +1271,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Entry point:</strong> <code>daily_cascade/weekly_report.py</code> (<code>chester-weekly.timer</code>, Sunday 05:00), building through <code>daily_cascade/weekly_stack.py</code>; the addendum is <code>daily_cascade/digital_addendum.py</code>.</li>
 <li><strong>Purpose:</strong> the week's read and Book B's candidates, for the Sunday sitting.</li>
 <li><strong>Horizon and books:</strong> <strong>Book B</strong> owns it; Book A for context; Book D through the addendum's book section.</li>
-<li><strong>When and how long:</strong> Sunday 05:00, email plus PDF. Target <strong>twenty minutes</strong>, 3,500 words, ten charts. The addendum: five minutes, 1,100 words, two charts, its own PDF on the same email.</li>
+<li><strong>When and how long:</strong> Sunday 05:00, email plus PDF. Target <strong>thirty-five minutes</strong>, about 7,900 words, ten charts. The addendum: about seven minutes, about 1,500 words, two charts, its own PDF on the same email. Targets, never caps (D19/D20, 24 Oct 2026): nothing is cut for length, and an edition over its target prints one foot line.</li>
 <li><strong>The sections that matter most:</strong><ul>
 <li>the <strong>précis</strong> (its stance is written to the ledger) and "Changed since last Weekly";</li>
 <li><strong>positioning</strong> and <strong>mechanics</strong> (the dealer week, the scorecard rates, OS-8 and OS-10 with the week's relative-volume flags per name and OS-12c's ledger to date, the vendor line); <strong>plumbing and rates</strong> carries the bank-stress line (Batch 12), and Batch 14's PMMS-10y spread in the housing block and the nominal-growth anchor in the 10-year attribution (a56, report only);</li>
@@ -1234,6 +1333,59 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li><strong>Its study:</strong> SN-2, after-hours earnings (pre-registered; first edition FAIL, report-only).</li>
 <li><strong>Deeper:</strong> the secondary-notes order, sections 2, 3 and 5.</li>
 </ul>
+<h3>The readable editions (the Letters, the cards and the pushes; from 25 October, settled 1 November)</h3>
+<p>Four chat-side tasks sit in front of the reports and write a readable edition for the operator. None has rights, none is read by the box, and every figure they carry is copied from the edition it reads. The repo's record of them is Table 2 and <code>docs/master-guide/chat-tasks.yaml</code>; their order is <code>docs/change-order-readable-editions-2026-11-01.md</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Edition</th>
+<th>When (ET)</th>
+<th>Reads</th>
+<th>Writes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The Weekly Letter</td>
+<td>Sunday 06:12</td>
+<td>the Weekly's email (05:10), last Sunday's Letter, the latest Monthly Letter</td>
+<td>a private page with 10–18 charts and the PDF; the text edition in Drive chester-letters/; a row on the Letters index; an email with the links; a push</td>
+</tr>
+<tr>
+<td>The Monthly Letter</td>
+<td>the 1st, 10:43</td>
+<td>the Monthly's email (07:40), the previous Monthly Letter, the latest Weekly Letter</td>
+<td>the same four things</td>
+</tr>
+<tr>
+<td>The ES day-trading card</td>
+<td>weekdays 08:15 and 15:15</td>
+<td>the anchor, the open note and the alert; the operator's settings and ledger in Drive chester-cards/; the day's X triage; the vendor's levels as a cross-check</td>
+<td>chester-cards/card-YYYY-MM-DD-am.html and -pm.html, an email, a push</td>
+</tr>
+<tr>
+<td>The ES Sunday map</td>
+<td>Sunday 18:48</td>
+<td>the Weekly and the Weekly Letter; chester-cards/</td>
+<td>chester-cards/map-YYYY-MM-DD.html, an email, a push</td>
+</tr>
+<tr>
+<td>The X triage pushes</td>
+<td>daily 07:17; Sunday to Friday 18:05</td>
+<td>the Grok digests</td>
+<td>the x-triage files and ledgers (Table 2), a push</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The contract, in six lines.</strong></p>
+<ol>
+<li><strong>The edition is the record; a Letter is a reading of it.</strong> Every figure in a Letter appears in the edition it reads, copied with its unit and as-of date; the edition's own validation status applies to each; the only arithmetic allowed is a difference between two printed figures, said to be one. The charts are drawn from the edition's own tables.</li>
+<li><strong>No rights.</strong> A Letter never says buy, sell, long, short, add, trim, overweight or underweight. Nothing in the repo, the store, the inbox, a ledger or a flag reads a Letter, a card or a map. The ES cards and the map are the operator's private DTH-1 tool: Claude writes them and places no orders; the system never reads a card.</li>
+<li><strong>Provenance runs one way: store, edition, Letter.</strong> The Letter's footer names the edition it read. A Letter that finds no edition pushes "no edition found" and stops; the operator fires it again once the edition arrives. A Letter never delays, retries or repairs an edition, and the box's heartbeat does not know the Letters exist.</li>
+<li><strong>What the Letters find, the box fixes.</strong> Each Letter prompt carries the edition's known self-contradictions, found while writing. That list is a defect feed, not a patch: each entry is filed in <code>docs/briefs/letter-findings.md</code>, fixed in the edition by a session, then retired from the prompt. A Letter says where the edition contradicts itself and does not chart the disputed figure; it never papers over it.</li>
+<li><strong>The repo's rules hold in the Letters.</strong> No person's name (institutions and outlets only, even where the edition prints names), no Brookfield-complex instrument, no secrets, no email addresses. The Letters live in Drive and on private pages, never in the repo; the register is the repo's whole record of them, with no prompt and no figure committed.</li>
+<li><strong>Reading order.</strong> Sunday: the Weekly Letter first (about fifteen minutes), then the Weekly for the book, the scorecard and the post-mortems. The 1st: the Monthly Letter first, then the Monthly's read and its book for the sitting. The editions' configured reading targets stand as the reference reader's, not the first read's.</li>
+</ol>
 <h3>Short cards: the reports that are not built</h3>
 <ul>
 <li><strong>The Quarterly Structural:</strong> not built. No code and no unit. Disruptive Themes and the long themes are meant to fold into it.</li>
@@ -1684,7 +1836,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </ul>
 <h3>2. Market prices</h3>
 <ul>
-<li><strong>What:</strong> the yfinance basket (<strong>124 symbols</strong>; KRE joins for Batch 12's bank-equity leg, and on the fifth chain SMH, MU, AMD, GRID, ANET, VRT, PAVE and ASML for Batch 14's capex chain, including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's <strong>Portfolio Truth</strong> (read-only, no order code), and <strong>Massive's SPX and SPCX chains</strong> (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).</li>
+<li><strong>What:</strong> the yfinance basket (<strong>127 symbols</strong>; KRE joins for Batch 12's bank-equity leg, on the fifth chain SMH, MU, AMD, GRID, ANET, VRT, PAVE and ASML for Batch 14's capex chain, AIQ and SPXT for Batch 14 item 65's AI proxy pair, and QAI for item 74's hedge-fund performance proxy (ruling D22), including the CBOE volatility family: VIX, VIX9D, VIX3M, VIX6M, VVIX, SKEW, MOVE, DSPX, COR1M, COR3M), IBKR's <strong>Portfolio Truth</strong> (read-only, no order code), and <strong>Massive's SPX and SPCX chains</strong> (15-minute delayed; stored for ingestion only, their Greeks held behind the solver gate).</li>
 <li><strong>When:</strong> 16:10 and 06:45; the close's re-pull; Saturday 06:00; IBKR every 30 minutes in the session; Massive at 16:31 and in the intraday captures; the secondary notes' own 5-minute bars at 09:50 and 21:30.</li>
 <li><strong>History from Massive's flat files</strong> (D4, <code>tools/massive_flatfiles_backfill.py</code>): the chains' history reconstructed from last-trade closes, stored labelled <code>reconstructed</code>, and read by the ranks only within the pre-registered agreement tolerances (accepted 19 October, R6). It runs by hand on the box once its two credentials are in <code>.env</code>; on the fifth chain it also stores each name's daily total, call and put volume, read apart from the captures under a relative 10% tolerance (OS-12d).</li>
 <li><strong>The most it may do:</strong> readings and lenses; the volatility-event flag (no modifier right before 30 events).</li>
@@ -1837,7 +1989,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><strong>In three lines.</strong> Of twenty-four gated signals with a verdict, one passed, fourteen failed and nine are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime; it prints now, as measurement only, and accrues until each cell has ten graded decisions.</p>
+<p><strong>In three lines.</strong> Of thirty-one gated signals with a verdict, one passed, sixteen failed and fourteen are insufficient; twelve more are accruing a sample, and about sixty are untested context. Size untested and accruing signals at the Card's minimum, or not at all. The score is rolling expectancy by book and regime; it prints now, as measurement only, and accrues until each cell has ten graded decisions.</p>
 <h3>The headline counts</h3>
 <table>
 <thead>
@@ -1855,13 +2007,13 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </tr>
 <tr>
 <td><strong>Failed</strong></td>
-<td>14</td>
-<td>The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23); and from the third chain, S-2's ETF-flow extremes and S-3's leverage extreme (the crypto flags), OS-6 (the opening setup's positioning components; accepted as FAIL, display only, R5), and the secondary notes' two studies, SN-1 (the release-day first hour) and SN-2 (after-hours earnings); and from the fourth chain, ST-R6.59c, the bank-stress classifier's base rate (n 18: both crises caught, but 6 of 16 corrections stayed correction against a two-thirds rule); and from the fifth chain, ST-R6.66c, the wealth-effect impulse against real consumption growth (n 65: ρ +0.06 against the rule's 0.20, though both halves are positive). Each prints display only, or not at all.</td>
+<td>16</td>
+<td>The rates driver (SR-6 and SR-17), the yen unwind (SR-2), the false-bottom gate (SR-8, by its ledger), the valuation strip (SR-15), the Fed–market divergence split (SR-21), ABS_STRESS (SR-22), net supply against the term premium (SR-23); and from the third chain, S-2's ETF-flow extremes and S-3's leverage extreme (the crypto flags), OS-6 (the opening setup's positioning components; accepted as FAIL, display only, R5), and the secondary notes' two studies, SN-1 (the release-day first hour) and SN-2 (after-hours earnings); and from the fourth chain, ST-R6.59c, the bank-stress classifier's base rate (n 18: both crises caught, but 6 of 16 corrections stayed correction against a two-thirds rule); and from the fifth chain, ST-R6.66c, the wealth-effect impulse against real consumption growth (n 65: ρ +0.06 against the rule's 0.20, though both halves are positive); and from the chain-8 assembly, ST-R6.71d, the air pockets against the fragility panel (n 2965), and trend-signal breadth against what followed (n 163). Each prints display only, or not at all.</td>
 </tr>
 <tr>
 <td><strong>Insufficient</strong></td>
-<td>9</td>
-<td>SR-4, SR-5, SR-12, SR-13, SR-14, the two index studies ST-R5.31 and ST-R5.44, OS-9's outcome ledger (0 resolved builds against a floor of 30), and OS-12c's relative-volume ledger (the fifth chain; n 0, the laptop holds no captures, and the box edition waits for 20 capture sessions a name): too few episodes to judge.</td>
+<td>14</td>
+<td>SR-4, SR-5, SR-12, SR-13, SR-14, the two index studies ST-R5.31 and ST-R5.44, OS-9's outcome ledger (0 resolved builds against a floor of 30), and OS-12c's relative-volume ledger (the fifth chain; n 0, the laptop holds no captures, and the box edition waits for 20 capture sessions a name); and from the chain-8 assembly, the speed flag's attribution ST-R6.65a (n 28), the one-day 10-year trigger D15 (n 67), leveraged funds' extreme shorts ST-R6.74b (n 0), the gold exhaustion checklist (n 0) and the Top &amp; Bottom harness (n 13 of the 3 September thirteen): too few episodes to judge.</td>
 </tr>
 <tr>
 <td><strong>Accruing</strong></td>
@@ -1895,6 +2047,18 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>After-hours earnings: continuation or fade — pre-registration (SN-2, October 2026)</td>
 </tr>
 <tr>
+<td><code>ai-lab-financials-ledger.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>The AI-lab financials ledger -- its template and first, provisional row (ST-R6.75a, Batch 15 item 75; report only)</td>
+</tr>
+<tr>
+<td><code>air-pocket-preregistration-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>The air pockets against the fragility panel — pre-registration (ST-R6.71d, Batch 14 item 71)</td>
+</tr>
+<tr>
 <td><code>bank-stress-preregistration-2026-10.md</code></td>
 <td>diagnostic</td>
 <td>n —</td>
@@ -1911,6 +2075,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>diagnostic</td>
 <td>n —</td>
 <td>Dealer scorecard — pre-registration (6b, October 2026)</td>
+</tr>
+<tr>
+<td><code>d15-ledger-2026-10-24.md</code></td>
+<td>INSUFFICIENT</td>
+<td>n 67</td>
+<td>D15 ledger -- the 10-year one-day trigger's attribution against the next 5 sessions (rulings of 24 Oct 2026; report only)</td>
 </tr>
 <tr>
 <td><code>false-bottom-audit-2026.md</code></td>
@@ -1935,6 +2105,36 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>diagnostic</td>
 <td>n —</td>
 <td>GEX / DEX definitions against FlashAlpha — 9 Oct 2026 SPY, per-strike (read-only diagnostic)</td>
+</tr>
+<tr>
+<td><code>gold-exhaustion-ledger-2026-10-26.md</code></td>
+<td>INSUFFICIENT</td>
+<td>n 0</td>
+<td>The gold exhaustion checklist's ledger, first edition -- does a ticked tell mark a low (Batch 16 item 88(a); report only)</td>
+</tr>
+<tr>
+<td><code>gold-exhaustion-preregistration-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>The gold exhaustion checklist's ledger — pre-registration (Batch 16 item 88(a))</td>
+</tr>
+<tr>
+<td><code>midterm-base-rate-2026-10-26.md</code></td>
+<td>NO GATE</td>
+<td>n 19</td>
+<td>Midterm base-rate ledger -- the midterm-year table, computed from the store</td>
+</tr>
+<tr>
+<td><code>midterm-base-rate-2026-10-28.md</code></td>
+<td>NO GATE</td>
+<td>n 19</td>
+<td>Midterm base-rate ledger -- the midterm-year table, computed from the store</td>
+</tr>
+<tr>
+<td><code>oneday-10y-preregistration-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>The one-day 10-year trigger's attribution against what followed — pre-registration (D15)</td>
 </tr>
 <tr>
 <td><code>os-12c-ledger-2026-10-20.md</code></td>
@@ -2003,6 +2203,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>S-3 ledger -- the crypto leverage extreme (funding z with open interest at a 90-day high)</td>
 </tr>
 <tr>
+<td><code>short-extremes-preregistration-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>Leveraged funds' extreme net shorts in ES and the S&amp;P 500 after -- pre-registration (ST-R6.74b, Batch 15 item 74)</td>
+</tr>
+<tr>
 <td><code>sn-1-ledger-2026-10-19.md</code></td>
 <td>FAIL</td>
 <td>n 159</td>
@@ -2013,6 +2219,12 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>FAIL</td>
 <td>n 193</td>
 <td>SN-2 ledger -- after-hours earnings: continuation or fade</td>
+</tr>
+<tr>
+<td><code>speed-attribution-preregistration-2026-10.md</code></td>
+<td>diagnostic</td>
+<td>n —</td>
+<td>The 10-year speed flag's attribution against what followed — pre-registration (ST-R6.65a, Batch 14 item 65)</td>
 </tr>
 <tr>
 <td><code>sr-1-ledger-2026-10-18.md</code></td>
@@ -2163,6 +2375,48 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>FAIL</td>
 <td>n 65</td>
 <td>ST-R6.66c ledger -- the wealth-effect impulse against real consumption growth (Batch 14 item 66; report only)</td>
+</tr>
+<tr>
+<td><code>st-r6.66c-ledger-2026-10-28.md</code></td>
+<td>FAIL</td>
+<td>n 65</td>
+<td>ST-R6.66c ledger -- the wealth-effect impulse against real consumption growth</td>
+</tr>
+<tr>
+<td><code>st-r6.65a-ledger-2026-10-23.md</code></td>
+<td>INSUFFICIENT</td>
+<td>n 28</td>
+<td>ST-R6.65a ledger -- the 10-year speed flag's attribution against the next 20 sessions (Batch 14 item 65; report only)</td>
+</tr>
+<tr>
+<td><code>st-r6.71d-ledger-2026-10-23.md</code></td>
+<td>FAIL</td>
+<td>n 2965</td>
+<td>ST-R6.71d ledger -- the air pockets against the fragility panel (Batch 14 item 71; flag rights only)</td>
+</tr>
+<tr>
+<td><code>st-r6.74b-ledger-2026-10-23.md</code></td>
+<td>INSUFFICIENT</td>
+<td>n 0</td>
+<td>ST-R6.74b ledger -- leveraged funds' extreme net shorts in ES against the S&amp;P 500's next 20 sessions (Batch 15 item 74; flag rights only)</td>
+</tr>
+<tr>
+<td><code>tb-harness-2026-10-26.md</code></td>
+<td>INSUFFICIENT</td>
+<td>n 13</td>
+<td>The T&amp;B harness -- the 3 Sep thirteen through Part 23's overlays (6i-2; report only, no composite)</td>
+</tr>
+<tr>
+<td><code>tb-harness-fpr-2026-10-26.md</code></td>
+<td>diagnostic</td>
+<td>n 0</td>
+<td>The T&amp;B harness's continuous false-positive rate -- pre-registered, laptop edition (6i-3; report only)</td>
+</tr>
+<tr>
+<td><code>trend-breadth-2026-10-26.md</code></td>
+<td>FAIL</td>
+<td>n 163</td>
+<td>Trend-signal breadth against what followed -- calibration ledger (Batch 16 item 89(b); report only)</td>
 </tr>
 <tr>
 <td><code>vendor-divergence-notes.md</code></td>
@@ -2461,6 +2715,54 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>Untested</td>
 <td>Candidates; nothing passed or promoted; engine 6 prints "awaiting (n=k of 30)" per bucket</td>
 </tr>
+<tr>
+<td>The 10-year speed flag's attribution and the one-day 10-year trigger (Batch 14 item 65, a57; D15, b59)</td>
+<td>lens and flag</td>
+<td><strong>Insufficient</strong> (ST-R6.65a n 28; D15 n 67)</td>
+<td>Report only: each model's split, "awaiting" any model not yet stored</td>
+</tr>
+<tr>
+<td>The fragility flag: the Amihud stand-in at its 90th with forced flow above its 90th (Batch 14 item 71, a57)</td>
+<td>flag</td>
+<td><strong>Failed</strong> (ST-R6.71d)</td>
+<td>Flag rights only, display only</td>
+</tr>
+<tr>
+<td>Gold's event flag and the developed-market drawdown screen (Batch 15 items 72 and 73, a58); the ES squeeze-risk flag (item 74, b56)</td>
+<td>flags</td>
+<td>Untested; the squeeze flag <strong>Insufficient</strong> (ST-R6.74b n 0)</td>
+<td>Printed in the close's event area and the Weekly; no rights</td>
+</tr>
+<tr>
+<td>Gold's five-lens attribution, its 60-day real-yield beta and the exhaustion checklist (Batch 16 items 87 and 88, b75)</td>
+<td>lens and tells</td>
+<td>Lenses untested; the checklist <strong>Insufficient</strong> (n 0)</td>
+<td>Report only; the Weekly's gold section from 8 November</td>
+</tr>
+<tr>
+<td>Trend-signal breadth over sixteen markets (Batch 16 item 89(b), b76)</td>
+<td>report</td>
+<td><strong>Failed</strong> (n 163)</td>
+<td>A table in the Weekly's Positioning &amp; flows; enters the T&amp;B intake queue only after a sitting reads its ledger</td>
+</tr>
+<tr>
+<td>The Top &amp; Bottom harness: the 3 September thirteen through Part 23's overlays, its false-positive rate, the Baa credit proxy (6i, a77 and a79)</td>
+<td>harness</td>
+<td><strong>Insufficient</strong> (n 13)</td>
+<td>Report only, no composite; nothing reaches the market-state object</td>
+</tr>
+<tr>
+<td>Learning Loop v2: decision quality, the error corpus, value of information, the post-mortem file, Red Team in shadow (LL-1 to LL-4, b73 and a80)</td>
+<td>measurement</td>
+<td>Untested</td>
+<td>Report only: the Monthly's Lab report and the Doctrine pack; no model call except the optional shortening</td>
+</tr>
+<tr>
+<td>The Quarterly's readers: oil buffers and chokepoints, WASDE, crop progress, ENSO, the disaggregated grains, BoC, Riksbank, the SNB, MoF interventions, iShares AUM, DefiLlama breadth, the BDCs (b69 and b70)</td>
+<td>readings</td>
+<td>Untested</td>
+<td>Report only, barred from the object; the Quarterly ships disabled</td>
+</tr>
 </tbody>
 </table>
 <p><strong>OS-6</strong> (the opening setup's positioning components) has its first ledger on the third chain, and FAILs: display only, no rights (accepted 19 October, R5).</p>
@@ -2552,15 +2854,18 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <p><strong>In three lines.</strong> This is the as-built version of the Doctrine's operating rhythm (6.5). The Doctrine's 10:00 report does not exist; the 09:50 open note takes its role (built; dry runs until 26 October), and the 12:30 alert has no veto right. The as-built rhythm comes to about two and a half to three hours a week, inside the Doctrine's three to four.</p>
 <h3>Every trading day</h3>
 <ul>
-<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>06:50, optional, one minute:</strong> the X triage push. Attention only; never act on it.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>07:17, optional, one minute:</strong> the morning X triage push. Attention only; never act on it.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>07:00, ten minutes:</strong> the anchor. The dials as the close left them; what changed; the volatile-day flag (four arms, the gap provisional); the gauge and the vol lines; the signal lines; the pre-market line; the largest OI builds (side unknown); the meme line. <em>Not built:</em> Book C drafts and the 0700 setup list. <em>Off until your yes:</em> the crypto paragraph (built behind a switch that ships off).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>08:15 and 15:15, optional, three minutes each, DTH-1 manual:</strong> the ES card (your private tool; the system never reads it).</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>09:50, optional, two minutes:</strong> the open note (once you enable its timer; dry runs until 26 October). It confirms or cancels Book C's 07:00 drafts and never adds; until drafts exist it says so. Mandatory on volatile-protocol days only once Book C is active, if Doctrine #2 keeps that.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>12:30, only if it arrives, two minutes:</strong> read the alert; do nothing until the close. The alert has no veto right; the open note carries the 10:00 report's confirm-or-cancel touch.</li>
-<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>16:45, five minutes:</strong> the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>16:45, ten minutes:</strong> the close. What held and what broke against the morning; the dealer block's proposals; the meme line; the book's state; whether a switch has tripped.</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>18:05 Sunday to Friday, optional, one minute:</strong> the evening X triage push.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>21:30 Sunday to Thursday, optional, one minute (three on Sunday):</strong> the evening note (once you enable its timer). Never act on it at night; the 07:00 anchor re-reads all of it.</li>
 </ul>
 <h3>Sunday, 45 to 60 minutes</h3>
 <ul>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Weekly Letter (about fifteen minutes): the week's story, the tensions, what is priced against what is positioned.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Weekly: the précis, what changed, the read and the book.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> The scorecard rates (they say "no rate is a decision" until the sample is in).</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>Book B:</strong> select up to three candidates, within the attention budget of seven approvals a week. Write each packet, exit first.</li>
@@ -2569,9 +2874,11 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> The lab line.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> Saturday's lab brief and the crypto tech scan (read on Saturday or Sunday).</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> Note the week's tier-1 events; confirm heat and net exposure, the first two lines at the top of the Weekly (b48-scoreboard).</li>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> <strong>18:48, optional:</strong> the ES Sunday map.</li>
 </ul>
 <h3>The first weekend of the month, 90 minutes</h3>
 <ul>
+<li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Monthly Letter (about twenty minutes), then the Monthly.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> The Monthly.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> The monthly sitting: read the Macro dial; set <strong>Book A's stance within its band</strong>; approve the rebalance packet.</li>
 <li class="task"><span class="box" aria-hidden="true">&#9744;</span> Rulings on the 25th's signal scan and the reading watch.</li>
@@ -3050,7 +3357,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>XXXIII</td>
 <td><a href="whitepapers/reporting-system-whitepaper.md">The Reporting System</a></td>
 <td>System</td>
-<td>Draft 3 · ~23,400 words, 1 figure in docs/figures</td>
+<td>Draft 4 · ~29,000 words, 1 figure in docs/figures</td>
 <td>How to decide and judge evidence</td>
 <td>A, B, C, D</td>
 <td>How the reports work: the data, the market state, the stack, the audits, the register</td>
@@ -3322,55 +3629,68 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       </div>
     </details>
 
-    <details class="section" id="s12-landing-next-as-of-23-october-2026">
+    <details class="section" id="s12-landing-next-as-of-29-october-2026">
       <summary class="section-head">
-        <span class="section-title">Landing next (as of 23 October 2026)</span>
+        <span class="section-title">Landing next (as of 29 October 2026)</span>
         <span class="chev" aria-hidden="true"></span>
       </summary>
       <div class="section-body">
-<p><strong>In three lines.</strong> Everything the fifth chain carries is now described above as built: relative options volume, the box evening's fixes and the FOMC history, the store check's clock and lags with the editions' builder, and Batch 14's Part A. No branch is waiting to land. The calendar after it runs to January.</p>
+<p><strong>In three lines.</strong> This Guide is as built on the chain-8 assembly, so everything chain-7 and chain-8 carry is described above as built. They land on main next week, in the order below, after one small PR that makes main's gates green. Library papers land by their own PRs after review, never through a chain.</p>
 <table>
 <thead>
 <tr>
-<th>Item</th>
-<th>As built on chain-5</th>
-<th>Where above</th>
+<th>Order</th>
+<th>What lands</th>
+<th>When</th>
+<th>What it carries</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Everything of the fourth chain (a50-dealer-store, b48-scoreboard, a52-doctrine-2-pack)</td>
-<td>Built, as the fourth chain's refresh described it</td>
-<td>Parts 2 to 8</td>
+<td>1</td>
+<td>One small PR: A91's fixture fix to <code>validate_audit_fixes</code> (that file's change from a90 alone) and <code>b85-gitattributes-lf</code></td>
+<td>Tuesday 3 November, evening, before chain-7</td>
+<td>Main's one red gate made green; every hash-pinned file checked out LF on every machine</td>
 </tr>
 <tr>
-<td>Batch 13, item 61: relative options volume, OS-12a to OS-12d (a54-relative-volume)</td>
-<td>Built: the flag at 1.5 times the 20-session average, "volume, no side", in the close, the anchor and the Weekly; OS-12c's ledger INSUFFICIENT (n 0); the flat-file volume read apart</td>
-<td>The anchor's, the close's and the Weekly's cards; Part 4.2; Part 5; Table 7b</td>
+<td>2</td>
+<td>chain-7</td>
+<td>Tuesday 3 November, evening</td>
+<td>Batch 14's Parts B1 and B2, Batch 15, the 24 October rulings' builds (b59's trigger and sources, b60, 6f), merged with main as rehearsed (B83's script)</td>
 </tr>
 <tr>
-<td>The box evening's fixes (a55-box-fixes): the FRED history's windows, the notes' paragraph aimed at 80% of its cap, the BLS feeds' contact, the FOMC event rows and history with its monthly audit, the requirements check</td>
-<td>Built; each re-run is your box command</td>
-<td>Part 4.1</td>
+<td>3</td>
+<td>chain-8</td>
+<td>after chain-7</td>
+<td>The stitch tools (S1); the 6f tranche 4, capex guidance, the Doctrine #2 pack, the dated appendices, the Reader's Guide draft 4, Amendment #3's record and the audit's leftovers (a65 to a71); the briefs b63 to b68 and the Quarterly's readers (b69, b70); Learning Loop v2 (b73, a80); the gold spine and trend breadth (b75, b76); the T&amp;B harness (a77, a79); Batch 17's filing (a81); the source checks (b58)</td>
 </tr>
 <tr>
-<td>The store check's ET clock and publication lags, the stored objects, the synthetic rows' purge tool, the editions' builder (b51-registry-html)</td>
-<td>Built; the purge is a dry run until you rule on quarantine or removal</td>
-<td>Part 4.1</td>
+<td>4</td>
+<td>a90's remainder</td>
+<td>after chain-8</td>
+<td>The Monthly's second dry-run fixes</td>
 </tr>
 <tr>
-<td>Batch 14, items 64, 69 and 70 (a56-batch14-a1)</td>
-<td>Built, report only: the excess CAPE yield, the PMMS-10y spread, real home prices since 1890, the nominal-growth anchor; the GSE purchase story enters as a proposal at the next seed</td>
-<td>The Weekly's and the Monthly's cards; Table 7b</td>
+<td>5</td>
+<td>a84, b81, b82, b85-crypto-derived-keys, in that order</td>
+<td>after a90</td>
+<td>The feed summary and allowances; Batch 18's filing (the 23-hour session); the AAII bearish share; the eight derived crypto keys declared</td>
 </tr>
 <tr>
-<td>Batch 14, items 63 and 66 (b52-batch14-a2)</td>
-<td>Built, report only: the AI capex chain and its relative line (eight new symbols, backfill yours), the wealth-effect impulse and the net-transmission line; ST-R6.66c FAILs (n 65)</td>
-<td>The Monthly's card; Part 4.2; Part 5; Table 7b</td>
+<td>—</td>
+<td>The library papers (XXVII first, then XXIX, XXX, XXXI, XXXII and the phase-3a and figure branches)</td>
+<td>each by its own PR, after your review</td>
+<td>—</td>
+</tr>
+<tr>
+<td>—</td>
+<td>The readable editions (B102; <code>docs/change-order-readable-editions-2026-11-01.md</code>)</td>
+<td>recorded 1 Nov 2026, chat-side</td>
+<td>No rights and no reader in the system; the first stacked Monthly went out 1 Nov 07:49 with sixteen withheld blocks (A95 reads it)</td>
 </tr>
 </tbody>
 </table>
-<p>Read from: the branches' own notes (<code>docs/briefs/a54-relative-volume-notes.md</code>, <code>a55-box-fixes-notes.md</code>, <code>b51-registry-html-notes.md</code>, <code>a56-batch14-a1-notes.md</code>, <code>b52-batch14-a2-notes.md</code>), the fourth chain's (<code>chain-4-stitch-notes.md</code>), the stitch notes (<code>chain-5-stitch-notes.md</code>) and the code on chain-5.</p>
+<p>Read from: <code>docs/briefs/b83-rehearsal-notes.md</code> (chain-7's script), <code>docs/briefs/b86-chain-8-notes.md</code> (chain-8's membership, merges and the order above) and each branch's own notes.</p>
 <h3>The calendar ahead</h3>
 <table>
 <thead>
@@ -3381,28 +3701,8 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 </thead>
 <tbody>
 <tr>
-<td>From chain-3's merge to Sunday 25 October</td>
-<td>The secondary notes' dry runs (at least two weekday runs of each and one Sunday), mailed "[DRY RUN]" and archived under <code>reports/dryrun/</code></td>
-</tr>
-<tr>
-<td>Monday 26 October</td>
-<td>The secondary notes' <code>live_from</code> (moved later if chain-3 merges after Thursday 22 October)</td>
-</tr>
-<tr>
-<td>Wednesday 28 October</td>
-<td>The 1 November Monthly's last dry run: chain-5, with Batch 12's panel and Batch 14's Part A, on main before it</td>
-</tr>
-<tr>
-<td>Sunday 25 October</td>
-<td>The first Weekly with Book B candidates; the opening setup's tag thresholds reviewed at the dry run</td>
-</tr>
-<tr>
 <td>Sunday 1 November</td>
-<td>The first Digital Assets addendum; daylight saving ends (UTC-held chat tasks move an hour)</td>
-</tr>
-<tr>
-<td>Sunday 1 November</td>
-<td>The 1 November Monthly (the 1st, 07:30)</td>
+<td>The 1 November Monthly (the 1st, 07:30); the first Digital Assets addendum; daylight saving ends (UTC-held chat tasks move an hour)</td>
 </tr>
 <tr>
 <td>1–7 November</td>
@@ -3413,12 +3713,24 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
 <td>The X pilot's decision point (Tranche 1 or not)</td>
 </tr>
 <tr>
+<td>Tuesday 3 November</td>
+<td>The midterms (graded by the claims register); the small PR, then chain-7, in the evening window</td>
+</tr>
+<tr>
+<td>after chain-7</td>
+<td>chain-8, then a90, a84, b81, b82 and b85-crypto-derived-keys</td>
+</tr>
+<tr>
 <td>2–30 November</td>
 <td>The MSTR / MSCI watch</td>
 </tr>
 <tr>
 <td>Saturday 7 – Sunday 8 November</td>
 <td>Doctrine #2, from <a href="briefs/doctrine-2-pack-2026-11.md">the preparation pack</a>: SR-1's rights; this Guide's Part 8; the Tranche H proposals; the volatile-day flag's actions; the scoreboard's items</td>
+</tr>
+<tr>
+<td>Sunday 8 November</td>
+<td>The first Weekly with the gold section and trend breadth (chain-8)</td>
 </tr>
 <tr>
 <td>December</td>
@@ -3442,7 +3754,7 @@ text{font-family:Aptos,'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-s
       <div class="section-body">
 <ul>
 <li><strong>Anchor:</strong> the 07:00 morning report; it reads the close's market state and says what changed.</li>
-<li><strong>As-built:</strong> what the code and config on the chain this Guide is as built on (chain-5) do, as opposed to what a plan or the Doctrine specifies.</li>
+<li><strong>As-built:</strong> what the code and config on the chain this Guide is as built on (the chain-8 assembly) do, as opposed to what a plan or the Doctrine specifies.</li>
 <li><strong>available_at:</strong> the instant a row could have been known; every as-of read filters on it.</li>
 <li><strong>Attention budget:</strong> seven packet approvals a week and one sitting of at most two hours (Doctrine 10.2); a deferred packet is graded as an abstention.</li>
 <li><strong>Base rate:</strong> how often an outcome happens unconditionally, the yardstick a conditional signal must beat.</li>

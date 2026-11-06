@@ -37,7 +37,7 @@ Run 38977257824 on `96342c1`: **passed, 95 jobs, 0 failed** (read 16 Oct). Part 
     5.25% on 29 Sep 2026. The close before that was 12 Jun 2007, not 2002.
 
 **Drafts on this branch:** none. Part 0's drafts are on `st-r4-tranche-1b`,
-listed there with file and line under "Drafts committed, for Ari's accept-all".
+listed there with file and line under "Drafts committed, for the operator's accept-all".
 
 ## What this branch builds
 
@@ -250,7 +250,7 @@ The 295 boolean flags take no lens and their declarations are left alone, as par
 - **ERP (ruling (d)5):** still a listed gap. No series is registered, so the
   valuation lens has nothing to apply to.
 
-## The session-set values, for Ari
+## The session-set values, for the operator
 
 | Item | Setting | Value | Why |
 |---|---|---|---|
@@ -288,7 +288,7 @@ slots that print nothing until filled.
     revised" already reads `available_at`, through part 1's revision line.
   - Lens 23's surprise stays "no consensus" until a source is ruled.
 
-## Box commands, for Ari (inside a window; nothing here was run on the box)
+## Box commands, for the operator (inside a window; nothing here was run on the box)
 
 These run after this branch merges, which is after the chain and 6e part 1. No
 unit file changed. The 25 FRED series arrive at the next scheduled pull. Their

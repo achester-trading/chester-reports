@@ -140,7 +140,7 @@ Neither API host has a robots.txt rule. The service has no cap history, so **mar
 
 **ONDO's baseline** is the first stored supply. Because the cap is forward-only, that is the day the writer first runs, not 12 Oct.
 
-## Box commands, for Ari (printed, not run)
+## Box commands, for the operator (printed, not run)
 
 **1. Backfill, once, after the merge and before the first timer run** (on the box, in `~/chester-reports`):
 ```

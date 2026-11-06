@@ -367,6 +367,15 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         warnings.append(f"portfolio block {portfolio.get('state')}: "
                         f"{portfolio.get('reason')}")
 
+    # DTH-1 (D41; A92): the day-trade rules checklist, worded and switched in
+    # config/dth1.yaml. Rules only, never a price, a size or an order.
+    try:
+        from altdata import dth1_ledger                         # noqa: PLC0415
+        dth1 = dth1_ledger.checklist()
+    except Exception as exc:                                    # noqa: BLE001
+        dth1 = {"enabled": False, "title": "", "lines": []}
+        warnings.append(f"DTH-1 checklist not read: {type(exc).__name__}")
+
     return {
         "report": "morning_anchor",
         "session": this_session,
@@ -376,6 +385,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "run_id": run_id,
         "overnight": overnight,
         "es_block": es,
+        "dth1_checklist": dth1,
         "events": events,
         "stories": stories,
         "exposure": exposure,

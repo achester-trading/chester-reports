@@ -4,8 +4,8 @@
 |---|---|
 | Status | **Ruled 2026-10-06, 03:16–03:30 ET, in chat, one decision at a time:** D-1 No · D-2 drop Binance · D-3 Farside · D-4 DVOL now, GEX with EL-12 · D-5 build now · D-6 yes, two queries · D-7 Batch 4 of Amendment #4, Audit #4 places it · D-8 yes with fallback. Each ruling is applied in §2, §3, §5 and §6 below. Register numbers are assigned at Audit #4 (14–15 Oct), continuing after the GTM batch. |
 | Filed | Filed 6 Oct 2026. Register numbers after SR-36 are provisional until Audit #4 (14–15 Oct) assigns them in filing order (GTM batch, crypto Thread D, batch 4); Audit #4 also verifies the SR-30 crisis level (~190bp) and the r2 base-rate levels and places every tranche. Nothing from this order enters the October calendar until then. |
-| Source | A circulating list of forty free crypto data sites ("who's buying, who's dumping, who's about to unlock", checked 4 Oct 2026), posted by Ari 6 Oct 2026, with the question: which have an API or can be scraped, and which belong in the daily, weekly or monthly reporting. Five sources not on the list are added because they serve the framework better than most of it. |
-| Owner | Ari Chester |
+| Source | A circulating list of forty free crypto data sites ("who's buying, who's dumping, who's about to unlock", checked 4 Oct 2026), posted by the operator 6 Oct 2026, with the question: which have an API or can be scraped, and which belong in the daily, weekly or monthly reporting. Five sources not on the list are added because they serve the framework better than most of it. |
+| Owner | the operator |
 | Binding on | Claude Code sessions building the crypto feed tranches (§6) and the blocks they feed (T2 Weekly, T3 Monthly, the daily anchors after Track D's preconditions) |
 | Precedence | Below Part 26, the change orders, Amendments #3–#5, the reporting-stack brief and the metric-lenses brief. Everything here is REPORT_OK-class data with discovery, scorecard or narrow-flag rights; no series enters a composite or a T&B overlay without a passed offline gate and a dated ledger (§1.3 of the consolidated signal-triage order). Thread **D** of the register. |
 | Relation to SR-10 | The Pearl mechanism-watch build (ST-13…ST-15) already specifies a CoinGecko fetcher and the point-in-time conventions for crypto series; this order reuses that scaffolding and adds sources beside it. Nothing here changes MW-1…MW-10. |
@@ -71,7 +71,7 @@ Also ruled in this order:
 - **CoinGecko `/global`** (total market cap, BTC dominance) is added to the existing ST-13 fetcher. Daily → tape. 0.5 h.
 - **One source family per venue.** Store families: `llama.*`, `hl.*`, `fut.*` (Bybit/OKX, venue in the key), `deribit.*`, `farside.*`, `coinglass.*`, `mempool.*`, `etherscan.*`, `gt.*`, `dune.*`, `fng.*`, `btcdata.*`. CoinGecko stays `coingecko.*` from ST-13. Modules in `altdata/sources/<family>.py`.
 - **Every series carries `family` and `long_window`** under the metric-lenses brief: funding and OI in the positioning family (90-day and full-history windows); DVOL in the volatility family (5-year and full); stablecoin supply and ETF flows in the flows family (full history, which for both starts 2020/2024).
-- **Keys live in `.env`** (`ETHERSCAN_API_KEY`, `DUNE_API_KEY`). Sessions print the key names Ari must add; they never write `.env`.
+- **Keys live in `.env`** (`ETHERSCAN_API_KEY`, `DUNE_API_KEY`). Sessions print the key names the operator must add; they never write `.env`.
 - **The unlock table, the DS-5/DS-25/DS-27/DS-31/DS-36 LOG rows and every REJECT** are recorded here so the next circulating list of forty does not re-propose them.
 
 ## §3 Derived series — candidate register entries
@@ -153,7 +153,7 @@ Numbers for S-1…S-5 are assigned at Audit #4, continuing after the GTM batch. 
 |---|---|
 | D-1…D-8 | taken in chat 6 Oct 2026, 03:16–03:30 ET; recorded in §5 |
 | Encoding | Batch 4 of Amendment #4, Thread D (D-7); slot set at Audit #4 |
-| Signed | Ari Chester — 2026-10-06 (the eight rulings above constitute the signature; Audit #4 places the tranches) |
+| Signed | the operator — 2026-10-06 (the eight rulings above constitute the signature; Audit #4 places the tranches) |
 
 ---
 
@@ -218,6 +218,6 @@ Checked 6 Oct 2026 unless marked *verify*. All GET unless stated. Rate limits ar
 
 ## Appendix B — First session paste (Tranche A, part 1: CD-1, CD-2, CD-5)
 
-*Runtime: about 60–90 minutes of session time; `make validate` afterwards runs 3–5 minutes in Git's bash on the laptop. Ari's own line goes on top.*
+*Runtime: about 60–90 minutes of session time; `make validate` afterwards runs 3–5 minutes in Git's bash on the laptop. The operator's own line goes on top.*
 
 > Read `docs/change-order-crypto-data-sources-2026-10-06.md` (§2 for what to pull, §3 S-1 and S-3 for the derived series, Appendix A for endpoints) and the ST-13 CoinGecko fetcher for the point-in-time conventions. Build CD-1 (`altdata/sources/llama.py`), CD-2 (`altdata/sources/hl.py`, `altdata/sources/fut.py` with Bybit and OKX only — no Binance, per §5 D-2) and CD-5 (`mempool.py`, `etherscan.py`, `fng.py`, plus `/global` on the CoinGecko fetcher). Every series gets `family`, `long_window` and `available_at`; backfill where Appendix A says history exists; no series without a unit test on its parser. Do not write `.env`; print the key names I must add. Run `make validate`, then stop and report: series created, backfill depth per series, anything in Appendix A that did not match reality, and a "needs you" list. No deploy.

@@ -48,6 +48,9 @@ from altdata import model_meter
 from altdata.numeral_audit import ordinal
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
+# A slow layer joins the Quarterly through config/stack_hooks/ (6i-5), after the
+# family chapters; a bad hook graph is refused when the Quarterly is imported.
+from daily_cascade import stack_hooks
 from daily_cascade import stack_render as sr
 
 log = logging.getLogger("monthly_macro.quarterly")
@@ -688,6 +691,11 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
         ctx = chapter_context(ed, cfg, db_path, st, out_dir=archive_dir, prior=prior,
                               chain_dir=chain_dir)
         ed["sections"] += build_chapters(ed, cfg, db_path, st, ctx)
+        # The slow layers declared by hook files, after the eleven chapters (6i-5:
+        # Disruptive Themes' Stage 1 panels). Never a chapter: no summary
+        # paragraph, no model call.
+        ed["sections"] += stack_hooks.run("quarterly", "slow", "family_chapters",
+                                          {"st": st, "now": ctx["now"], "end": ctx["end"]})
     cap = int((ed.get("budget") or {}).get("charts") or 40)
     ed["charts_over_cap"] = hold_cap(ed, charts, cap)
     # THE FRONT MATTER'S PROSE, by the Monthly's machinery in the Quarterly's
