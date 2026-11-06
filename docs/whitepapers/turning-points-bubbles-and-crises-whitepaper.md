@@ -356,3 +356,60 @@ The panel prints on any day the volatility-state read is in its top quintile. A 
 **The forward TGA path (item 121)** reads a slower plumbing channel that matters at the margin of reserve scarcity. The Treasury's cash account at the Fed drains reserves from the banking system when it rises and returns them when it falls. A rebuild of the account, after a debt-ceiling episode or ahead of heavy issuance, can push reserves toward the floor that broke in 2019. The register's ruling adds a forward row to the net-liquidity attribution. From each quarterly refunding, it reads the account's current balance against the Treasury's assumed end-of-quarter balance; the difference is the reserve add or drain the quarter implies. It prints in plumbing and rates with the refunding date. Its value is that it is forward-looking where the net-liquidity series is backward-looking, so a quarter in which the account is projected to rise sharply is a quarter in which the 2019 failure mode is closer. Which quarter that is now belongs in Appendix B.
 
 What the operator does differently because of this Part is to read a sharp decline's plumbing before its price. Funding spreads, the Treasury market's own volatility and credit speed say whether a liquidity crisis is inside the decline. The policy-put panel's availability side says whether the rescue can come. A decline with stressed plumbing and an available put has historically been the one to buy late. A decline with stressed plumbing and no put available has been the one to respect.
+
+---
+
+# Part V — Emerging-Market Crises
+
+## Chapter 14 — The balance-of-payments template and the dollar-funding channel
+
+Emerging-market crises are the most repetitive crises in the record, and the repetition is the reason to learn their template. Mexico in 1994, Thailand, Indonesia and Korea in 1997, Russia in 1998, Argentina in 2001, the "fragile five" in 2013, Turkey and Argentina in 2018: the details differ, and the structure barely does *(the episodes as recorded in the IMF's own crisis reviews and the Emerging Markets paper; cited 6 November 2026)*.
+
+**The template has five parts.**
+
+1. **A country runs a current-account deficit**, spending more than it earns abroad, and finances the gap with capital from outside.
+2. **The financing is short-dated, foreign-currency or flighty**: short-term dollar loans to banks and companies, dollar-linked government paper, or portfolio money in local bonds and stocks that can leave in a day.
+3. **The exchange rate is defended**, pegged or managed, which encourages the dollar borrowing, since the borrower sees no currency risk, and spends reserves when the money starts to leave.
+4. **A trigger arrives** from outside or inside: a rise in U.S. rates, a fall in a commodity price, a political shock, a neighbour's crisis.
+5. **The financing stops**, the sudden stop. The currency falls, and the dollar debts of the banks and companies grow in local terms by the size of the fall, so a currency crisis becomes a banking crisis and then a recession.
+
+The resolution is usually a programme from the IMF, a devaluation that resets the current account and years of recovery.
+
+The template is the banking structure of Chapter 9 at the scale of a country. The loss is the currency's fall applied to dollar debts, and the funding mismatch is a country financed in a currency it cannot print. That is why emerging-market crises spread to their banks and why their banking crises spread to their currencies: they are two views of one balance sheet.
+
+**The dollar-funding channel** is what turns a local template into a global event. The dollar is the world's funding currency. Banks and companies outside the United States borrow in dollars because the market is deepest, and investors everywhere hold dollar assets as the safe asset. When the dollar strengthens or U.S. rates rise, every dollar borrower's burden rises at once, and global lenders pull back from the weakest borrowers first. A strong dollar is therefore a tightening of financial conditions for the world, and the countries that fit the template feel it first and hardest. The channel runs in reverse, too: a weak dollar eases conditions everywhere and invites the borrowing that sets up the next crisis.
+
+The policy put for this channel is the Federal Reserve's network of dollar swap lines with other central banks, and its repo facility for foreign official holders. They were extended in 2008 and again in March 2020, and in both episodes their extension was among the measures that ended the acute phase *(the Federal Reserve's announcements of 2008 and March 2020; cited 6 November 2026)*. The countries without a swap line are the ones the IMF lends to.
+
+**Contagion** is the template's most dangerous property for a U.S. operator. A crisis in one country makes lenders look for the next country with the same template, as depositors look for the next bank. The study's 1998 near-miss is a direct line from Thailand in 1997, through Russia, to the near-failure of a U.S. hedge fund and a fall of nearly a fifth in the S&P 500. The register's contagion rule (item 10, below) is written on that sequence. A single-country shock earns a line in the Weekly or the Monthly only if it passes to the basket of emerging markets or to emerging-market spreads within five sessions.
+
+| Part of the template | What it is | The tell |
+|---|---|---|
+| Current-account deficit | Spending more than earning abroad | The external balance, months ahead |
+| Short, foreign-currency financing | Dollar debt; hot money | Reserves against short-term debt |
+| A defended exchange rate | A peg or managed rate | Reserves falling while the rate holds |
+| The trigger | U.S. rates; commodities; politics; a neighbour | The dollar; commodity prices; the calendar |
+| The sudden stop | Financing ends; the currency falls | The currency's move; EM spreads; contagion |
+
+## Chapter 15 — The EM shock screen and its AI-chain sub-panel
+
+**The EM shock screen (item 10)** is the stack's instrument for catching the template's last stage across many countries at once, because no operator can watch a dozen currencies by hand. It has four parts.
+
+- **A move screen.** It runs daily over a fixed basket of about ten emerging-market currencies and the matching country funds, flagging any member whose one-day or five-day move passes two and a half standard deviations of its own five-year history, in either direction.
+- **A dispersion read.** It separates an idiosyncratic shock from a systemic one. One member alone is an event for the narrative register; the basket moving together is the dollar or a global risk-off, and it is already the Monthly's dollar factor's business.
+- **An EM spread family.** It covers emerging-market corporate and high-yield spreads, with an emerging-market leg on the high-yield acceleration overlay.
+- **The contagion rule** described above.
+
+The screen's design follows the template. It watches the currency, where the sudden stop shows first; the spreads, where the banking crisis shows; and the passage from one country to many, which is what makes a local crisis a global turn.
+
+**The AI-chain sub-panel (item 129)** is an amendment to the screen's specification, filed before the screen was built, and it adds a mechanism the template does not cover. Some markets do not trade on their own balance of payments at all. They trade as parts of one global position. The register's ruling names four: the U.S. semiconductor index, Korea, Taiwan and Japan. They share one driver, the AI capital-spending cycle, and their indices are dominated by a handful of companies in its supply chain. A market that is one position cannot be read by a screen that looks for idiosyncratic shocks. When the position moves, all four move together, and the move is the position's, not any country's.
+
+The sub-panel reads four things:
+- the four indices' one-day and twenty-day returns and their drawdowns from the year's high;
+- the top two constituents' weights in Korea and Taiwan, from the country funds' published holdings;
+- a ledger of circuit breakers and sidecars from the daily news scan;
+- Korea's levered exchange-traded product assets, where a public figure exists, else a gap.
+
+It prints in the Weekly's equities section and fires the existing EM-shock flag. When the four move together by more than a set threshold, a line in the daily close's "what doesn't fit" reads the transmission, U.S. semiconductors to Asia to U.S. futures. The present state of the four markets is the live case of Part VI, and it belongs in Appendix B.
+
+What the operator does differently because of this Part is to ask, of any emerging-market move, which of two things it is. One is a country running the template, which matters if it spreads. The other is a market trading as part of a global position, which matters because the position is also in the operator's own book.
