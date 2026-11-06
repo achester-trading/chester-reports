@@ -512,7 +512,7 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
             refused.append({**row, "refused_because":
                             "no stored, dated signpost -- a weight with nothing "
                             "that would change it is not printed"})
-    # SPLIT BY WINDOW (Ari's second round): the rest of this month, then the two
+    # SPLIT BY WINDOW (the operator's second round): the rest of this month, then the two
     # after it -- "October" and "November–December" on 1 Oct.
     wins = calendar_windows(cutoff)
     windows = [{"name": n, "first": f, "last": l,
@@ -550,7 +550,7 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# THE MONTH IN MARKETS -- the opening scorecard (Ari's revision, 1 Oct)
+# THE MONTH IN MARKETS -- the opening scorecard (the operator's revision, 1 Oct)
 # ---------------------------------------------------------------------------
 def _quarter_start(d: dt.date) -> dt.date:
     return d.replace(month=3 * ((d.month - 1) // 3) + 1, day=1)
@@ -649,7 +649,7 @@ def month_in_markets(p: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# EVERYTHING THE STORE HOLDS FOR A THEME (Ari's second round, 1 Oct)
+# EVERYTHING THE STORE HOLDS FOR A THEME (the operator's second round, 1 Oct)
 # ---------------------------------------------------------------------------
 # A print older than this before the month-end is not "this month's" -- it goes
 # to the footnote with its date instead of into the prose as if it were current.
@@ -671,6 +671,12 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
                  key=lambda r: str(r.get("observed_at")))
     b = _level_on(obs, month_end)
     out = {"label": spec.get("label") or key, "metric": key, "instrument": inst}
+    # HELD (D45, 31 Oct 2026): a series on a declared hold prints the hold's
+    # line with its last stored date, never a month computed from frozen rows.
+    from altdata import refusals                                # noqa: PLC0415
+    held = refusals.key_text(key, str(b["observed_at"])[:10] if b else None)
+    if held:
+        return {**out, "state": "held", "why": held}
     if not b:
         return {**out, "state": "missing",
                 "why": "no print knowable at the cutoff"}
@@ -729,6 +735,8 @@ def theme_metrics(p: dict, theme_cfg: dict) -> dict:
                 rows.append(r)
             elif r["state"] == "stale":
                 gaps.append(f"{r['label']} (latest print {r['last_print']})")
+            elif r["state"] == "held":
+                gaps.append(f"{r['label']} ({r['why']})")
             else:
                 gaps.append(r["label"])
     return {"rows": rows,

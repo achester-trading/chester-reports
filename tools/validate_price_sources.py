@@ -37,6 +37,7 @@ family is a config held in memory, never the shipped file.
 """
 
 from __future__ import annotations
+GATE_KIND = "code"   # S1: the gate list reads this declaration (tools/gate_list.py)
 
 import copy
 import re

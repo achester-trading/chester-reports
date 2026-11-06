@@ -71,7 +71,7 @@ pairs:
     disagreements -- a close taken at a different minute, a vendor's rounding --
     inside, and flags a gap the pair has shown on fewer than one day in a hundred.
   floor_reason: >-
-    RULED 15 Oct 2026 (Ari, AUD-3c answer 1): the floor is the quote's
+    RULED 15 Oct 2026 (the operator, AUD-3c answer 1): the floor is the quote's
     precision. ^VIX and VIXCLS agree to the float on 1,028 of 1,029 shared
     days, so their 99th percentile is 0.0000012 points; flagging any gap above
     that would flag a one-cent rounding difference. The floor is the quote's own

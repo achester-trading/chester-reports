@@ -475,7 +475,7 @@ def record_stance(res: dict, ending: str, emitted_at: str, db_path: Optional[str
             claim=f"SPY closes higher at the Weekly of {hz} than at the Weekly of "
                   f"{ending} ({base})",
             probability=p, horizon_date=hz, emitted_at=emitted_at,
-            emitted_by="weekly_stack.precis",
+            emitted_by="weekly_stack.precis", missing_inputs=[],  # LL-3
             resolution_criterion=(
                 f"SPY's daily close (yfinance.mkt_spy) on the last session on or "
                 f"before {hz}, against its close on the last session on or before "

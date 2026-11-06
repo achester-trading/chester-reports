@@ -39,6 +39,8 @@ review step whose absence produced the four above.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import re
 import shutil
 import subprocess
@@ -428,7 +430,7 @@ def cap_at(v: str, gb: float) -> float:
     """A cap in GiB on a machine of `gb`: a percentage scales, a size does not."""
     return _pct(v) / 100.0 * gb if str(v).endswith("%") else _gib(v)
 # THE OOM ORDER (ruled 14 Oct 2026 evening). A report can be rendered again; a
-# day's chains cannot be fetched again; the Gateway needs Ari's supervised login.
+# day's chains cannot be fetched again; the Gateway needs the operator's supervised login.
 # So the kernel, if the caps are not enough, takes a report first, the EOD capture
 # next, the Gateway last. Raising a score needs no privilege, so the order holds
 # even if a --user unit is refused the Gateway's -500.

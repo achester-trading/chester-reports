@@ -33,6 +33,8 @@ no key, no live store, no box.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import hashlib
 import json
@@ -423,7 +425,24 @@ def group_e() -> None:
           "the wrapper pulls, asks the session calendar, runs alpha_proposer")
 
 
+# THE GATE'S CLOCK (B106, 2 Nov 2026; A88's and B101's pattern). The proposer
+# stamps its manifest with session.utc_iso() and the register counts a family's
+# week from that stamp, while the budget check asks about the fixed week of
+# 2026-11-02: from 2 Nov the fixture's own registration fell in that week and
+# took one of the family's two slots (CI, 2 Nov: "1 kept"). The clock is pinned,
+# for the gate's run only, to the fixture's proposer instant; the code keeps its rule.
+GATE_NOW = AS_OF
+
+
+def pin_clock() -> None:
+    import datetime as dt
+    from altdata import session
+    session.utc_now = lambda: dt.datetime.fromisoformat(GATE_NOW)
+
+
 def main() -> int:
+    pin_clock()
+    print(f"the gate's clock is pinned to {GATE_NOW}")
     print(f"{LINE}\nTHE ALPHA LAB'S DAILY PROPOSER (X-2.10b) -- FIXTURE STORE, FAKE MODEL\n{LINE}")
     for g in (group_a, group_b, group_c_d, group_e):
         g()

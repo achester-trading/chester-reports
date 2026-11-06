@@ -168,6 +168,18 @@ def fiscal_bark(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
             "divergence_bp": div_bp}
 
 
+def capex_guidance_revisions(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
+    """Item 26's "hyperscaler capex-guidance revisions" (A66): for each
+    hyperscaler, the change in its filed capex guidance between its two newest
+    10-Q or 10-K filings, where both carry a figure for the same fiscal year
+    (altdata/sources/edgar_guidance.py). Beside the fiscal-bark flag; report only,
+    and the flag does not read it."""
+    from .sources import edgar_guidance as eg                   # noqa: PLC0415
+    rows = eg.revisions(st, cutoff, eg.tickers())
+    return {"rows": rows, "lines": [eg.revision_text(r) for r in rows],
+            "compared": sum(1 for r in rows if not r.get("reason"))}
+
+
 # ---------------------------------------------------------------------------
 # ST-R4.24a/b -- the stock-bond correlation, SR-9 amended
 # ---------------------------------------------------------------------------
@@ -396,6 +408,7 @@ def build(as_of: Optional[str] = None, store=None) -> dict:
         cfg = config()
         out = {"as_of": cutoff}
         for name, fn in (("term_premium", term_premium), ("fiscal_bark", fiscal_bark),
+                         ("capex_guidance_revisions", capex_guidance_revisions),
                          ("stock_bond", stock_bond), ("net_liquidity", net_liquidity),
                          ("construction", construction)):
             try:

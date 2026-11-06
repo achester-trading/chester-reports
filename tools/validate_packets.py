@@ -33,6 +33,8 @@ live register and never records a decision anywhere but its own scratch file.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import contextlib
 import io
 import json

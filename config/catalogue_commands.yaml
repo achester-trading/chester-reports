@@ -44,6 +44,36 @@ commands:
     domain: options
     line: "Per-session readings from SPY's own captured option chain, and (OS-10) every captured name's options volume and front-month ATM IV, and (OS-8, OS-4, OS-5) its 25-delta put skew, IV against realised, front expiry and put shares of volume and OI build, and (Batch 11 item 56) its 30-day constant-maturity IV, 25-delta risk reversal and 20- and 60-session realised vol; backfill-names rebuilds the latter from the captures on disk"
     sources: [spy_chain_capture, chain_capture]
+  altdata.cma_table:
+    domain: reference
+    line: "The cross-house capital-market-assumptions table (Batch 14 item 62): each asset's median, high less low and count across the houses' stored CMA editions; show prints it as of a cutoff -- read-only, report only"
+  altdata.ai_lab_ledger:
+    domain: equity
+    line: "The AI-lab financials ledger (Batch 15 item 75): the latest row's computed ratios for item 47's unit-economics line and SR-16's entry, and the mega-IPO watch; show prints them -- reads files only, report only"
+  altdata.cyber_pressure:
+    domain: reference
+    line: "The weekly cyber-pressure line (Batch 15 item 77): CISA KEV additions and NVD's critical CVEs per week, dual percentiles and the joint flag; weekly is the Saturday step of the crypto basket's run, backfill the operator's, show read-only"
+    sources: [cisa_kev, nvd]
+  altdata.sources.gdelt:
+    domain: reference
+    line: "GDELT's raw event files (D26): the geopolitical families' conflict counts, share and tone, and the articles per story; daily is a step of the crypto basket's run (a failed export marks the day STALE), backfill (the 1.0 daily files) the operator's, show read-only"
+    sources: [gdelt]
+  altdata.sources.cpc_degree_days:
+    domain: reference
+    line: "NOAA CPC's population-weighted heating and cooling degree days (D26), daily from 1981, the departure from the 1991-2020 normal on read; daily is a step of the crypto basket's run, backfill the operator's, show read-only"
+    sources: [noaa_cpc]
+  altdata.sources.hf_releases:
+    domain: reference
+    line: "The Hugging Face model-release watch (D26): new public model repositories per week for the declared organisations, counts and dates only; daily is a step of the crypto basket's run, backfill the operator's, show read-only"
+    sources: [huggingface]
+  altdata.hf_positioning:
+    domain: positioning
+    line: "The hedge-fund positioning line and the squeeze-risk flag (Batch 15 item 74): CFTC TFF leveraged funds in ES and NQ with dual percentiles, against item 71's depth stand-in; show prints them -- read-only, report only"
+    sources: [cftc]
+  altdata.protocol_breadth:
+    domain: crypto
+    line: "DefiLlama's active-protocol count (Batch 15 item 78): a daily snapshot from the first pull; daily is a step of the crypto basket's run, show read-only"
+    sources: [defillama]
   altdata.claims:
     domain: reference
     line: 'The claims registry: cited figures the system may print and cannot compute'
@@ -61,12 +91,24 @@ commands:
   altdata.dealer_capture:
     domain: options
     line: 'The intraday dealer captures, 09:45 and 12:30 ET: chains, the exposure JSON per capture, and the 12:30 gates'
+  altdata.value_of_information:
+    domain: register
+    line: Value of information -- which missing input costs the most forecast accuracy (LL-2)
+    sources: [derived_probability]
   altdata.vendor_chains:
     domain: options
     line: 'The vendor chains at 16:31 ET (M-3): Massive SPX and SPCX, the 16:16 data (a 15-minute delay), the same chain files as before and their own completeness record'
+  altdata.decision_quality:
+    domain: register
+    line: Decision quality -- is the system getting better? (Learning Loop v2, LL-1)
+    sources: [derived_probability, derived_grade]
   altdata.derived:
     domain: computed
     line: Standard derived forms -- ONE function, not one per report
+  altdata.error_corpus:
+    domain: register
+    line: The error corpus -- every graded miss, with what was said, what happened and what was missing (LL-3)
+    sources: [derived_probability]
   altdata.em_scorecard:
     domain: em
     line: 'The EM vulnerability scorecard: a table of lenses, never a composite'
@@ -138,6 +180,10 @@ commands:
   altdata.paper_bid:
     domain: options
     line: The two-bid decomposition, the parts that can start now
+  altdata.postmortem:
+    domain: register
+    line: Code-built post-mortems -- one file per graded miss of the week, the six questions blank for the operator (LL-4)
+    sources: [derived_probability, derived_grade]
   altdata.probability_ledger:
     domain: register
     line: The probability ledger -- every number this system states as a likelihood, scored
@@ -160,6 +206,10 @@ commands:
   altdata.rates_shape:
     domain: rates
     line: THE SELLOFF-SHAPE AXIS AND THE SELLOFF'S COMPOSITION, and the four voices adjudicated by the measures
+  altdata.redteam_shadow:
+    domain: register
+    line: Red Team v1 in shadow -- a blinded model pass on each material packet, to a file only (LL-4)
+    sources: [derived_grade]
   altdata.releases:
     domain: computed
     line: 'Batch 7 release lenses (items 46 and 48, Group A): the CPI decomposition, pass-through flag, employment and CPI lenses, read from the store as of a cutoff; writes nothing'
@@ -195,6 +245,9 @@ commands:
   altdata.surprise:
     domain: events
     line: 'Surprise v1: actual against a declared naive expectation, and the real one for earnings'
+  altdata.tb_harness:
+    domain: equity
+    line: 'The Top & Bottom harness (6i): the overlays as of a date, the calibration ledger, the continuous false-positive rate'
   altdata.transmission:
     domain: rates
     line: 'The wealth-effect impulse and the net-transmission line (Batch 14 item 66): the loosening leg beside the tightening legs, side by side; report only'
@@ -265,6 +318,38 @@ commands:
     domain: rates
     line: 'FDIC BankFind -- the banking system''s unrealised securities gains (losses), AFS and HTM, quarterly, keyless (`--since 2007-03-31` for the history)'
     sources: [fdic_qbp]
+  altdata.speed_attribution:
+    domain: computed
+    line: 'The 10-year attribution on speed-flag days and its event ledger (Batch 14 item 65): `show [--date D]`, `seed --date D [--dry-run]`, `resolve [--dry-run]`'
+    sources: [speed_attribution]
+  altdata.oneday_10y:
+    domain: computed
+    line: 'The one-day 10-year trigger and its event ledger (D15): `show [--date D]`, `seed --date D [--dry-run]`, `resolve [--dry-run]`'
+    sources: [oneday_10y]
+  altdata.ai_trade:
+    domain: computed
+    line: 'One big AI trade (Batch 14 item 65): the AI-bottleneck PPI line, the Broad-AI proxy pair (AIQ against SPXT, labelled proxy) and the AI-credit gap; `show [--as-of ISO]`; reads only'
+    sources: [fred, yfinance]
+  altdata.fragility:
+    domain: computed
+    line: 'The liquidity-fragility panel and flag (Batch 14 item 71): SPY Amihud and range per volume, margin debt and its share, the leveraged-ETF rebalance, 6b dealer gamma; `show [--date D]`; reads only'
+    sources: [calc]
+  altdata.gold_13f:
+    domain: computed
+    line: 'Institutional gold-ETF ownership from the SEC 13F data sets (Batch 15 item 72): `fetch [--files N] [--dry-run]` (the box, CHESTER_SEC_CONTACT), `load ZIP ... [--dry-run]`, `show [--as-of ISO]`'
+    sources: [sec_13f]
+  altdata.gold_event:
+    domain: computed
+    line: 'The gold event trigger, its attribution and ledger (Batch 15 item 73): `show [--date D]`, `resolve [--dry-run]`, `history [--write] [--out FILE]`'
+    sources: [gold_event]
+  altdata.gold_attribution:
+    domain: computed
+    line: 'Gold''s five-lens attribution, the 60-day real-yield beta and the exhaustion checklist (Batch 16 items 87, 88): `show [--date D]`, `backfill [--dry-run] [--since D]`, `ledger [--out FILE]`'
+    sources: [gold_attribution]
+  altdata.dm_drawdown:
+    domain: computed
+    line: 'The developed-market drawdown screen and its ledger (Batch 15 item 73): `show [--date D]`, `resolve [--dry-run]`, `history [--write] [--out FILE]`'
+    sources: [dm_drawdown]
   altdata.bank_stress:
     domain: computed
     line: 'the bank-stress panel, the funding-stress and deposit-flight flags and the correction-vs-crisis classifier (item 59); `show [--as-of ISO]`; reads only'
@@ -296,6 +381,10 @@ commands:
     domain: equity
     line: "SEC EDGAR XBRL frames: the five hyperscalers' annual operating cash flow and capex (GTM-4's bridge; needs the SEC contact)"
     sources: [edgar_xbrl]
+  altdata.sources.edgar_guidance:
+    domain: equity
+    line: "SEC EDGAR 10-Q and 10-K: the five hyperscalers' capex GUIDANCE, each figure beside its filing's sentence, URL and accession (A66; items 26 and 63; needs the SEC contact)"
+    sources: [edgar_guidance]
   altdata.sources.eia:
     domain: commodities
     line: EIA Weekly Petroleum Status Report -- US crude and product stocks
@@ -330,9 +419,17 @@ commands:
   altdata.funding_currency:
     domain: rates
     line: "Signal-triage ST-5: the funding-currency features (the yen front differential and its velocity, CFTC yen positioning, the hedged carry, the unwind tell, the yuan fix against the close, the US-China 10-year spread, the devaluation tell's two tracked legs); compute rides the features pass, show prints the Factor IV and China lines"
+  altdata.trend_breadth:
+    domain: computed
+    line: "Batch 16 item 89(b): trend-signal breadth -- each held market's sign at 20, 60, 120 and 250 sessions, its state, the week's flips and the reversing share; `backfill [--dry-run]` the whole history, `compute [--from D]` recent days (rides the features pass), `show` the Weekly's table and `ledger --db PATH` the calibration ledger's edition, both read-only"
+    sources: [calc]
   altdata.gtm_equities:
     domain: equity
     line: "The J.P. Morgan Guide batch, part 2's equity items (GTM-3 the concentration twin, GTM-4 the AI buckets and the hyperscaler bridge, GTM-10 the sector rows): show prints them as of a cutoff -- read-only"
+  altdata.state_calibration:
+    domain: computed
+    line: "6f tranche 2 (rulings 7a, 8a): the dials' transition counts at 5, 20 and 63 sessions from stored objects, point in time; 'uncalibrated (n = k of 30)' until a row has 30 independent starts; calibrated dial rows to the probability ledger (the close writes them); show read-only"
+    sources: [derived_state]
   altdata.state_vector:
     domain: options
     line: "6b's state vector (EL-5): eighteen measured variables per capture (gap, opening range, VWAP, breadth, RV/IV, the VIX legs, dealer, event hours, volume, trend alignment) -- numbers only, written by the close as state.*"
@@ -529,7 +626,7 @@ commands:
     sources: [shfe]
   altdata.sources.shiller:
     domain: reference
-    line: Robert Shiller's stock market data -- CAPE and its inputs, monthly from 1871
+    line: Shiller's online stock market data (Yale) -- CAPE and its inputs, monthly from 1871
     sources: [shiller]
   altdata.sources.sp500_members:
     domain: equity
@@ -623,3 +720,59 @@ commands:
     domain: options
     line: The VX futures curve from Cboe's public settlement files
     sources: [cboe]
+  altdata.sources.boc_valet:
+    domain: rates
+    line: "The Bank of Canada's 2-year benchmark yield (Valet, keyless, attributed); the Quarterly's currencies chapter (b69)"
+    sources: [boc]
+  altdata.sources.cftc_grains:
+    domain: commodities
+    line: "CFTC disaggregated COT for the grains: managed money net in corn, wheat and soybeans (b69)"
+    sources: [cftc]
+  altdata.sources.cpc_oni:
+    domain: reference
+    line: "NOAA CPC's Oceanic Nino Index, the ENSO state, monthly from 1950; context for the Quarterly's agriculture section (b69)"
+    sources: [noaa_cpc]
+  altdata.sources.eia_buffers:
+    domain: commodities
+    line: "EIA's SPR stocks, refinery utilisation, gas storage and LNG exports for the Quarterly's oil-and-energy chapter (b69)"
+    sources: [eia]
+  altdata.sources.esmis_crop_progress:
+    domain: commodities
+    line: "USDA Crop Progress through ESMIS: good-or-excellent shares for corn, soybeans and wheat, weekly in season (b69)"
+    sources: [usda_esmis]
+  altdata.sources.esmis_wasde:
+    domain: commodities
+    line: "USDA WASDE through ESMIS: US wheat, corn and soybean ending stocks and stocks-to-use, each release its own vintage, projections kept apart (b69)"
+    sources: [usda_esmis]
+  altdata.sources.mof_intervention:
+    domain: fx
+    line: "Japan's monthly foreign-exchange intervention record (MoF, PDL 1.0, cited on every row) (b69)"
+    sources: [mof_intervention]
+  altdata.sources.portwatch:
+    domain: commodities
+    line: "IMF PortWatch daily chokepoint transits (Hormuz, Suez, Bab el-Mandeb, Malacca), one request a day, attributed (b69)"
+    sources: [imf_portwatch]
+  altdata.sources.riksbank:
+    domain: rates
+    line: "The Riksbank's 2-year government bond yield (SWEA, keyless), one request a day (b69)"
+    sources: [riksbank]
+  altdata.sources.snb_sight:
+    domain: fx
+    line: "The SNB's weekly sight deposits (data portal, attributed, non-commercial) (b69)"
+    sources: [snb]
+  altdata.sources.blockscout_supply:
+    domain: crypto
+    line: "ETH burn and issuance: a field check on Blockscout's public stats, PENDING until a supply field exists (b70)"
+    sources: [blockscout]
+  altdata.sources.edgar_bdc:
+    domain: macro
+    line: "Five listed BDCs' filed facts through EDGAR: investments at fair value, NAV per share; non-accruals a listed gap (b70)"
+    sources: [sec_edgar]
+  altdata.sources.ishares_holdings:
+    domain: crypto
+    line: "iShares' IBIT and ETHA: AUM and shares outstanding, level not flow (b70)"
+    sources: [ishares_trusts]
+  altdata.sources.llama_breadth:
+    domain: crypto
+    line: "DefiLlama TVL by category and by layer-2 chain, daily snapshots, stored never republished (b70)"
+    sources: [defillama]

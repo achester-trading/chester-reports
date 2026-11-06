@@ -34,6 +34,8 @@ No gate reads the live store, fetches or calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import io
 import json
 import os
@@ -169,7 +171,20 @@ NEW_KEY_BLOCKS = {"overnight_levels", "overnight_percent_changes", "event_column
                   # A51 (19 Oct 2026): the open note's retail sales form (RSAFS)
                   "fred_notes",
                   # Batch 12 item 59 (a53, 20 Oct 2026): the bank-stress panel's FRED legs
-                  "fred_bank_stress"}
+                  "fred_bank_stress",
+                  # Batch 14 item 68 (b55, 23 Oct 2026): the per-household deflator
+                  "fred_households",
+                  # Batch 14 items 65 and 71 (a57, 23 Oct 2026): the AI-bottleneck PPI
+                  # lines and Z.1's equity market value
+                  "fred_batch14_b1",
+                  # Batch 15 item 73 (a58, 23 Oct 2026): the DM screen's NIKKEI225
+                  "fred_batch15_a",
+                  # The Quarterly's readers, tranche 1 (b69, 25 Oct 2026; D34): OVXCLS
+                  "fred_6i",
+                  # Batch 16 item 89(b) (B76, 26 Oct 2026): the trend-breadth signs
+                  "trend_breadth_signs",
+                  # 6i-3 (A79, 26 Oct 2026): DBAA and BAA, the T&B harness's credit proxy
+                  "fred_6i3"}
 # Members a later branch added to an EXISTING block, declared by name: new by
 # their spec line, not by the resolver fix (signal-triage Batch 6, ST-R5.41a:
 # AAA and euro HY OAS join FRED_SIGNAL_SERIES, 16 Oct 2026).
@@ -187,6 +202,15 @@ NEW_BLOCK_MEMBERS = {"fred.aaa_oas", "fred.euro_hy_oas",
                      "yfinance.mkt_vrt", "yfinance.mkt_vrt_dividend", "yfinance.mkt_vrt_split", "yfinance.mkt_vrt_volume",
                      "yfinance.mkt_pave", "yfinance.mkt_pave_dividend", "yfinance.mkt_pave_split", "yfinance.mkt_pave_volume",
                      "yfinance.mkt_asml", "yfinance.mkt_asml_dividend", "yfinance.mkt_asml_split", "yfinance.mkt_asml_volume",
+                     # Batch 14 item 65 (a57, 23 Oct 2026): the AI proxy pair.
+                     "yfinance.mkt_aiq", "yfinance.mkt_aiq_dividend",
+                     "yfinance.mkt_aiq_split", "yfinance.mkt_aiq_volume",
+                     "yfinance.mkt_spxt", "yfinance.mkt_spxt_dividend",
+                     "yfinance.mkt_spxt_split", "yfinance.mkt_spxt_volume",
+                     # Ruling D22 (a61, 24 Oct 2026): QAI, the hedge-fund
+                     # replication proxy.
+                     "yfinance.mkt_qai", "yfinance.mkt_qai_dividend",
+                     "yfinance.mkt_qai_split", "yfinance.mkt_qai_volume",
                      # Batch 9 item 52 (17 Oct 2026): ^VIX9D and ^VIX6M join the
                      # basket, with their action series.
                      "yfinance.mkt_vix9d", "yfinance.mkt_vix6m",
@@ -816,10 +840,10 @@ def code_counts() -> dict:
     from altdata.sources import yfinance_source as yf
     mk = (REPO / "Makefile").read_text(encoding="utf-8")
 
-    def block(name):
-        m = re.search(rf"^{name} := \\\n(.*?)(?:\n\n|\Z)", mk, re.S | re.M)
-        return re.findall(r"tools/\S+", m.group(1)) if m else []
-    py, sh, data = block("PY_VALIDATORS"), block("SH_VALIDATORS"), block("DATA_GATES")
+    # The lists are the gates' own declarations (S1), read through the one tool.
+    import gate_list
+    py, sh, data = (gate_list.gates("code"), gate_list.gates("shell"),
+                    gate_list.gates("data"))
     extra = len(re.findall(r"^EXTRA := (\S+)", mk, re.M))
     ms = yaml.safe_load((REPO / "config" / "market_state.yaml").read_text(
         encoding="utf-8"))

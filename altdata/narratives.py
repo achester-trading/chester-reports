@@ -893,6 +893,12 @@ def series_move(metric: str, rule: dict, cutoff: str, store: Any) -> dict:
     horizon = int(rule.get("horizon") or 5)
     pct = float(rule.get("percentile") or 10)
     want = 1 if str(rule.get("sign", "+")) == "+" else -1
+    # HELD (D45, 31 Oct 2026): a metric whose source is on a declared hold is
+    # never counted -- its rows stopped, so a move cannot be read.
+    from . import refusals                                      # noqa: PLC0415
+    held = refusals.key_text(metric, refusals.last_stored(store, metric, cutoff))
+    if held:
+        return {"sign": 0, "reason": f"{metric}: input held ({held})"}
     d = derived.delta_percentile(metric, as_of=cutoff, horizon=horizon,
                                  store=store)
     if d.get("percentile") is None:
@@ -1181,7 +1187,7 @@ def emit_forecast(nid: str, row: dict, state: str, day: str, cutoff: str,
             probability=p, horizon_date=criterion["horizon_date"],
             resolution_criterion=json.dumps(criterion, sort_keys=True),
             scenario_set=f"narrative:{nid}", emitted_at=cutoff,
-            emitted_by=run_id)
+            emitted_by=run_id, missing_inputs=[])       # LL-3: none recorded
 
 
 def close_on_or_before(store: Any, metric: str, day: str, as_of: str
@@ -1307,7 +1313,8 @@ def emit_hypotheses(nid: str, spec: dict, day: str, cutoff: str, store: Any,
                 probability=pr["probability"],
                 horizon_date=criterion["horizon_date"],
                 resolution_criterion=json.dumps(criterion, sort_keys=True),
-                scenario_set=sset, emitted_at=cutoff, emitted_by=run_id)
+                scenario_set=sset, emitted_at=cutoff, emitted_by=run_id,
+                missing_inputs=[])                      # LL-3: none recorded
             out["emitted"].append({"hypothesis": hid, "probability_id": pid,
                                    "probability": pr["probability"]})
             log.info("hypothesis %s:%s entered at %.4f", nid, hid,
@@ -1332,6 +1339,15 @@ def resolve_one(criterion: dict, store: Any, as_of: str) -> dict:
     import datetime as dt  # noqa: PLC0415
     horizon = criterion["horizon_date"]
     today = str(as_of)[:10]
+    # HELD (D45, 31 Oct 2026): an outcome metric on a declared hold is not
+    # graded -- the line reads "input held" until Doctrine #2 rules on the
+    # story's regrading. Nothing is resolved, so nothing is written.
+    from altdata import refusals                                # noqa: PLC0415
+    for m in criterion.get("metrics") or []:
+        held = refusals.key_text(m, refusals.last_stored(store, m, as_of))
+        if held:
+            return {"outcome": None, "reason": f"input held: {m} {held}",
+                    "held": True}
     if today < horizon:
         return {"outcome": None, "reason": "horizon not reached"}
     grace_end = (dt.date.fromisoformat(horizon)

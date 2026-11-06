@@ -1,0 +1,75 @@
+# trend_breadth.yaml -- signal-triage Batch 16 item 89(b) (written as the triage
+# chat's 82(b) in docs/change-order-signal-triage-round-7-2026-10-26.md; ruled
+# 26 Oct 2026; B76). Read by altdata/trend_breadth.py and printed by
+# daily_cascade/trend_breadth_block.py in the Weekly's and the Monthly's
+# Positioning & flows.
+#
+# A self-computed cross-asset trend signal: how many of the markets the store
+# holds are trending and how many are reversing, from our own closes, never a
+# sell-side monitor. Report rights only. It enters the Top & Bottom intake queue
+# only after its calibration ledger reads (cross-item note 2: 89(b) first).
+#
+# THE DEFINITION IS DECLARED, NOT FITTED. Nothing here was chosen by looking at
+# a result:
+#   the sign at lookback L on a market's day t is +1 when its close on t is above
+#   the mean of its last L closes (t included), -1 below, 0 equal;
+#   the state on t is "trending" when all four signs agree and none is 0,
+#   "reversing" when the 20-session sign is against the 250-session one and the
+#   20-session sign changed on one of the market's last five sessions (t
+#   included), "mixed" otherwise; "insufficient history" while any lookback
+#   lacks L closes.
+# A rate is read as its yield, a currency pair as quoted. Each market keeps its
+# own sessions; nothing is aligned across markets but the day the count is read.
+version: trend-breadth-v1
+
+lookbacks: [20, 60, 120, 250]
+# The sessions inside which the 20-session flip makes a market "reversing".
+reversal_sessions: 5
+# The weekly flip count: sign changes, across markets and lookbacks, observed in
+# the seven calendar days ending on the day read.
+flip_window_days: 7
+# A market's latest sign counts on a day only when its close is at most this many
+# calendar days old (a holiday week, not a dead feed).
+held_within_days: 7
+
+# THE MARKETS THE ORDER NAMES: fifteen, and AUD/USD "if stored" -- sixteen rows
+# (D33: stored keys only). `keys` is an
+# ordered list: the first that holds rows as of the day read is the market's
+# series, so a fresher price key leads its official cross-check. No new symbol is
+# pulled for this; a market with no stored key prints "not stored" and leaves n.
+markets:
+  - {id: ust_2y,  label: "UST 2-year (yield)",  keys: [{key: fred.yield_2y}]}
+  - {id: ust_10y, label: "UST 10-year (yield)", keys: [{key: fred.yield_10y}]}
+  - {id: ust_30y, label: "UST 30-year (yield)", keys: [{key: fred.yield_30y}]}
+  - {id: bund_10y, label: "Bund 10-year (Bundesbank fitted, yield)", keys: [{key: bbk.bund_10y}]}
+  - {id: jgb_10y, label: "JGB 10-year (MoF, yield)", keys: [{key: mof.jgb_10y}]}
+  - {id: sofr,    label: "SOFR",                keys: [{key: fred.sofr}]}
+  - {id: es,      label: "S&P 500 e-mini (front settle)", keys: [{key: overnight.es_prior_settle, instrument: "ES=F"}]}
+  - {id: nq,      label: "Nasdaq-100 e-mini (front settle)", keys: [{key: overnight.nq_prior_settle, instrument: "NQ=F"}]}
+  - {id: copper,  label: "Copper (front)",      keys: [{key: yfinance.mkt_copper_front}]}
+  - {id: oil,     label: "WTI crude (front)",   keys: [{key: yfinance.mkt_wti_front}]}
+  - {id: gold,    label: "Gold (front)",        keys: [{key: yfinance.mkt_gold_front}]}
+  - {id: dxy,     label: "Dollar index",        keys: [{key: yfinance.mkt_dxy}]}
+  - {id: eurusd,  label: "EUR/USD",             keys: [{key: yfinance.mkt_eurusd}, {key: fred.usd_eur}]}
+  - {id: usdjpy,  label: "USD/JPY",             keys: [{key: yfinance.mkt_usdjpy}, {key: fred.usd_jpy}]}
+  - {id: audusd,  label: "AUD/USD",             keys: [{key: fred.usd_aud}]}
+  - {id: btc,     label: "Bitcoin",             keys: [{key: yfinance.mkt_btc_usd}]}
+
+# THE CALIBRATION LEDGER (docs/ledgers/trend-breadth-2026-10-26.md). Its head is
+# the pre-registration, between the two markers, held to this SHA-256 of its LF
+# bytes by tools/validate_trend_breadth.py. Rights: none until Audit #5 or a
+# sitting reads it.
+ledger:
+  path: docs/ledgers/trend-breadth-2026-10-26.md
+  prereg_sha256: 9347d6686bc2506dfbe37bb4d25e3d2c7a88e0fcd92527f961667498d34ea976
+  # The outcomes, read at +5 and +20 of the outcome's own sessions.
+  outcomes:
+    - {id: spx, label: "S&P 500", key: yfinance.mkt_gspc}
+    - {id: ndx, label: "Nasdaq-100 (QQQ; no index key is stored)", key: yfinance.mkt_qqq}
+  horizons: [5, 20]
+  # The pass rule's threshold and minimums, as the pre-registration states them.
+  high_share: 20.0
+  min_weeks: 30
+  # A week enters the sample only when this many markets carry a state.
+  min_markets: 5
+  t_pass: 2.0

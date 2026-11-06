@@ -44,6 +44,8 @@ tools/validate_monthly_store.py.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import sys
 from pathlib import Path
 import os as _gt_os                                            # noqa: E402
@@ -302,9 +304,11 @@ def group_c(built: dict) -> None:
 def group_d(live: bool = False) -> None:
     print(f"\n{LINE}\nD. REPLAY: A PAST MONTH AS-OF ITS OWN CUTOFF\n{LINE}")
     import datetime as dt
+    from altdata import session
     from monthly_macro import payload
 
-    cutoff_day = dt.date.today().replace(day=1) - dt.timedelta(days=1)
+    cutoff_day = (session.session_date_obj().replace(day=1)
+                  - dt.timedelta(days=1))
     cutoff = f"{cutoff_day.isoformat()}T23:59:59Z"
     print(f"  replaying as-of {cutoff}")
     try:
@@ -777,7 +781,7 @@ def group_h() -> None:
         # Today's object knowable FIVE MINUTES AGO: stamped at 21:00 UTC it would
         # be in the future before the close, and the build would read last
         # month's object as "now" and find nothing changed.
-        seen = (dt.datetime.now(dt.timezone.utc)
+        seen = (__import__("altdata").session.utc_now()
                 - dt.timedelta(minutes=5)).isoformat()
         with observations.ObservationStore(db) as st:
             for day, credit, at in ((prev, "easy", f"{prev}T21:00:00+00:00"),
@@ -1030,11 +1034,18 @@ def group_h() -> None:
               "fixture's FOMC is present, ISM is missing and footnoted")
         # QUARTERLY AND ONE-OFF ITEMS ONLY IN THEIR OWN MONTHS.
         ref = cov["Treasury quarterly refunding"]["windows"]
-        months_of = {w["name"]: {int(w["first"][5:7]), int(w["last"][5:7])}
+        months_of = {w["name"]: set(window_months(w["first"], w["last"]))
                      for w in la["windows"]}
-        refund_due = {n for n, ms in months_of.items()
-                      if ms & {2, 5, 8, 11} or any(m in (2, 5, 8, 11) for m in
-                                                   range(min(ms), max(ms) + 1))}
+        refund_due = {n for n, ms in months_of.items() if ms & {2, 5, 8, 11}}
+        # THE YEAR-END WRAP (B101b, ruled 1 Nov 2026): a window across 31 Dec
+        # holds exactly its own months, so December-January is never due.
+        dj = window_months("2026-12-01", "2027-01-31")
+        nj = window_months("2026-11-01", "2027-01-31")
+        check(dj == [12, 1] and nj == [11, 12, 1]
+              and window_months("2026-10-15", "2026-10-31") == [10]
+              and not set(dj) & {2, 5, 8, 11} and set(nj) & {2, 5, 8, 11},
+              f"a window across the year end holds exactly its own months "
+              f"(December-January {dj}, not due; November-January {nj}, due)")
         check(all((ref[n].get("expected") is False) == (n not in refund_due)
                   for n in ref)
               and not any(g.startswith("Treasury quarterly refunding for ")
@@ -1254,7 +1265,10 @@ def group_i() -> None:
     check(all(x.strip() for x in lines) and filled and marked
           and all(("withdrawn" in x or "not determinable" in x or "deferred" in x
                    or "zero rebalancing" in x or "Attribution" in x or "ON" in x
-                   or "off" in x or "not rendered" in x) for x in other),
+                   or "off" in x or "not rendered" in x
+                   # Batch 15 item 75 (b56): the mega-IPO watch says why it is
+                   # empty; an empty ledger says so.
+                   or "not yet public" in x or "no ledger entry" in x) for x in other),
           f"every line is populated with its as-of ({len(filled)}) or marked NOT "
           f"AVAILABLE / NOT TRACKED with its source ({len(marked)}); the rest say why "
           f"they are not read ({len(other)})")
@@ -1386,9 +1400,38 @@ def isolate_and_seed() -> str:
     return td
 
 
+def window_months(first: str, last: str) -> list[int]:
+    """The calendar months a look-ahead window holds, first to last, in order,
+    walking across the year end (B101b): 2026-12-01..2027-01-31 is [12, 1]."""
+    y, m = int(first[:4]), int(first[5:7])
+    ly, lm = int(last[:4]), int(last[5:7])
+    out = []
+    while (y, m) <= (ly, lm):
+        out.append(m)
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+# THE GATE'S CLOCK (B101, 1 Nov 2026; A88's pattern). Every fixture here is dated
+# from "today" -- the seeded month, the replay cutoff, the look-ahead's windows --
+# so the gate's verdict moved with the calendar: from 1 Nov its look-ahead's last
+# window became "December–January" and the refunding check's own month-span
+# arithmetic counted it as due. The clock is pinned to one fixture session's close
+# for the gate's run only; the code under test keeps its rule.
+GATE_NOW = "2026-10-15T20:45:00+00:00"
+
+
+def dt_fixed(iso: str):
+    import datetime as dt
+    return dt.datetime.fromisoformat(iso)
+
+
 def main() -> int:
+    from altdata import session
+    session.utc_now = lambda: dt_fixed(GATE_NOW)
     print(f"{LINE}\nThe Monthly -- Phase 4b (seeded store; the real one is "
           f"tools/validate_monthly_store.py)\n{LINE}")
+    print(f"  the gate's clock is pinned to {GATE_NOW}")
     isolate_and_seed()
     group_a()
     group_g()
