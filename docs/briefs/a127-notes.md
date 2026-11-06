@@ -405,3 +405,9 @@ Also run:
 2. Write the ratio's history: `python -m altdata.hb_lv compute --full --dry-run`, then without.
 3. Each ledger's box re-run reads the store: `python -m altdata.ledgers run close-flow --source store` and `python -m altdata.ledgers run hb-lv-divergence --source store`. They apply the first editions' "none stated" and may not change it.
 4. From A127b: `systemctl --user enable --now chester-close-flow.timer` on Monday 9 Nov, inside a window.
+
+**CI after A128's push.** A127b's run, 42300869850, failed two gates:
+- `validate_numeral_audit`, the ordinal, fixed in `86a5af08`;
+- `validate_outliers`, 36/1: the chain-spot price record's `"source":` key read as a store source id.
+
+The key is renamed `basis`. Locally `validate_outliers` reads 37/0 and `validate_item_116` 105/0. The fix is committed after A128's single push, so A128's own run fails `validate_outliers` the same way. The fix rides the next push on this branch.

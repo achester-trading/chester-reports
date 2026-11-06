@@ -318,7 +318,7 @@ def chain_return(x: dict, day: str, at_or_before: str,
     if not prev or not prev[0]:
         return None, f"no captured {sym} chain on {prev_day}", {}
     return now[0] / prev[0] - 1.0, None, {
-        "symbol": sym, "source": "captured chain spot (not the official close)",
+        "symbol": sym, "basis": "captured chain spot (not the official close)",
         "fetched_at": now[1], "price": now[0], "prior_fetched_at": prev[1],
         "prior_price": prev[0]}
 

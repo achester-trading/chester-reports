@@ -371,7 +371,7 @@ def group_c(td: str) -> Path:
           f"the 15:00 pass stores instrument-1500 rows ({out['written']}) and reads the bar "
           f"ending 15:00 (14:55's), never the bar still open at 15:01")
     mp = prices.get("mstr") or {}
-    check(mp.get("price") == 95.0 and "chain" in mp.get("source", "")
+    check(mp.get("price") == 95.0 and "chain" in mp.get("basis", "")
           and "MSTU" not in out["left_out"],
           f"15:00: MSTR's spot is the newest chain at or before 15:00 (12:30 ET, "
           f"{mp.get('price')}), not the 15:40 capture")
