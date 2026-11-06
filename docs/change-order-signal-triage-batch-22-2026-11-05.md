@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | File | `docs/change-order-signal-triage-batch-22-2026-11-05.md` |
-| Status | **RULED in chat** 5 Nov 2026 (items 99–103 "Accept", 21:16 ET; items 104–105 "Except both", read as "accept both", 21:29 ET; §10, the sign-off); its decisions ruled and the filing accepted 5 Nov 2026, 23:31 ET ("accept"), recorded as D58 (`docs/briefs/rulings-2026-11-05.md`). Filed 5 Nov 2026 by paste B128 with filing amendments P1 to P6 (§0). The order as drafted in the triage chat is kept at `docs/pastes/B128-attachment-round-8.md`, people's names replaced as the note under §0 says. |
+| Status | **RULED in chat** 5 Nov 2026 (items 99–103 "Accept", 21:16 ET; items 104–105 "Except both", read as "accept both", 21:29 ET; §10, the sign-off); its decisions ruled and the filing accepted 5 Nov 2026, 23:31 ET ("accept"), recorded as D58 (`docs/briefs/rulings-2026-11-05.md`). Filed 5 Nov 2026 by paste B128 with filing amendments P1 to P6 (§0); the body below §0 replaced 6 Nov 2026 by paste B129 with the revised order (its decisions written in), and P7 added. The order as revised is kept at `docs/pastes/B129-attachment-round-8-revised.md`, and as first drafted at `docs/pastes/B128-attachment-round-8.md`, people's names replaced in both as the note under §0 says. |
 | Encoding | Batch 22 of Post-Freeze Amendment #4, items 116–123 (P1, P2: the order drafted them as Batch 17, items 98–105). Register numbers are provisional, SR-77 to SR-80, placed by Audit #5 (P3). |
 | Precedence | Below Part 26, the Enterprise Layer order and the dated change-orders edition; equal to the other Amendment #4 batches. Amendments govern their parent items from filing. |
 | Supersedes | Nothing. |
@@ -45,6 +45,8 @@
 
 - **P6, sign-off.** §10 stands, with O-6's confirmation in P4; "Filed:" is this commit.
 
+- **P7, work item 105.2** (paste B129, 6 Nov 2026). The revised order's work item 105.2 is item 123.2: the amendment of the "Monthly signal scan" chat task to propose financing-ledger rows, done in chat once 123.1 lands (about 15 minutes; not a session item).
+
 **Names** (D5, D38, the standing rule: no person's name in committed files). Each person's name and each personal X handle is replaced by role, in this file and in the attachment copy: the relay of item 116's estimate is "an X relay account"; item 117's source is "an X engagement account" and the bill's sponsors are "a US senator and a US representative" (the bill keeps its title); item 118's chart poster is "a CFP's X account"; the academic citation in 116 is "a 2009 academic study"; the Goldman executive in §9 is "a Goldman trading-desk executive"; the ruler is "the operator". The links whose addresses carry those names stay chat-side. Institutions (Morgan Stanley QDS and its handle, Goldman Sachs, J.P. Morgan Asset Management, Nomura, Laka Capital, Econovis, Motion Media) stay. Everything else is verbatim.
 
 ---
@@ -56,8 +58,8 @@ The order as drafted follows, its body unedited; §0 governs where they differ.
 # Change Order — Signal Triage, Round 8: Items 98–105
 
 **File:** `docs/change-order-signal-triage-batch-17-2026-11-05.md`
-**Status:** RULED 2026-11-05 (items 98–105). Filing pending. §3 is reserved for items 92–97.
-**Encoding:** Batch 17 of Amendment #4, provisional (round 8). If items 92–97 are filed on their own as Batch 17, this file becomes Batch 18 (§7, O-5).
+**Status:** RULED 2026-11-05: items 98–105, and the filing decisions in §7 at 23:24 ET. Filing pending. §3 is reserved for items 92–97.
+**Encoding:** Batch 17 of Amendment #4 (round 8). If items 92–97 are still unfiled, they merge into §3 and round 8 files as one batch. If they were already filed on their own as Batch 17, this file becomes Batch 18 (§7, O-5).
 **Precedence:** Below Architecture Part 26 and the governing text of Amendment #4. Equal in rank to the other Amendment #4 batches. Where an entry amends an earlier entry, the amendment governs that entry from filing. Binds Claude Code sessions once filed.
 **Prepared:** 5 Nov 2026, late evening, from the round-8 triage chat. Each entry gives the read, the thought process and the ruling.
 
@@ -74,7 +76,7 @@ Three items came out of the 5 Nov selloff and the days before it:
 
 Rights are limited to report lines, flags and ledgers. No item changes a composite weight, enters the T&B overlay intake queue, or creates a regime state or tag (R28).
 
-Work order: about 44 hours of sessions, about 3 hours by hand once, and about 1 hour by hand each quarter, in three tranches (§6).
+Work order: about 44 hours of sessions and about 3 hours by hand once, in three tranches (§6). The only recurring step is about 15 minutes a quarter at a ruling sitting, to confirm item 105's financing-ledger rows.
 
 | Item | What | Type | Rights | Prints in |
 |---|---|---|---|---|
@@ -101,7 +103,7 @@ Work order: about 44 hours of sessions, about 3 hours by hand once, and about 1 
 
 ## 3. Reserved: items 92–97
 
-Items 92–97 were ruled on 26 Oct in another chat and are not in this file. They include the global-liquidity proxy, Moody's risk matrix and the Capitulation Count. At filing, either merge their entries here, ahead of §4, or file them separately and delete this section (§7, O-5).
+Items 92–97 were ruled on 26 Oct in another chat and are not in this file. They include the global-liquidity proxy, Moody's risk matrix and the Capitulation Count. Ruled at filing (§7, O-5): if they are still unfiled, merge their entries here, ahead of §4, so round 8 files as one batch. If they were already filed separately, delete this section.
 
 ---
 
@@ -137,7 +139,7 @@ Context that day: the Nasdaq fell 5.4% intraday, the S&P 500 4.1% and the SOX ne
 **Ruling (accepted).**
 - **98.1 New register entry.**
   - A roster of levered and inverse ETFs (index and single-stock) goes into the Security Master, with each fund's leverage factor and its daily AUM from issuer pages.
-  - A 15:00 estimate, with an alert gate (threshold: §7, O-1), and a 16:45 estimate on closing prices.
+  - A 15:00 estimate, with an alert gate at an estimated $20bn either way, and a 16:45 estimate on closing prices. After 60 sessions, the gate switches to a percentile of the box's own history, in % of ADV (§7, O-1).
   - Printed in positioning & flows (daily close and Weekly), in $bn and in % of ADV, by bucket: semiconductors, Nasdaq 100, S&P 500, and named single stocks.
   - One "mechanical close flow" line combining this estimate with the dealer-hedging estimate from 6b.
   - History builds from the day the entry is built; nobody backfills it by hand.
@@ -168,7 +170,7 @@ Amendment #3 already watches AI governance from two sides: expert consensus (inp
   - the capacity or capex at risk, where it can be estimated;
   - a column for the market's reaction.
 - It feeds Factor I and Factor VI.
-- A flag fires when restrictions at the enacted stage cover more than a set share of tracked planned build (threshold: §7, O-2).
+- A flag fires when restrictions at the enacted stage cover 10% or more of tracked planned capacity. The threshold is reviewed after one quarter of rows (§7, O-2).
 - Seed rows:
   - the Ban Artificial Superintelligence Act, at the introduced stage;
   - the 3 Nov local measures and the incoming governors' stated positions, which are the live rows;
@@ -322,7 +324,7 @@ What is worth taking is that the numerator is independent. NIPA profits come fro
   - S&P operating EPS.
 
   The gap prints with them.
-- A flag fires when EPS growth exceeds NIPA growth by a set margin for two quarters in a row (margin: §7, O-3).
+- A flag fires when EPS growth exceeds NIPA growth by a set margin for two quarters in a row. The margin is calibrated so the flag would have fired in both 1999–2000 and 2006–07, with any false positives reported. If the calibration is ambiguous, the margin is 10 percentage points (§7, O-3).
 - The data is quarterly with a lag: Q2 2026 is the latest, and Q3 arrives in late November. So the line appears in the Monthly only.
 
 **Rights.** A report line and a flag.
@@ -374,7 +376,7 @@ What it lacks is the cash-cycle layer between them, read together each quarter: 
 2. Incremental segment margin: change in operating income ÷ change in revenue, over the trailing four quarters.
 3. Backlog: level, growth, and how much of the next 12 months' capex it covers, with a note on concentration in AI labs where that is disclosed.
 4. Capex guidance against operating cash flow: capex ÷ OCF, and free cash flow after leases.
-5. A financing-structure ledger: leases, joint ventures, prepayments, project finance and hardware supplied by customers. This brings item 11 in, at about 1h a quarter by hand (§7, O-4).
+5. A financing-structure ledger: leases, joint ventures, prepayments, project finance and hardware supplied by customers. This brings item 11 in. The monthly signal scan (on the 25th) proposes rows from filings and press coverage, and the operator confirms them at a ruling sitting (§7, O-4).
 6. Credit warning signs (Oracle's spread, CoreWeave's yields, data-center ABS and CMBS spreads), as a "private-credit window" sub-row. It is folded into the batch-2 hyperscaler credit-absorption entry (SR-16 by posting order; V-105c).
 7. A GPU rental price index, if a source without a key exists; otherwise "gap" (16 Oct rule).
 8. Useful-life assumptions, cross-referenced from the round-7 watch.
@@ -386,7 +388,7 @@ What it lacks is the cash-cycle layer between them, read together each quarter: 
 - Data comes from EDGAR XBRL filings and company releases, which need no key.
 
 **Rights.** Factor I input lines and a flag; no composite change.
-**Hours.** About 8h of sessions, plus about 1h by hand each quarter.
+**Hours.** About 8h of sessions, plus about 15 minutes at a quarterly ruling sitting to confirm the scan's proposed rows. Amending the scan's prompt to propose those rows is work item 105.2 (§6).
 
 ---
 
@@ -418,28 +420,32 @@ What it lacks is the cash-cycle layer between them, read together each quarter: 
 | 104.1 Earnings-quality line and flag | 104 | B | ~3h | — |
 | 102.1 Factor V line; XVII appendix table; anchor row configuration | 102 | B | — | ~1h |
 | 99.1 Policy-restriction ledger; flag; wiring to the news scan and X digest | 99 | C | ~6h | ~1h (seed) |
-| 105.1 Cash-cycle scorecard (eight rows); treadmill flag | 105 | C | ~8h | ~1h a quarter |
-| **Total** | | | **~44h** | **~3h once + ~1h a quarter** |
+| 105.1 Cash-cycle scorecard (eight rows); treadmill flag | 105 | C | ~8h | — |
+| 105.2 Amend the "Monthly signal scan" task to propose financing-ledger rows (in a chat, once 105.1 lands) | 105 | C | — | ~0.25h |
+| **Total** | | | **~44h** | **~3h once** |
+
+Recurring: about 15 minutes a quarter at a ruling sitting, confirming item 105's financing-ledger rows.
 
 **Tranche A, evidence clocks (~25h).** The ledgers in 98, 100 and 101 build history only from the day they go live. The proposal is to place this tranche in the next free overnight slots rather than wait for Audit #5.
 
 **Tranche B, Monthly-facing (~5h + ~1h by hand).** Targeted at the 1 Dec Monthly. Q3 NIPA data arrives in late November. The next refunding is in early February, but the current one seeds the row.
 
-**Tranche C, Factor I and Disruptive Themes (~14h + ~1h by hand).** Targeted at the December Disruptive Themes refresh. The Q3 results seed 105; its first full quarter is the Q4 reporting season in late January.
+**Tranche C, Factor I and Disruptive Themes (~14h + ~1.25h by hand).** Targeted at the December Disruptive Themes refresh. The Q3 results seed 105; its first full quarter is the Q4 reporting season in late January.
 
 Audit #5 (week of 23 Nov) confirms the placement.
 
 ---
 
-## 7. Open at filing
+## 7. Decisions at filing (ruled 5 Nov 2026, 23:24 ET: "accept all")
 
-- **O-1, item 98: the 15:00 alert threshold.** Proposed default: an estimate of $20bn or more either way, the edge of the 2021–24 range on MS's chart. After 60 sessions, replace it with a percentile of the box's own history, measured in % of ADV.
-- **O-2, item 99: the flag threshold.** Proposed default: enacted restrictions covering 10% or more of tracked planned capacity. Review after one quarter of rows.
-- **O-3, item 104: the flag margin.** Calibrate it so the flag fires in both 1999–2000 and 2006–07, and report any false positives. If the calibration is ambiguous, default to EPS growth at least 10 points above NIPA growth for two quarters in a row.
-- **O-4, item 105: the by-hand financing ledger.** It conflicts with the 10 Oct rule against recurring manual steps. Recommendation: the monthly signal scan (on the 25th) proposes candidate rows from filings and press coverage, and the operator confirms them at a ruling sitting. That makes the step a ruling rather than data entry.
-- **O-5, encoding.** This file is Batch 17 of Amendment #4 if items 92–97 merge into §3, and Batch 18 if 92–97 are filed separately as Batch 17.
-- **O-6, item 98's ruling.** Confirm it explicitly at filing (§10).
-- **O-7, register numbers.** SR numbers are assigned at filing in posting order: 92–97 first if merged, then 98 to 105.
+- **O-1, item 98: the 15:00 alert threshold.** An estimate of $20bn or more either way, the edge of the 2021–24 range on MS's chart. After 60 sessions it switches to a percentile of the box's own history, measured in % of ADV.
+- **O-2, item 99: the flag threshold.** Enacted restrictions covering 10% or more of tracked planned capacity, reviewed after one quarter of rows.
+- **O-3, item 104: the flag margin.** Calibrated so the flag would have fired in both 1999–2000 and 2006–07, with any false positives reported. If the calibration is ambiguous: EPS growth at least 10 points above NIPA growth for two quarters in a row.
+- **O-4, item 105: the financing ledger.** The monthly signal scan (on the 25th) proposes candidate rows from filings and press coverage, and the operator confirms them at a ruling sitting. That keeps the step a ruling rather than data entry, in line with the 10 Oct rule against recurring manual steps. Amending the scan's prompt is work item 105.2.
+- **O-5, encoding.** If items 92–97 are still unfiled, merge them into §3 and file round 8 as Batch 17 of Amendment #4. If they were already filed separately as Batch 17, this file becomes Batch 18.
+- **O-6, item 98's ruling.** Confirmed (§10).
+
+**Filing note, register numbers.** SR numbers are assigned at filing in posting order: 92–97 first if merged, then 98 to 105.
 
 ---
 
@@ -513,7 +519,8 @@ Audit #5 (week of 23 Nov) confirms the placement.
 The rulings given in chat on 5 Nov 2026 constitute the signature, as with Batch 3.
 
 - **Items 99–103.** "Accept", 21:16 ET, after the triage of 99–103.
-- **Item 98.** Triaged after the operator's 21:06 post, with no separate ruling. It was recorded together with 99–103 in the reply to the 21:16 "Accept" ("98 through 103 ruled as proposed"), and the operator did not object. Confirm at filing (§7, O-6).
+- **Item 98.** Triaged after the operator's 21:06 post, with no separate ruling at first. It was recorded together with 99–103 in the reply to the 21:16 "Accept" ("98 through 103 ruled as proposed"), then confirmed explicitly at 23:24 ET ("accept all"; §7, O-6).
 - **Items 104–105.** "Except both", 21:29 ET. Read as "accept both" and recorded that way in chat; not corrected.
+- **Filing decisions O-1 to O-6 (§7).** "accept all", 23:24 ET.
 
 Filed: [commit hash] on [date].
