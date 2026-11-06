@@ -33,7 +33,7 @@ universe:
   - {id: intl_re,  label: "International real estate", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "VNQI"}
   - {id: em,       label: "Emerging markets", key: yfinance.mkt_eem,       proxy: "EEM"}
   - {id: china,    label: "China", absent: "no price feed on main; AQ-5 adds it, and its correlation.yaml then supplies the key", proxy: "MCHI"}
-  - {id: dxy,      label: "Dollar index",  key: yfinance.mkt_dxy,          proxy: "DX-Y.NYB"}
+  - {id: dxy,      label: "Dollar index",  key: "price:dollar_index.dxy",          proxy: "DX-Y.NYB"}
   - {id: eur,      label: "Euro",          key: yfinance.mkt_eurusd,       proxy: "EUR/USD"}
   - {id: jpy,      label: "Yen",           key: yfinance.mkt_usdjpy,       invert: true, proxy: "USD/JPY, inverted"}
   - {id: cny,      label: "Yuan",          key: yfinance.mkt_usdcny,       invert: true, proxy: "USD/CNY, inverted"}
@@ -125,7 +125,7 @@ quilt:
     - {id: cmdty,  label: "Broad commodities (DBC)", short: DBC, key: yfinance.mkt_dbc,  fund: true, hue: "#eb6834"}
     - {id: reits,  label: "REITs (XLRE)", short: XLRE,            key: yfinance.mkt_xlre, fund: true, hue: "#1baf7a"}
     - {id: btc,    label: "Bitcoin", short: BTC,                 key: yfinance.mkt_btc_usd, hue: "#7a5cd6"}
-    - {id: dollar, label: "Dollar (DXY)", short: DXY,            key: yfinance.mkt_dxy,  hue: "#2a78d6"}
+    - {id: dollar, label: "Dollar (DXY)", short: DXY,            key: "price:dollar_index.dxy",  hue: "#2a78d6"}
     - {id: cash,   label: "Cash (3-month bill)", short: Cash,     key: fred.tbill_3m, cash: true, hue: "#b9b6a8"}
 
 # ---------------------------------------------------------------------------

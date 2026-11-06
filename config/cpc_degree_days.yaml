@@ -1,0 +1,50 @@
+# cpc_degree_days.yaml -- NOAA CPC's population-weighted degree days (rulings of
+# 24 Oct 2026, D26; b59-trigger-sources). Read by altdata/sources/cpc_degree_days.py.
+# Report only: nothing here enters a composite or the market-state object.
+#
+# THE SOURCE CHECK (24 Oct 2026, re-confirmed before the reader; B58's brief,
+# docs/briefs/new-sources-check-2026-10-24.md section 4):
+#   terms     https://www.weather.gov/disclaimer: NWS information "is in the public
+#             domain, unless specifically noted otherwise, and may be used without
+#             charge for any lawful purpose"; the CPC is part of the NWS.
+#   robots    ftp.cpc.ncep.noaa.gov/robots.txt answers 404 (RFC 9309: no rules).
+#   files     the 2026 directory serves Population.Heating.txt and
+#             Population.Cooling.txt (plain text, pipe-delimited, one row per census
+#             division and CONUS, one column per day); its newest column on 24 Oct
+#             2026 was 22 Oct. The year directories run from 1981.
+version: cpc-degree-days-v1
+updated: 2026-10-24
+
+url: "https://ftp.cpc.ncep.noaa.gov/htdocs/degree_days/weighted/daily_data/{year}/Population.{kind}.txt"
+kinds:
+  hdd: Heating
+  cdd: Cooling
+# The file's region codes and the store's instruments.
+regions:
+  CONUS: conus
+  "1": new_england
+  "2": middle_atlantic
+  "3": east_north_central
+  "4": west_north_central
+  "5": south_atlantic
+  "6": east_south_central
+  "7": west_south_central
+  "8": mountain
+  "9": pacific
+history_from: 1981
+# Session-set. Each daily run re-reads this many days of the current file and
+# writes a new vintage only where a value changed (the CPC's newest days are
+# preliminary).
+reread_days: 14
+# Session-set. The pause between file requests (the backfill's 92 files).
+pause_seconds: 1.0
+# Session-set. The normal is the mean of the same calendar day over these years
+# (NOAA's current climate-normals period), computed on read from the stored
+# history; a day with fewer than `normal_min_years` of them prints no normal.
+normal_years: [1991, 2020]
+normal_min_years: 20
+# The window the lines sum (a week), and the five-year percentile's window.
+window_days: 7
+lens_years: 5
+# Henry Hub spot (FRED DHHNGSP), printed beside the degree days.
+natgas_key: fred.natgas

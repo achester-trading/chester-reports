@@ -64,14 +64,23 @@ def http_get_json(
     params: Optional[dict] = None,
     timeout: float = DEFAULT_TIMEOUT,
     max_retries: int = MAX_RETRIES,
+    headers: Optional[dict] = None,
 ) -> dict:
     """GET a JSON endpoint. Retries on 5xx and connection errors.
-    Raises FetchError on final failure or non-2xx after retries."""
+    Raises FetchError on final failure or non-2xx after retries.
+
+    HEADERS, AS EVERY OTHER HELPER HERE TAKES THEM (the feed repair of 24 Oct
+    2026). edgar_xbrl passed `headers=` (its SEC contact User-Agent) to a helper
+    that took none, and every EDGAR feature went stale on a TypeError. The
+    default is the project's User-Agent, as the other helpers send; `headers`
+    overrides it per call."""
     last_err: Optional[Exception] = None
     backoff = RETRY_BACKOFF
+    hdrs = {"User-Agent": USER_AGENT}
+    hdrs.update(headers or {})
     for attempt in range(max_retries):
         try:
-            resp = requests.get(url, params=params, timeout=timeout)
+            resp = requests.get(url, params=params, timeout=timeout, headers=hdrs)
             # 4xx (auth, bad request) — don't retry, surface immediately
             if 400 <= resp.status_code < 500:
                 raise FetchError(

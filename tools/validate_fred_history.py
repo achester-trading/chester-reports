@@ -24,6 +24,8 @@ fetches, never reads the live store and never calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import sys
 from collections import namedtuple
 from pathlib import Path

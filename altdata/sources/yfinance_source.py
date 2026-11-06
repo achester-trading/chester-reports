@@ -273,6 +273,19 @@ SYMBOLS: dict[str, str] = {
     "TIP": "mkt_tip",
     "MUB": "mkt_mub",
     "MBB": "mkt_mbb",
+    # SIGNAL-TRIAGE BATCH 14, ITEM 65 (a57-batch14-b1, 23 Oct 2026; F2): the "Broad
+    # AI against the S&P without the AI enablers" proxy pair, labelled "proxy"
+    # wherever it prints (config/ai_trade.yaml): AIQ, an AI-and-technology ETF,
+    # against SPXT, the S&P 500 without its technology sector. Both issuers publish
+    # the holdings. Each needs tools/backfill_prices.py before its history reads.
+    "AIQ": "mkt_aiq",
+    "SPXT": "mkt_spxt",
+    # RULING D22 OF 24 OCT 2026 (signal-triage Batch 15 item 74; a61-rulings-1024):
+    # QAI, a hedge-fund replication ETF, as the hedge-fund performance proxy in
+    # item 74's positioning block (config/hf_positioning.yaml), labelled a
+    # replication proxy wherever it prints. Needs tools/backfill_prices.py before
+    # its history reads.
+    "QAI": "mkt_qai",
     # THE LONG HISTORY, FOR BASE RATES (31.1). ^GSPC is served daily from
     # 1927-12-30 -- 24,798 sessions -- and ^VIX from 1990-01-02.
     #
@@ -618,8 +631,17 @@ def _master(on=None):
     return smm.Master()
 
 
-def resolve_basket(seed: dict[str, str], on=None) -> dict[str, str]:
-    """{Yahoo symbol: bare store key ('mkt_spy')} through the master's resolver."""
+def resolve_basket(seed: dict[str, str], on=None,
+                   restricted: Optional[list] = None) -> dict[str, str]:
+    """{Yahoo symbol: bare store key ('mkt_spy')} through the master's resolver.
+
+    THE BLOCKLIST IS CHECKED HERE, AT THE SAME PLACE (A71, the audit's leftovers):
+    each symbol is asked of the master's `is_restricted`, which falls back to the
+    tracked-entities rule for a string the master does not know. A restricted
+    name is LOGGED and appended to `restricted` when a list is passed, and its
+    prices are still stored: Standing rule 1 bars a recommendation, not a price
+    (diagnostic coverage is unaffected), and the register refuses the
+    recommendation at write time. Nothing here changes a stored key."""
     try:
         m = _master()
     except Exception as exc:                                    # noqa: BLE001
@@ -627,6 +649,17 @@ def resolve_basket(seed: dict[str, str], on=None) -> dict[str, str]:
                   "are used", type(exc).__name__, exc)
         return dict(seed)
     out = {}
+    for sym in seed:
+        try:
+            hit = m.is_restricted(sym, "yahoo", on)
+        except Exception:                                       # noqa: BLE001
+            hit = False
+        if hit:
+            log.warning("security master: %s is a restricted (Brookfield-related) "
+                        "instrument -- its prices are stored for diagnostics only; "
+                        "the register refuses any recommendation on it", sym)
+            if restricted is not None:
+                restricted.append(sym)
     for sym, seed_key in seed.items():
         try:
             sk = m.resolve(sym, "yahoo", on)["identifiers"]["store_key"]
@@ -700,9 +733,11 @@ def pull(store: Optional[Store] = None, symbols: Optional[dict[str, str]] = None
     from .. import observations as obs
     from .. import session as sess
 
-    basket = resolve_basket(symbols or SYMBOLS)
+    restricted: list = []
+    basket = resolve_basket(symbols or SYMBOLS, restricted=restricted)
     summary: dict = {"total": len(basket), "success": 0, "failed": [],
-                     "series": {}, "availability_kind": LIVE_AVAILABILITY_KIND}
+                     "series": {}, "availability_kind": LIVE_AVAILABILITY_KIND,
+                     "restricted": restricted}
 
     db = obs.open_writer(__name__)
     try:

@@ -25,6 +25,8 @@ Validation gate for Book Z -- the benchmark ledgers (EL-3, P5-B).
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import json
 import sys
@@ -206,6 +208,7 @@ def main() -> int:
               and m3["spy"]["2026-08-14"][1]["availability_kind"] == "reconstructed",
               "catch-up rows are labelled reconstructed; the pass's own session "
               "ingest_instant")
+        # THE GATE'S CLOCK (B106): reads today on purpose -- it checks that marks are stamped when computed, which only today can show. Next attention: a run straddling 00:00 UTC.
         today = session.utc_iso()[:10]
         check(all(str(r["available_at"])[:10] >= today
                   for _, (p, r) in m3["spy"].items()),

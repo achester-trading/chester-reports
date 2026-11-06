@@ -93,31 +93,51 @@ def sec_user_agent() -> Optional[str]:
     return edgar.user_agent()
 
 
+def source_timeouts(sources: list[dict]) -> dict[str, float]:
+    """{host: seconds} from each source's `timeout_seconds`, where it sets one."""
+    out: dict[str, float] = {}
+    for s in sources:
+        if s.get("timeout_seconds") and s.get("url"):
+            out[urllib.parse.urlsplit(s["url"]).netloc] = float(s["timeout_seconds"])
+    return out
+
+
 class Fetcher:
     """GETs with one User-Agent, robots.txt obeyed, one request per host per
     `pause` seconds. `get` raises urllib errors; `allowed` never raises."""
 
     def __init__(self, ua: str, pause: float = 2.0,
                  opener: Optional[Callable[[str, dict], bytes]] = None,
-                 sec_ua: Optional[str] = None) -> None:
+                 sec_ua: Optional[str] = None,
+                 timeouts: Optional[dict[str, float]] = None) -> None:
         self.ua = ua
         self.sec_ua = sec_ua
         self.pause = pause
+        # A host's own longer pause (a source's `pause_seconds`: its robots.txt
+        # crawl-delay, a57 23 Oct 2026); never shorter than `pause`.
+        self.host_pause: dict[str, float] = {}
         self._last: dict[str, float] = {}
         self._robots: dict[str, Any] = {}
         self._open = opener or self._urlopen
+        # {host: seconds}: a source's own `timeout_seconds` (the feed repair of
+        # 24 Oct 2026); every other host takes TIMEOUT.
+        self.timeouts = dict(timeouts or {})
+
+    def timeout_for(self, url: str) -> float:
+        return float(self.timeouts.get(urllib.parse.urlsplit(url).netloc, TIMEOUT))
 
     def _urlopen(self, url: str, headers: dict) -> bytes:
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        with urllib.request.urlopen(req, timeout=self.timeout_for(url)) as r:
             return r.read(MAX_BYTES)
 
     def _wait(self, host: str) -> None:
         last = self._last.get(host)
+        pause = max(self.pause, self.host_pause.get(host, 0.0))
         if last is not None:
             gap = time.monotonic() - last
-            if gap < self.pause:
-                time.sleep(self.pause - gap)
+            if gap < pause:
+                time.sleep(pause - gap)
         self._last[host] = time.monotonic()
 
     def get(self, url: str) -> bytes:
@@ -499,7 +519,7 @@ def _run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                      key=lambda s: order.get(s.get("group"), 3))
     with vmod.VoicesStore(db_path) as vs:
         f = fetcher or Fetcher(ua, float(cfg.get("politeness_seconds") or 2),
-                               sec_ua=sec_user_agent())
+                               sec_ua=sec_user_agent(), timeouts=source_timeouts(sources))
         model = cfg.get("model") or "claude-sonnet-5"
         if use_model and client is None:
             client, why = _client()
@@ -535,6 +555,9 @@ def _run(db_path: Optional[str] = None, *, ua: Optional[str] = None,
                 vs.record_run(run_id, s["id"], s["name"], "unreachable", why)
                 rep.update(state="unreachable", reason=why)
                 continue
+            hp = getattr(f, "host_pause", None)
+            if hp is not None and s.get("pause_seconds"):
+                hp[urllib.parse.urlsplit(s["url"]).netloc] = float(s["pause_seconds"])
             if not f.allowed(s["url"]):
                 rp = f.robots(s["url"])
                 state = "unreachable" if rp is None else "robots_disallowed"

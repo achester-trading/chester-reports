@@ -320,18 +320,30 @@ def collect(only: Optional[str] = None, fetch: Callable[..., Any] = _get,
             slug = n.get("llama_slug")
             if not slug:
                 continue
+            if n.get("llama_hold"):
+                # HELD (the feed repair of 24 Oct 2026): nothing requested.
+                summary.setdefault("held", {})[sym] = n["llama_hold"]
+                continue
             s = sym.lower()
             served = set(n.get("llama_series") or [])
+            # A labelled break (AERO, ruling D29.3): points from its date only,
+            # so the history stored before it is never restated.
+            since = str((n.get("llama_break") or {}).get("date") or "")
+            if since:
+                summary.setdefault("breaks", {})[sym] = since
+
+            def cut(pts: list, since: str = since) -> list:
+                return [p for p in pts if p[0] >= since] if since else pts
             for kind, dtype in FEE_TYPES.items():
                 if kind not in served:
                     continue
-                guard(f"{kind}_{s}", lambda kind=kind, dtype=dtype, slug=slug, s=s: take(
-                    f"{kind}_{s}", parse_chart(fetch(f"{API}/summary/fees/{slug}",
-                                                     {"dataType": dtype}), today)))
+                guard(f"{kind}_{s}", lambda kind=kind, dtype=dtype, slug=slug, s=s, cut=cut: take(
+                    f"{kind}_{s}", cut(parse_chart(fetch(f"{API}/summary/fees/{slug}",
+                                                         {"dataType": dtype}), today))))
             if "tvl" in served:
-                guard(f"tvl_{s}", lambda slug=slug, s=s: take(
-                    f"tvl_{s}", parse_protocol_tvl(fetch(f"{API}/protocol/{slug}"),
-                                                   today)))
+                guard(f"tvl_{s}", lambda slug=slug, s=s, cut=cut: take(
+                    f"tvl_{s}", cut(parse_protocol_tvl(fetch(f"{API}/protocol/{slug}"),
+                                                       today))))
     if only in (None, "watch"):
         def watch_names() -> None:
             w = watch()["names"]

@@ -142,8 +142,9 @@ def universe(cfg: Optional[dict] = None) -> tuple[list[dict], list[dict], Option
             return [], [], (f"{path.relative_to(REPO).as_posix()} is not in this "
                             f"checkout (the correlation layer, AQ-5)")
         import yaml  # noqa: PLC0415
-        u = list((yaml.safe_load(path.read_text(encoding="utf-8")) or {})
-                 .get("universe") or [])
+        from . import price_sources  # noqa: PLC0415
+        u = list(price_sources.resolve_tree(
+            (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("universe") or []))
     return [a for a in u if a.get("key")], [a for a in u if not a.get("key")], None
 
 

@@ -61,9 +61,13 @@ from typing import Any, Optional
 from altdata import labels, observations, session
 from altdata import model_meter
 
+from daily_cascade import audit_retry
 from daily_cascade import readability as rd
 from daily_cascade import stack as stack_mod
 from daily_cascade import stack_render as sr
+# Imported here, not in the builder, so a cycle or a missing anchor in
+# config/stack_hooks/ is refused when the Monthly is imported (S1 part 5).
+from daily_cascade import stack_hooks
 from daily_cascade.stack import item
 
 from . import dealer as dealer_mod
@@ -419,6 +423,12 @@ def tape_section(p: dict, book: Optional[dict], st=None, last: Optional[str] = N
                         _v(lv.get("ma_10m")), _v(lv.get("ma_20m")),
                         "—" if dd is None else f"{dd:+.2f}%"])
         lf_data.append({"market": i["label"], "close": close,
+                        # B84 (stack:tape, the 28 Oct dry run): with no close held
+                        # for the month-end session, the writer was left only the
+                        # averages and wrote each one as a close. Say so in the row.
+                        **({"close_absent": "no month-end close is stored for "
+                                            "this market: write no close for it"}
+                           if close is None else {}),
                         "ma_40w": lv.get("ma_40w"), "ma_10m": lv.get("ma_10m"),
                         "ma_20m": lv.get("ma_20m"), "drawdown_52w_pct": dd})
     if not lf_rows:
@@ -537,6 +547,18 @@ def mechanics_section(st, first: str, last: str, now: str, cfg: dict) -> dict:
     subs = gtm_block.place_mechanics(
         subs, gtm_block.mechanics_subsections(st, now, "monthly"),
         after_panel=fcf["title"] if fcf else None)
+    # SIGNAL-TRIAGE BATCH 14, PART B1 (a57): item 65's Broad-AI proxy line after
+    # the twin, and item 71's fragility panel. Tables and lines only.
+    from daily_cascade import batch14_b1_block                   # noqa: PLC0415
+    subs = batch14_b1_block.mechanics_subsections(subs, st, now)
+    # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58): the gold and developed-market event
+    # blocks over the month's sessions. Tables and lines only.
+    from daily_cascade import batch15_a_block                    # noqa: PLC0415
+    subs = batch15_a_block.mechanics_subsections(subs, st, now, first, last)
+    # D15 AND D26 (b59): the one-day 10-year block after the events, and the
+    # degree days beside natural gas after the oil-shock signature.
+    from daily_cascade import b59_block                          # noqa: PLC0415
+    subs = b59_block.mechanics_subsections(subs, st, now, first, last)
     # SR-9 AMENDED (ST-R4.24a/b, Batch 5 item 24), in Mechanics.
     from daily_cascade import batch5_block                       # noqa: PLC0415
     sb = batch5_block.mechanics_subsection(st, now)
@@ -624,18 +646,11 @@ def dev_point(theme: str, it: dict) -> dict:
 
 def month_direction(h: list, then: Optional[str]) -> Optional[tuple[str, float]]:
     """(rising | falling, the |z| at the month's start): a gap's direction over the
-    MONTH -- its |z| at the latest point against its |z| at the month's start --
-    where the Weekly's reads its last two sessions (T3.6 M5)."""
-    pts = [(str(d)[:10], v) for d, v in h or [] if v is not None]
-    if not pts or not then:
-        return None
-    start = [v for d, v in pts if d <= then[:10]]
-    if not start:
-        return None
-    a, b = abs(float(start[-1])), abs(float(pts[-1][1]))
-    if a == b:
-        return None
-    return ("rising" if b > a else "falling"), float(start[-1])
+    MONTH -- its |z| at the latest point against its |z| at the month's start
+    (T3.6 M5). A103: one rule, weekly_sections.period_direction, which the
+    Weekly's gap table now reads over the week."""
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    return wsec.period_direction(h, then)
 
 
 def misfit_section(p: dict, st, now: str, pmb: Optional[dict],
@@ -645,7 +660,17 @@ def misfit_section(p: dict, st, now: str, pmb: Optional[dict],
     mis = month_in_state(p)
     hist = {c["id"]: _contradiction_history(st, c["id"], now)
             for c in mis["contradictions"]}
-    b = _month_words(ws.misfit_week(mis, pmb, hist))
+    # A95 (M5, the Monthly Letter of 1 Nov): THE GAP'S AGE IS THE WEEKLY'S. The
+    # Weekly reads each gap's since-date and its sessions from the stored
+    # objects (weekly_sections.state_dates); the Monthly passed no dates, so the
+    # table fell back to the month object's persistence count and printed a
+    # different age for the same gap. Both now read the stored objects.
+    from daily_cascade import weekly_sections as wsec            # noqa: PLC0415
+    try:
+        dates = wsec.state_dates(ws.stored_objects(st, now))
+    except Exception:                                           # noqa: BLE001
+        dates = None
+    b = _month_words(ws.misfit_week(mis, pmb, hist, dates=dates))
     rows, ids, pts = [], [], []
     for t in (p.get("looking_back") or {}).get("themes") or []:
         for n, it in enumerate(t.get("items") or []):
@@ -809,8 +834,10 @@ def plumbing_section(st, now: str, then: str, on_tape: set,
     from daily_cascade import weekly_stack as ws                 # noqa: PLC0415
     # yudd_line=False: the yields-up/dollar-down line is the Weekly's (AQ-8a);
     # the Monthly carries the series in the fiscal_dollar theme.
+    # month_aligned (A95, M2): the yields table's month change is the scorecard's
+    # and the themes' (v2.prior_target), not the prior knowable at the month-end.
     b = _month_words(ws.plumbing_week(st, now, then, None, liquidity_deltas=True,
-                                      yudd_line=False))
+                                      yudd_line=False, month_aligned=True))
     names = {name: k for k, name in ws.PLUMB}
     rows = (b.get("table") or {}).get("rows") or []
     moved = [r[0] for r in rows if names.get(r[0]) in on_tape]
@@ -952,6 +979,20 @@ POSITIONING_SERIES = (
     ("tic", "Total net TIC flows", "tic.flow_total", None))
 
 
+def count_level_display(value, key: str) -> Optional[str]:
+    """A count's level as the integer with its noun ("−964,293 contracts"), for a
+    series whose display carries a noun; None otherwise. B84: the CFTC block's
+    data held the raw latest alone, so the writer printed "−964,293" bare and the
+    retry's "copy its latest_level_display" named a field the block lacked."""
+    from altdata import derived, numeral_audit as na             # noqa: PLC0415
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    noun = na.display_noun(key, derived.level_units_of(key) or "")
+    if not noun:
+        return None
+    return (na.MINUS if value < 0 else "") + f"{abs(float(value)):,.0f} {noun}"
+
+
 def positioning_history(st, now: str) -> list[dict]:
     """Every positioning series the store holds, with its latest value and
     where that value sits in its own last two years: the z, its n and window, or
@@ -969,7 +1010,9 @@ def positioning_history(st, now: str) -> list[dict]:
             continue
         vals = [v for _, v in pts]
         z = derived.z_of(vals, vals[-1]) if len(vals) >= HISTORY_MIN else None
+        disp = count_level_display(vals[-1], key)
         out.append({"group": group, "series": label, "latest": vals[-1],
+                    **({"latest_level_display": disp} if disp else {}),
                     "as_of": pts[-1][0], "n": len(vals),
                     "z_two_years": None if z is None else round(z, 1),
                     "history": (f"z {z:+.1f} over two years (n={len(vals)})"
@@ -1424,10 +1467,14 @@ def book_section(p: dict) -> dict:
     bzl = bz.get("book_line") or bz.get("line")
     why = (bz.get("book_line_absent_reason") or bz.get("absent_reason")
            or bz.get("fault") or "not read")
+    # A95 (M4): the one sentence the read's paragraph prints too (v2), so Book
+    # Z's own ledgers are never printed under "Against Book Z".
+    from . import v2 as _v2                                      # noqa: PLC0415
+    zs = _v2.book_z_sentence(bz)
     zsub = {"title": "Against Book Z",
-            "lines": [f"Against Book Z, {bzl}." if bzl else f"Book Z absent: {why}."]}
-    if bzl:
-        items.append(item("book:z", f"Against Book Z, {bzl}.", 2, bzl))
+            "lines": [zs if zs else f"Book Z absent: {why}."]}
+    if zs:
+        items.append(item("book:z", zs, 2, bzl))
         items[-1]["show"] = False
     if r.get("state") == "ok" and r.get("paragraph"):
         lines.append(f"The bound, restated from the weights and the positions: "
@@ -1463,7 +1510,9 @@ def sourced_figures(now: Optional[str], db_path: Optional[str]) -> tuple[list, l
     # rows its tables print, appear in those tables, so each fact prints once.
     skip = set(gtm.config().get("printed_scan_rows") or [])
     rows = [r for r in rows if not str(r["metric"]).startswith(gtm.METRIC_PREFIX)
-            and r["metric"] not in skip]
+            and r["metric"] not in skip
+            # Batch 14 item 62 (b55): the CMA editions print in their own table.
+            and not str(r["family"]).startswith("cma-")]
     subs, items, data = [], [], []
     by_fam: dict[str, list] = {}
     for r in rows:
@@ -1834,6 +1883,20 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
     if st is not None and now:
         from daily_cascade import t1_rest_block                 # noqa: PLC0415
         subs += t1_rest_block.slow_subsections(st, now)
+        # BATCH 15 ITEM 72 (a58): institutional gold-ETF ownership (13F), right
+        # after item 38's gold/equity ratio, report only.
+        from daily_cascade import batch15_a_block                # noqa: PLC0415
+        subs = batch15_a_block.place_slow(subs, st, now)
+        # 6f TRANCHE 3 (a62): the tail families and the debt-cycle branch, read
+        # from the stored object; report only.
+        from daily_cascade import state_v2_block                 # noqa: PLC0415
+        subs += state_v2_block.slow_subsections(st, now)
+        # 6f TRANCHE 2 (a63): the dials' transitions, and the dimensions' unledgered.
+        subs += state_v2_block.calibration_subsection(st, now, dimensions=True)
+        # D26 (b59): Factor III's GDELT lines and Factor I-b's model releases,
+        # right after the Factor lines; report only.
+        from daily_cascade import b59_block                      # noqa: PLC0415
+        subs = b59_block.place_slow(subs, st, now)
     if st and now:
         # Before the families it reads across (AQ-8a): one table, every family.
         at = next((i for i, s in enumerate(subs)
@@ -1849,30 +1912,13 @@ def slow_layers(p: dict, cfg: dict, st=None, now: Optional[str] = None,
         subs[-1]["not_tracked"].append(
             "the scans' sourced figures: no scan ingested by this edition's cutoff")
     subs += src_subs
-    # FACTOR I, THE REAL ECONOMY (ST-R4.23a, Batch 5 item 23): construction
-    # spending, real -- data centers and the rest. No rights until the
-    # Disruptive Themes refresh; held until D1c, it prints why.
-    if st is not None and now:
-        from daily_cascade import batch5_block                   # noqa: PLC0415
-        con = batch5_block.slow_subsection(st, now)
-        if con:
-            subs.append(con)
-        # BATCH 5 ITEM 22 (ST-R4.22a, 22b): the expansion's age with the post-war
-        # hazard, and Factor I's information-processing dependency line.
-        from daily_cascade import batch5b_block                  # noqa: PLC0415
-        subs += batch5b_block.slow_subsections(st, now)
-        # BATCH 14 ITEMS 64 AND 69 (a56): the excess CAPE yield and real home
-        # prices since 1890, report only.
-        from daily_cascade import batch14_a1_block               # noqa: PLC0415
-        b14 = batch14_a1_block.slow_subsection(st, now)
-        if b14:
-            subs.append(b14)
-        # SIGNAL-TRIAGE BATCH 14, ITEM 63 (b52): Factor I's capex-chain exhibit,
-        # BNP Paribas's $100 (August 2026), the standing dated table.
-        from daily_cascade import capex_chain_block              # noqa: PLC0415
-        cc_ref = capex_chain_block.slow_subsection()
-        if cc_ref:
-            subs.append(cc_ref)
+    # THE DECLARED HOOKS AFTER THE SOURCED FIGURES (S1 part 5): each sub-section
+    # joins through config/stack_hooks/<id>.yaml, in `after:` order -- today the
+    # CMA table (b55), Factor I's construction line, the expansion's age and the
+    # dependency line (Batch 5), the excess CAPE yield (a56) and the capex chain
+    # (b52). A new one is a new file there, never an edit here.
+    subs += stack_hooks.run("monthly", "slow", "sourced_figures",
+                            {"st": st, "now": now, "db_path": db_path})
     items = [item(f"slow:base:{n}", " ".join(str(x) for x in r), 1, r)
              for n, r in enumerate(base_rows)]
     items += [item(f"slow:alt:{r[1]}", f"{r[1]} {r[2]}", 2, r) for r in arows]
@@ -2003,6 +2049,9 @@ def detail_tables(p: dict, ahead_claims: set) -> list[dict]:
                 lines += [_sb.dial_line(ex, d) for d, _ in _sb.DIALS]
         if sb.get("benchmarks"):
             lines.append(_sb.benchmarks_line(sb["benchmarks"]))
+        # 6f tranche 4: the Quarterly's payload alone carries the split.
+        if rm.get("alignment_split"):
+            lines += _sb.alignment_lines(rm["alignment_split"])
         if sb.get("fault"):
             lines.append(f"The scoreboard: not built ({sb['fault']}).")
     except Exception as exc:                                   # noqa: BLE001
@@ -2166,6 +2215,23 @@ def _right(r: dict) -> Optional[bool]:
         return None
 
 
+def forecast_count_line(emitted: list[dict], tail: str = "") -> str:
+    """A95 (M3, the Monthly Letter of 1 Nov): THE HEADER NAMES WHAT IT COUNTS.
+    The header counted every forecast the probability ledger took this month
+    (the close's outlooks, the narrative register's), while the scenario record
+    counts the scenario weights alone and said "No probability has been
+    emitted": two right counters, one unlabelled. The line now says it counts
+    the ledger and how many of those are scenario weights (payload's
+    SCENARIO_SOURCES, the scenario record's own filter)."""
+    from .payload import SCENARIO_SOURCES                         # noqa: PLC0415
+    n = len(emitted)
+    k = sum(1 for r in emitted if r.get("ledger_source") in SCENARIO_SOURCES)
+    scen = ("none of them a scenario weight" if k == 0 else
+            f"{k} of them scenario weight{'' if k == 1 else 's'}")
+    return (f"{n} forecast{'' if n == 1 else 's'} emitted to the probability ledger "
+            f"({scen}){tail}.")
+
+
 def changed_since(p: dict) -> tuple[list[str], list[str]]:
     wc = (p.get("looking_back") or {}).get("what_changed") or {}
     lines, ids = [], []
@@ -2195,8 +2261,8 @@ def changed_since(p: dict) -> tuple[list[str], list[str]]:
                 tail += f": {right} right, {wrong} wrong"
             if right + wrong < len(resolved):
                 tail += f" ({len(resolved) - right - wrong} not yet graded)"
-        lines.append(f"{len(emitted)} forecast{'' if len(emitted) == 1 else 's'} "
-                     f"emitted{tail}.")
+        lines.append(forecast_count_line(
+            [(wc.get("rows") or [])[n] for n in emitted], tail))
         ids += [f"looking_back:what_changed:{n}" for n in emitted] + \
             [f"looking_back:what_changed:{n}" for n, _ in resolved]
     if decisions:
@@ -2266,6 +2332,10 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 built[sid] = fn()
             except Exception as exc:                            # noqa: BLE001
                 built[sid] = _fault(sid, exc)
+        # D26 (b59): GDELT's articles per story beside the narrative register.
+        if st is not None and built.get("narratives") is not None:
+            from daily_cascade import b59_block                  # noqa: PLC0415
+            b59_block.monthly_narratives(built["narratives"], st, now)
         retro = built["mechanics"].pop("_retro", None)
         printed = [(k, "tape") for k in sorted(on_tape)]
         for sid in ("plumbing", "narratives"):
@@ -2287,7 +2357,12 @@ def build(p: dict, prior: Optional[dict] = None, db_path: Optional[str] = None,
                 at = max((i for i, x in enumerate(subs)
                           if str(x.get("title") or "").startswith("Themes: digital")),
                          default=at)
-                subs[at + 1:at + 1] = crypto_blocks.monthly_slow(st, now)
+                cb_subs = crypto_blocks.monthly_slow(st, now)
+                # SIGNAL-TRIAGE BATCH 15, ITEM 78 (b56): DefiLlama's active-
+                # protocol count, after the network-health rows.
+                from daily_cascade import batch15_b2_block      # noqa: PLC0415
+                pbs = batch15_b2_block.protocol_subsection(st, now)
+                subs[at + 1:at + 1] = cb_subs + ([pbs] if pbs else [])
             except Exception:                                   # noqa: BLE001
                 log.warning("crypto data layer unavailable", exc_info=True)
             # THE DIGITAL ASSET MECHANISM WATCH PART (ST-14, 2.7.6; st-t5-render,
@@ -2486,7 +2561,10 @@ PHASE_A_PROSE = {"month_in_markets": ("read", None),
 # run's archive held only the last reason, and what a withheld section needed
 # had to be inferred from it.
 PROSE_ARCHIVED = ("state", "published", "reason", "attempts", "first_reason",
-                  "reasons", "words", "figures_cited", "rejected_text")
+                  "reasons", "words", "figures_cited", "rejected_text",
+                  # W10-1 (D46): a partial publication's count, its withheld
+                  # sentences with their reasons, and why a section stayed whole.
+                  "partial", "withheld_sentences", "fallback")
 
 
 def apply_prose(ed: dict, written: dict) -> dict:
@@ -2506,6 +2584,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
     for key, r in written.items():
         ok = bool(r.get("published") and r.get("text"))
         why = r.get("reason") or r.get("state")
+        # W10-1 (D46): published with k sentences withheld -- the status line.
+        part = (f"Commentary {audit_retry.status(int(r['partial']))} by the figure audit."
+                if ok and r.get("partial") else None)
         if key.startswith("stack:"):
             s = secs.get(key.split(":", 1)[1])
             if s is None:
@@ -2514,6 +2595,8 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
                 s["paragraphs"] = s["paragraphs"][:1] if s.get("depth") in (
                     "deep", "medium") and not s.get("claim_only") else []
+                if part:
+                    s["partial_withheld"] = int(r["partial"])
             else:
                 s["withheld"] = why
             continue
@@ -2522,6 +2605,9 @@ def apply_prose(ed: dict, written: dict) -> dict:
             owner, ss = subs[key]
             if ok:
                 ss["paragraphs"] = _paras(r["text"])
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
@@ -2538,12 +2624,17 @@ def apply_prose(ed: dict, written: dict) -> dict:
                 ss["paragraphs"] = _paras(r["text"])
                 # The takeaways now print as their prose: the lines are its data.
                 ss["lines"] = []
+                if part:
+                    ss.setdefault("notes", []).append(part)
+                    ss["partial_withheld"] = int(r["partial"])
             else:
                 ss.setdefault("notes", []).append(
                     f"Commentary withheld by the audit: {why}")
             continue
         if ok:
             s["claim"], s["paragraphs"] = _claim_and_rest(r["text"])
+            if part:
+                s["partial_withheld"] = int(r["partial"])
         else:
             s["withheld"] = why
     ed["prose"] = {k: {kk: v.get(kk) for kk in PROSE_ARCHIVED}
@@ -2653,12 +2744,11 @@ def summary_minutes(ed: dict) -> int:
 # ---------------------------------------------------------------------------
 def enforce_budget(ed: dict) -> dict:
     """The stacked reports' guard at the Monthly's cadence
-    (daily_cascade.stack.enforce_budget): each paragraph cut to its section's
-    depth allowance, The read's sentences not repeated elsewhere, then over the
-    budget the lowest-priority paragraphs go and the block prints "(trimmed)".
-    A claim, an item, a line, a table and a reading entry are never cut. The
-    reading time is the shared estimate, which counts the stored text the
-    Reading chapter prints (readability.stored_words)."""
+    (daily_cascade.stack.enforce_budget): The read's sentences not repeated
+    elsewhere; since D19/D20 (24 Oct 2026) nothing is cut for length -- the
+    10,000 words and the 55 minutes are targets, and over them the edition prints
+    one foot line. The reading time is the shared estimate, which counts the
+    stored text the Reading chapter prints (readability.stored_words)."""
     stack_mod.enforce_budget(ed, CADENCE)
     ed["reading_minutes"] = rd.reading_minutes(ed)
     if ed.get("summary"):
@@ -2782,6 +2872,12 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     # EL-6: THE SYSTEM-METRICS BLOCK, the last detail table. Data, not prose:
     # it counts in neither the word budget nor the chart cap.
     ed["detail"].append(system_metrics_block(p, ed, db_path, archive_dir, "monthly"))
+    # THE COVERAGE TABLE (W10-3): the Weekly's, in the appendix.
+    from daily_cascade import coverage                          # noqa: PLC0415
+    cov = coverage.build(db_path, ed.get("as_of"))
+    apx = next((d for d in ed["detail"] if d.get("id") == "appendix"), None)
+    if cov and apx is not None:
+        apx["coverage"] = cov
     if not narrative:
         written = {}
     elif write is not None:
@@ -2799,6 +2895,10 @@ def produce(p: dict, *, archive_dir: Optional[str], client=None,
     except Exception:                                           # noqa: BLE001
         log.exception("the Monthly's charts faulted; the edition prints none")
         charts = {}
+    # THE "WHAT TO SEE" LINE (W10-2): as the Weekly's, after the drawing.
+    if narrative:
+        from daily_cascade import chart_lines                   # noqa: PLC0415
+        chart_lines.write(ed, charts, model=model, client=client)
     ed["levels"] = book
     polish(ed, charts)
     # THE EXECUTIVE SUMMARY, BUILT LAST FROM THE FINISHED SECTIONS (T3.1 item

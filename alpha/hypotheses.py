@@ -56,6 +56,7 @@ from typing import Any, Iterable, Optional
 import yaml
 
 from . import blocklist
+from . import families
 
 SCHEMA_ID = "alpha-lab-hypotheses/v1"
 SOURCES = ("model", "operator", "chat", "sitting", "systematic", "tell")
@@ -81,7 +82,13 @@ BATCH_OPTIONAL = ("human_record", "prompt_version", "model_id", "packet_sha256",
 HYP_REQUIRED = ("local_id", "title", "horizon_class", "horizon_sessions", "family",
                 "mechanism", "universe", "rule_text", "conditioning", "expected",
                 "sample", "data", "needs_code", "kill", "state_at_registration")
-HYP_OPTIONAL = ("rule_dsl", "supersedes", "translation_note", "engine", "tell")
+HYP_OPTIONAL = ("rule_dsl", "supersedes", "translation_note", "engine", "tell",
+                "family_ref")
+# B98 (Batch 19 item 99): family_ref, a config/alpha_families.yaml entry, is
+# required on every hypothesis of an inbox batch (the weekly brief, a sitting)
+# written from this instant on; before it, the registry's assignments map them.
+FAMILY_REF_REQUIRED_FROM = "2026-11-01T04:00:00+00:00"
+FAMILY_REF_CHANNELS = ("weekly-brief", "sitting")
 
 # THE BUDGETS (10.2 c), per channel. The daily proposer's weekly family budget
 # is a register-wide count (family_week_count), checked by the proposer before
@@ -190,6 +197,15 @@ def validate_batch(doc: Any) -> list[str]:
         for k in ("title", "family", "mechanism", "rule_text"):
             if k in h and (not isinstance(h[k], str) or not h[k].strip()):
                 err.append(f"{tag}: {k} is not a non-empty string")
+        if "family_ref" in h:
+            why = families.validate_ref(h["family_ref"])
+            if why:
+                err.append(f"{tag}: {why}")
+        elif (doc.get("channel") in FAMILY_REF_CHANNELS
+              and instant(doc.get("written_at"))
+              and instant(doc.get("written_at")) >= instant(FAMILY_REF_REQUIRED_FROM)):
+            err.append(f"{tag}: missing family_ref (required on an inbox batch "
+                       f"written from {FAMILY_REF_REQUIRED_FROM})")
         if h.get("horizon_class") not in HORIZON_CLASSES:
             err.append(f"{tag}: horizon_class {h.get('horizon_class')!r} is not one "
                        f"of {HORIZON_CLASSES}")
@@ -239,7 +255,7 @@ def budget_errors(doc: dict) -> list[tuple[Optional[str], str]]:
                 out.append((h.get("local_id"), f"over the weekly brief's {b[c]} "
                             f"{c}-term hypotheses a batch"))
                 continue
-            f = h.get("family")
+            f = families.count_key(h, doc.get("batch_id")) if h.get("family") else None
             by_fam[f] = by_fam.get(f, 0) + 1
             if by_fam[f] > b["per_family_per_batch"]:
                 out.append((h.get("local_id"), f"over {b['per_family_per_batch']} "
@@ -447,9 +463,11 @@ class Register:
         d = dt.date.fromisoformat(day[:10])
         mon = (d - dt.timedelta(days=d.weekday())).isoformat()
         sun = (d + dt.timedelta(days=6 - d.weekday())).isoformat()
-        sql = ("SELECT COUNT(*) AS n FROM hypotheses WHERE family=? AND "
+        # B98: a family_ref counts the hypotheses that carry it as well.
+        sql = ("SELECT COUNT(*) AS n FROM hypotheses WHERE (family=? OR "
+               "json_extract(spec, '$.family_ref')=?) AND "
                "substr(pre_registered_at,1,10) BETWEEN ? AND ?")
-        args: list = [family, mon, sun]
+        args: list = [family, family, mon, sun]
         if channel:
             sql += " AND channel=?"
             args.append(channel)
@@ -513,13 +531,15 @@ class Register:
             "status_reason": reason, "result": None,
             "supersedes": h.get("supersedes"), "superseded_by": None,
             "engine_id": None, "as_of": as_of})
+        key = families.count_key(h, batch["batch_id"])      # B98: the family_ref
         if bump:
-            n = self.lg.bump_variant(h["family"], as_of)
+            n = self.lg.bump_variant(key, as_of)
         else:
-            n = self.lg.variant_count(h["family"])
+            n = self.lg.variant_count(key)
         self.lg.event("register", "hypothesis_registered", as_of, None,
                       after={"id": hid, "batch_id": batch["batch_id"],
                              "local_id": h["local_id"], "family": h["family"],
+                             "family_ref": families.family_ref_of(h, batch["batch_id"]),
                              "status": status, "reason": reason,
                              "pre_registered_at": pre_registered_at,
                              "variant_count": n, "rule_origin": rule_origin})

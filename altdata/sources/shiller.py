@@ -1,5 +1,5 @@
 """
-Robert Shiller's stock market data -- CAPE and its inputs, monthly from 1871.
+Shiller's online stock market data (Yale) -- CAPE and its inputs, monthly from 1871.
 
     python -m altdata.sources.shiller        # one pull, summary to stdout
 

@@ -143,7 +143,7 @@ registered with their units.
 `validate_crypto_sources` 117/0. alpha-lab-4 has no `user_agent` module, so its own
 gate passed there and the fix lives here, on the merged line.
 
-## Box commands (for Ari; inside a window; after the third chain merges; dry runs first)
+## Box commands (for the operator; inside a window; after the third chain merges; dry runs first)
 
 ```bash
 cd ~/chester-reports

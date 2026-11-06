@@ -602,10 +602,13 @@ def reactions(conn, symbol: str, before: str, now: str, n: int = 3) -> list[dict
     close before the report date to the close after it (the Weekly's earnings
     block's rule); "not stored" where a close is missing. A store without the
     events table reads as nothing stored, never a fault."""
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _ec, _ep = _ps.events_clause()        # A102: the earnings rows' source switch
     try:
         rows = conn.execute(
             "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
-            "observed_at < ? AND available_at <= ?", (before, now)).fetchall()
+            "observed_at < ? AND available_at <= ?" + _ec,
+            (before, now, *_ep)).fetchall()
     except sqlite3.Error:
         return []
     reps = []

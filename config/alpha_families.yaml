@@ -1,0 +1,214 @@
+# THE ALPHA LAB'S FAMILY REGISTRY (Batch 19 item 99, accepted 27 Oct 2026; B98).
+#
+# Every hypothesis carries a family_ref keyed to a section of Kakushadze and
+# Serur, "151 Trading Strategies" (Palgrave Macmillan, 2018; SSRN 3247865, free),
+# or to one of the two house entries below. The family budget and the
+# deflated-Sharpe and RAS variant counts key on it (docs/alpha-lab-rules.md
+# section 15).
+#
+# THE SOURCE, AS READ (31 Oct 2026):
+# - SSRN's page https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3247865
+#   answered HTTP 403 to the fetch. The English PDF could not be read from it.
+# - The section numbers and titles below are read from the authors' own full
+#   Spanish edition, arXiv:1912.04492 (https://arxiv.org/abs/1912.04492; "151
+#   Estrategias de Trading", 2019, "Translation from the English language
+#   edition"). Its contents list numbers the same chapters and sections.
+# - `title` is the section's title put into English. `title_es` is the Spanish
+#   edition's title as extracted (the dash the extraction dropped restored as "–",
+#   and "fi" in "filtro"). Re-read the titles against the English PDF when
+#   SSRN serves it.
+#
+# WHICH SECTIONS. One entry per section the lab could use with what it stores:
+# equities, ETFs, fixed income, indexes, volatility, FX, commodities, futures,
+# inflation, weather, crypto and global macro. Left out: chapter 2's option
+# structures (an options idea takes the house entry "KS options"), structured
+# assets, convertibles, tax arbitrage, distressed assets, real estate, cash and
+# infrastructure, none of which the store holds. Sections titled "Generalidades"
+# (overviews) are not strategies and are left out too.
+#
+# A FAMILY_REF is the entry's `ref`, exactly: "KS §<section> <short name>", or a
+# house entry's name.
+
+version: 1
+read_on: "2026-10-31"
+source:
+  citation: >-
+    Kakushadze, Z. and Serur, J. A. (2018). 151 Trading Strategies. Palgrave
+    Macmillan (Springer Nature), Cham. ISBN 978-3-030-02791-9. SSRN 3247865.
+  ssrn: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3247865"
+  contents_read_from: "https://arxiv.org/abs/1912.04492 (the authors' Spanish edition)"
+
+families:
+  # --- 3. Stocks ------------------------------------------------------------
+  - {ref: "KS §3.1 price momentum", section: "3.1", title: "Price-momentum", title_es: "Precio-momentum",
+     house_description: "Rank names by trailing return, skipping the last month; long the winners, short the losers.",
+     asset_classes: [equities, etfs]}
+  - {ref: "KS §3.2 earnings momentum", section: "3.2", title: "Earnings-momentum", title_es: "Ganancias-momentum",
+     house_description: "Trade the drift after an earnings surprise against consensus (post-announcement drift).",
+     asset_classes: [equities]}
+  - {ref: "KS §3.3 value", section: "3.3", title: "Value", title_es: "Valor (Value)",
+     house_description: "Long cheap, short dear on a valuation ratio.", asset_classes: [equities]}
+  - {ref: "KS §3.4 low-volatility anomaly", section: "3.4", title: "Low-volatility anomaly", title_es: "Anomalía de baja volatilidad",
+     house_description: "Low-volatility names earn more per unit of risk than high-volatility names.", asset_classes: [equities]}
+  - {ref: "KS §3.5 implied volatility", section: "3.5", title: "Implied volatility", title_es: "Volatilidad implícita",
+     house_description: "Stock selection on changes in the name's own options' implied volatility.", asset_classes: [equities, options]}
+  - {ref: "KS §3.6 multifactor portfolio", section: "3.6", title: "Multifactor portfolio", title_es: "Portafolio multifactor",
+     house_description: "Several factor ranks combined into one portfolio.", asset_classes: [equities]}
+  - {ref: "KS §3.7 residual momentum", section: "3.7", title: "Residual momentum", title_es: "Momentum residual",
+     house_description: "Momentum in returns after the factor exposures are removed.", asset_classes: [equities]}
+  - {ref: "KS §3.8 pairs trading", section: "3.8", title: "Pairs trading", title_es: "Trading de pares",
+     house_description: "Two related names; trade the spread back to its mean.", asset_classes: [equities, etfs]}
+  - {ref: "KS §3.9 mean-reversion", section: "3.9", title: "Mean-reversion (single and multiple clusters)", title_es: "Reversión a la media – grupo único",
+     house_description: "Cross-sectional reversal: names demeaned within their group fade back.", asset_classes: [equities, etfs]}
+  - {ref: "KS §3.10 weighted-regression mean-reversion", section: "3.10", title: "Mean-reversion: weighted regression", title_es: "Reversión a la media – regresión ponderada",
+     house_description: "Reversal on residuals from a weighted factor regression.", asset_classes: [equities]}
+  - {ref: "KS §3.11 moving average", section: "3.11", title: "Single moving average", title_es: "Media móvil",
+     house_description: "Long above a moving average, out or short below it.", asset_classes: [equities, etfs, futures]}
+  - {ref: "KS §3.12 two moving averages", section: "3.12", title: "Two moving averages", title_es: "Dos medias móviles",
+     house_description: "A fast and a slow average; trade the cross.", asset_classes: [equities, etfs, futures]}
+  - {ref: "KS §3.13 three moving averages", section: "3.13", title: "Three moving averages", title_es: "Tres medias móviles",
+     house_description: "Three averages; trade only when all three agree.", asset_classes: [equities, etfs, futures]}
+  - {ref: "KS §3.14 support and resistance", section: "3.14", title: "Support and resistance", title_es: "Soporte y resistencia",
+     house_description: "Levels from prior highs, lows and pivots; trade the hold or the break.", asset_classes: [equities, etfs, futures]}
+  - {ref: "KS §3.15 channel", section: "3.15", title: "Channel", title_es: "Canal",
+     house_description: "Trade a price range's edges (breakout or fade).", asset_classes: [equities, etfs, futures]}
+  - {ref: "KS §3.16 event-driven M&A", section: "3.16", title: "Event-driven: M&A", title_es: "Eventos – Fusiones y Adquisiciones",
+     house_description: "Merger arbitrage on announced deals.", asset_classes: [equities]}
+  - {ref: "KS §3.17 machine learning KNN", section: "3.17", title: "Machine learning: single-stock KNN", title_es: "Aprendizaje automático – acción individual con KNN",
+     house_description: "A nearest-neighbour forecast of one name's return.", asset_classes: [equities]}
+  - {ref: "KS §3.18 statistical arbitrage", section: "3.18", title: "Statistical arbitrage: optimization", title_es: "Arbitraje estadístico – Optimización",
+     house_description: "An optimised dollar-neutral book on expected returns.", asset_classes: [equities]}
+  - {ref: "KS §3.19 market-making", section: "3.19", title: "Market-making", title_es: "Market-making",
+     house_description: "Earn the spread by quoting both sides.", asset_classes: [equities]}
+  - {ref: "KS §3.20 alpha combo", section: "3.20", title: "Alpha combos", title_es: "Combo alfa",
+     house_description: "Many weak signals combined into one.", asset_classes: [equities]}
+  # --- 4. ETFs --------------------------------------------------------------
+  - {ref: "KS §4.1 sector momentum rotation", section: "4.1", title: "Sector momentum rotation", title_es: "Rotación de momentum sectorial",
+     house_description: "Hold the sectors leading on trailing return (with the MA filter and dual-momentum variants).", asset_classes: [etfs]}
+  - {ref: "KS §4.2 alpha rotation", section: "4.2", title: "Alpha rotation", title_es: "Rotación de alfa",
+     house_description: "Rotate into the ETFs with the highest alpha against a benchmark.", asset_classes: [etfs]}
+  - {ref: "KS §4.3 R-squared", section: "4.3", title: "R-squared", title_es: "R-cuadrado",
+     house_description: "Select on how much of an ETF's return the market explains.", asset_classes: [etfs]}
+  - {ref: "KS §4.4 ETF mean-reversion", section: "4.4", title: "Mean-reversion", title_es: "Reversión a la media",
+     house_description: "Short-horizon reversal in ETF prices.", asset_classes: [etfs]}
+  - {ref: "KS §4.5 leveraged ETFs", section: "4.5", title: "Leveraged ETFs (LETFs)", title_es: "ETFs apalancados (LETFs)",
+     house_description: "Trade the decay of daily-rebalanced leveraged funds.", asset_classes: [etfs]}
+  - {ref: "KS §4.6 multi-asset trend following", section: "4.6", title: "Multi-asset trend following", title_es: "Seguimiento de la tendencia con múltiples activos",
+     house_description: "Time-series trend across asset-class ETFs, each on its own past return.", asset_classes: [etfs, futures]}
+  # --- 5. Fixed income ------------------------------------------------------
+  - {ref: "KS §5.9 low-risk factor", section: "5.9", title: "Low-risk factor", title_es: "Factor de bajo riesgo",
+     house_description: "Short-duration, high-quality bonds earn more per unit of risk.", asset_classes: [fixed_income]}
+  - {ref: "KS §5.10 value factor", section: "5.10", title: "Value factor", title_es: "Factor de value",
+     house_description: "Bonds cheap against a fair yield.", asset_classes: [fixed_income]}
+  - {ref: "KS §5.11 carry factor", section: "5.11", title: "Carry factor", title_es: "Factor carry",
+     house_description: "Hold the bonds whose yield plus roll-down is highest.", asset_classes: [fixed_income]}
+  - {ref: "KS §5.12 rolling down the yield curve", section: "5.12", title: "Rolling down the yield curve", title_es: "Rodando hacia abajo por la curva de rendimientos",
+     house_description: "Earn the roll as a bond ages along a steep curve.", asset_classes: [fixed_income]}
+  - {ref: "KS §5.13 yield curve spread", section: "5.13", title: "Yield curve spread (flatteners and steepeners)", title_es: "Margen de la curva de rendimientos (Flattener & Steepener)",
+     house_description: "Trade the curve's slope.", asset_classes: [fixed_income]}
+  # --- 6. Indexes -----------------------------------------------------------
+  - {ref: "KS §6.2 cash and carry arbitrage", section: "6.2", title: "Cash-and-carry arbitrage", title_es: "Arbitraje Cash & Carry",
+     house_description: "Two prices for one exposure (spot and a future or perpetual) converge; hold the basis.", asset_classes: [indexes, futures, crypto]}
+  - {ref: "KS §6.3 dispersion trading", section: "6.3", title: "Dispersion trading in equity indexes", title_es: "Trading de dispersión en índices de acciones",
+     house_description: "Index implied correlation against its members' volatility.", asset_classes: [indexes, options]}
+  - {ref: "KS §6.4 intraday ETF arbitrage", section: "6.4", title: "Intraday arbitrage between index ETFs", title_es: "Arbitraje intradía entre ETFs de índices",
+     house_description: "Two funds on one index drift apart intraday and converge.", asset_classes: [etfs]}
+  - {ref: "KS §6.5 index volatility targeting", section: "6.5", title: "Index volatility targeting with a risk-free asset", title_es: "Targeting de volatilidad sobre índice con activo libre de riesgo",
+     house_description: "Scale index exposure to a volatility target, the rest in cash.", asset_classes: [indexes]}
+  # --- 7. Volatility --------------------------------------------------------
+  - {ref: "KS §7.2 VIX futures basis", section: "7.2", title: "VIX futures basis trading", title_es: "Trading de la base de futuros del VIX",
+     house_description: "Trade the VIX future's basis to spot as it converges.", asset_classes: [volatility, futures]}
+  - {ref: "KS §7.3 volatility carry with ETNs", section: "7.3", title: "Volatility carry with two ETNs", title_es: "Carry de volatilidad con dos ETNs",
+     house_description: "Harvest the volatility term structure's roll with a pair of ETNs.", asset_classes: [volatility, etfs]}
+  - {ref: "KS §7.4 volatility risk premium", section: "7.4", title: "Volatility risk premium", title_es: "Prima de riesgo de volatilidad",
+     house_description: "Implied exceeds realised on average; sell volatility and collect the difference.", asset_classes: [volatility, options]}
+  - {ref: "KS §7.5 volatility skew", section: "7.5", title: "Volatility skew: long risk reversal", title_es: "Asimetría de volatilidad – combo largo",
+     house_description: "Trade the skew between puts and calls.", asset_classes: [volatility, options]}
+  - {ref: "KS §7.6 variance swaps", section: "7.6", title: "Volatility trading with variance swaps", title_es: "Trading de volatilidad con swaps de varianza",
+     house_description: "Realised against implied variance through a swap.", asset_classes: [volatility]}
+  # --- 8. FX ----------------------------------------------------------------
+  - {ref: "KS §8.1 HP-filtered moving averages", section: "8.1", title: "Moving averages with HP filter", title_es: "Medias móviles con filtro HP",
+     house_description: "Trend on a Hodrick-Prescott-smoothed series (a one-sided filter only: the two-sided one leaks, section 15).", asset_classes: [fx]}
+  - {ref: "KS §8.2 carry trade", section: "8.2", title: "Carry trade", title_es: "Carry trade",
+     house_description: "Long high-yielding currencies, short low-yielding ones.", asset_classes: [fx]}
+  - {ref: "KS §8.3 dollar carry", section: "8.3", title: "Dollar carry trade", title_es: "Carry trade sobre el dólar",
+     house_description: "The dollar against a basket, by the rate differential.", asset_classes: [fx]}
+  - {ref: "KS §8.4 momentum and carry combo", section: "8.4", title: "Momentum and carry combo", title_es: "Combo de momentum & carry",
+     house_description: "Carry and momentum ranks combined.", asset_classes: [fx]}
+  - {ref: "KS §8.5 FX triangular arbitrage", section: "8.5", title: "FX triangular arbitrage", title_es: "Arbitraje triangular con FX",
+     house_description: "Three crosses out of line.", asset_classes: [fx]}
+  # --- 9. Commodities -------------------------------------------------------
+  - {ref: "KS §9.1 roll yields", section: "9.1", title: "Roll yields", title_es: "Roll yields",
+     house_description: "Hold backwardated contracts, short contangoed ones.", asset_classes: [commodities, futures]}
+  - {ref: "KS §9.2 hedging pressure", section: "9.2", title: "Trading based on hedging pressure", title_es: "Trading basado en la presión de cobertura",
+     house_description: "Trade against the hedgers' positioning (CFTC).", asset_classes: [commodities, futures]}
+  - {ref: "KS §9.4 commodity value", section: "9.4", title: "Value", title_es: "Valor (Value)",
+     house_description: "Commodities cheap against their long-run price.", asset_classes: [commodities]}
+  - {ref: "KS §9.5 skewness premium", section: "9.5", title: "Skewness premium", title_es: "Prima de asimetría",
+     house_description: "Short the positively skewed contracts.", asset_classes: [commodities, futures]}
+  - {ref: "KS §9.6 pricing models", section: "9.6", title: "Trading with pricing models", title_es: "Trading con modelos de valuación",
+     house_description: "Price against a fundamental model and trade the gap.", asset_classes: [commodities]}
+  # --- 10. Futures ----------------------------------------------------------
+  - {ref: "KS §10.2 calendar spreads", section: "10.2", title: "Calendar spreads", title_es: "Diferenciales de calendario",
+     house_description: "Two expiries of one contract.", asset_classes: [futures]}
+  - {ref: "KS §10.3 contrarian trading", section: "10.3", title: "Contrarian trading (mean-reversion), with the market-activity variant", title_es: "Trading contrario (reversión a la media)",
+     house_description: "Fade a series' own large moves, optionally conditioned on activity.", asset_classes: [futures, etfs, equities]}
+  - {ref: "KS §10.4 trend following", section: "10.4", title: "Trend following (momentum)", title_es: "Seguimiento de la tendencia (momentum)",
+     house_description: "Time-series momentum on each contract's own past return.", asset_classes: [futures]}
+  # --- 14. Miscellaneous ----------------------------------------------------
+  - {ref: "KS §14.2 TIPS arbitrage", section: "14.2", title: "TIPS-Treasury arbitrage", title_es: "Arbitraje con TIPS del Tesoro",
+     house_description: "Breakeven against inflation swaps or nominals.", asset_classes: [fixed_income]}
+  - {ref: "KS §14.3 weather risk", section: "14.3", title: "Weather risk: demand hedging", title_es: "Riesgo del clima – cobertura de la demanda",
+     house_description: "Weather-driven demand (degree days) against energy prices.", asset_classes: [commodities]}
+  # --- 18. Cryptocurrencies -------------------------------------------------
+  - {ref: "KS §18.2 artificial neural network", section: "18.2", title: "Artificial neural network (ANN)", title_es: "Red neuronal artificial (ANN)",
+     house_description: "A neural-network forecast of a coin's return.", asset_classes: [crypto]}
+  - {ref: "KS §18.3 sentiment analysis", section: "18.3", title: "Sentiment analysis: naive Bayes Bernoulli", title_es: "Análisis de sentimiento – naïve Bayes Bernoulli",
+     house_description: "A text classifier's sentiment as the signal.", asset_classes: [crypto]}
+  # --- 19. Global macro -----------------------------------------------------
+  - {ref: "KS §19.2 fundamental macro momentum", section: "19.2", title: "Fundamental macro momentum", title_es: "Macro momentum fundamental",
+     house_description: "Position asset classes by the trend in their macro drivers.", asset_classes: [macro, fixed_income, fx, equities]}
+  - {ref: "KS §19.3 global macro inflation hedge", section: "19.3", title: "Global macro inflation hedge", title_es: "Cobertura macro global contra la inflación",
+     house_description: "Assets held against the inflation regime.", asset_classes: [macro]}
+  - {ref: "KS §19.4 global fixed-income strategy", section: "19.4", title: "Global fixed-income strategy", title_es: "Estrategia global de renta fija",
+     house_description: "Bond and credit exposure set by macro and spread signals.", asset_classes: [fixed_income, macro]}
+  - {ref: "KS §19.5 economic announcements", section: "19.5", title: "Trading on economic announcements", title_es: "Trading con anuncios económicos",
+     house_description: "Trade the drift around a scheduled release or a dated news event.", asset_classes: [macro, equities, volatility]}
+  # --- House entries: not in K&S ------------------------------------------------
+  - {ref: "KS options", house: true, section: null, title: "The premium sleeve (house)",
+     house_description: "Defined-risk index option premium selling under the Doctrine's gates and stand-downs (Batch 19 item 100). K&S's chapter 2 lists the structures; the sleeve's rules are the house's.",
+     asset_classes: [options]}
+  - {ref: "liquidity-sweep", house: true, section: null, title: "Liquidity sweep (house)",
+     house_description: "Price runs a known resting-liquidity level, then reverses (Batch 19 item 101(b)).",
+     asset_classes: [equities, etfs, futures]}
+
+# THE ASSIGNMENTS: every hypothesis registered before this change, mapped once
+# (item 99(a)). They live here, not in the registered files: a registered batch
+# is held by its manifest's sha256 and its translations by the file's, so not a
+# byte of it changes. A batch from now on carries family_ref on each hypothesis
+# itself. The reasons are docs/briefs/b98-notes.md's table.
+assignments:
+  - {batch_id: 2026-10-14-claude-weekly-01, local_id: H-001, family_ref: "KS §7.4 volatility risk premium"}
+  - {batch_id: 2026-10-14-claude-weekly-01, local_id: H-002, family_ref: "KS §4.1 sector momentum rotation"}
+  - {batch_id: 2026-10-14-claude-weekly-01, local_id: H-003, family_ref: "KS §3.14 support and resistance"}
+  - {batch_id: 2026-10-14-claude-weekly-01, local_id: H-004, family_ref: "KS §19.4 global fixed-income strategy"}
+  - {batch_id: 2026-10-14-claude-weekly-01, local_id: H-005, family_ref: "KS §19.2 fundamental macro momentum"}
+  - {batch_id: 2026-10-20-supersedes-2026-10-14-claude-weekly-01, local_id: H-001, family_ref: "KS §7.4 volatility risk premium"}
+  - {batch_id: 2026-10-20-supersedes-2026-10-14-claude-weekly-01, local_id: H-002, family_ref: "KS §4.1 sector momentum rotation"}
+  - {batch_id: 2026-10-20-supersedes-2026-10-14-claude-weekly-01, local_id: H-003, family_ref: "KS §3.14 support and resistance"}
+  - {batch_id: 2026-10-20-supersedes-2026-10-14-claude-weekly-01, local_id: H-004, family_ref: "KS §19.4 global fixed-income strategy"}
+  - {batch_id: 2026-10-20-supersedes-2026-10-14-claude-weekly-01, local_id: H-005, family_ref: "KS §19.2 fundamental macro momentum"}
+  - {batch_id: 2026-10-24-b59-new-sources, local_id: H-B59-1, family_ref: "KS §19.5 economic announcements"}
+  - {batch_id: 2026-10-24-b59-new-sources, local_id: H-B59-2, family_ref: "KS §14.3 weather risk"}
+  - {batch_id: 2026-10-24-b59-new-sources, local_id: H-B59-3, family_ref: "KS §19.5 economic announcements"}
+  - {batch_id: 2026-10-14-roster-tranche-2, local_id: E-1, family_ref: "KS §7.4 volatility risk premium"}
+  - {batch_id: 2026-10-14-roster-tranche-2, local_id: E-2a, family_ref: "KS §4.6 multi-asset trend following"}
+  - {batch_id: 2026-10-14-roster-tranche-2, local_id: E-2b, family_ref: "KS §3.1 price momentum"}
+  - {batch_id: 2026-10-14-roster-tranche-2, local_id: E-3, family_ref: "KS §6.2 cash and carry arbitrage"}
+  - {batch_id: 2026-10-17-roster-tranche-3, local_id: E-4a, family_ref: "KS §19.5 economic announcements"}
+  - {batch_id: 2026-10-17-roster-tranche-3, local_id: E-4b, family_ref: "KS §19.5 economic announcements"}
+  - {batch_id: 2026-10-17-roster-tranche-3, local_id: E-4c, family_ref: "KS §3.2 earnings momentum"}
+  - {batch_id: 2026-10-17-roster-tranche-3, local_id: E-4d, family_ref: "KS §7.4 volatility risk premium"}
+  - {batch_id: 2026-10-17-roster-tranche-3, local_id: E-5, family_ref: "KS §6.2 cash and carry arbitrage"}
+  - {batch_id: 2026-10-19-roster-tranche-3-engine-6, local_id: E-6, family_ref: "KS §10.3 contrarian trading"}
+  - {batch_id: 2026-10-19-roster-tranche-3-engine-7, local_id: E-7, family_ref: "KS §10.3 contrarian trading"}
