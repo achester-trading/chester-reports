@@ -517,3 +517,231 @@ The base rate's answer is to define the condition first and take every episode t
 The analog keeps one honest use. In the AI ring drawdown table the register also ordered, a 2000–02 column of reference drawdowns sits beside the present, labelled "reference". It is there to scale the present, never to forecast it. The rule is the column's label: an analog is a reference, never a path.
 
 What the operator does differently because of this chapter is to answer every analog with its base rate before reading the analog's chart, and to size on the base rate's spread rather than on the analog's ending.
+
+---
+
+# Part VIII — Applications, Wiring and Environments
+
+## Chapter 21 — Tactical Applications by horizon
+
+A turning point is traded differently at each horizon, because each horizon sees a different part of it. The house standard asks each horizon the same questions:
+- what is tradeable at a turn;
+- what the edge is, and who is on the other side and why they transact;
+- why competition has not removed the edge, and what would end it;
+- the expression, the book, and the report section that carries the read.
+
+This chapter answers them for the five horizons a turn is traded on in this book, from the session to the allocation, plus Book D's opportunistic horizon, which has none. The paragraphs carry the argument, and the cheat sheet at the end reduces them to a line each. None of this is investment advice. The Doctrine owns the rules each horizon trades under, and Portfolio Construction owns its sizes.
+
+**The session (the day-trading tactics layer for Books B and C).** What is tradeable is the opener's aftermath and the capitulation session: the violent intraday reversals that mark a turn's edges. The edge is mechanical. Dealers short gamma below the flip amplify the move, and their hedging reverses when spot recovers through the flip. Levered products rebalance into the close in the direction of the day's move. The counterparties are hedgers who must hedge regardless of price and forced sellers meeting margin calls. Competition has not removed the edge because the flows are obligations, not choices. A change in market structure would end it, for example if dealers' books stopped being short gamma at the lows. The expression is defined-risk, with a resting stop. The read is the 07:00 anchor's dealer levels and the close's Mechanics. The opener rule is that nothing is opened on an opener day that was not on the morning's list, and the first trade waits for the second session's structure.
+
+**One to five days (Book C).** What is tradeable is the capitulation and the first failed rally. The edge is that forced selling overshoots and its exhaustion is measurable: the Capitulation Count and the gamma flip. The counterparties are the forced sellers and the late shorts. The edge persists because no forced seller can wait. A bear whose cause is still at work ends it, because then the capitulation is followed by another. The expression is defined-risk, from the 07:00 list, with the volatile-day protocol's halved size. The read is the close's Capitulation Count line, the vol-event block and the dealer block. Book C takes the rally's mechanical trade and gives it a time stop. It does not hold a capitulation into Book A's horizon.
+
+**One to six weeks (Book B).** What is tradeable is the stage. In a bubble's distress, the relative trade of the leaders against the equal-weighted index. In a bear, the counter-trend rally under the five-session time stop. After a confirmed low, the new leadership. The edge is variant perception about the stage: the market prices the narrative of the last stage while the signposts show the next. The counterparties are the trend-followers and the narrative's holders. The edge persists because stages are only recognisable in aggregate, and most participants read one signpost. A rule that every participant reads the same composite would end it. The expression is the relative pair where possible, the outright with written exits otherwise, and a short only under Doctrine Rule 26's extra confirmation. The read is the Weekly's positioning and flows, the concentration twin, froth breadth and the AI ring drawdown table.
+
+**One to six months (Book A).** What is tradeable is the regime: how much to own across the turn. The edge is that the regime's turn is measurable at bottoms and partly measurable at tops by kind, through the composite at washouts and the overlays at tops. Meanwhile most capital is managed to calendar benchmarks that make it sell late and buy late. The counterparties are capital that must be fully invested, or must de-risk on drawdown rules. The edge persists because institutional constraints are structural. Its end would be the record failing: a turn the instruments should have seen and did not, which Appendix A lists as a falsifier. The expression is the exposure band, held between its floor and ceiling. The read is the Monthly's market-state object, the T&B harness's lines, the bank-stress panel and the policy-put panel. Book A's rule at a turn is the gate. Re-entry after a declared bear waits for the composite and confirmation, and exit before a top waits for the overlay of the top's kind, not for valuation.
+
+**No fixed horizon (Book D).** What is tradeable is convexity and forced flow. The edge is that protection is cheapest when it is least wanted, in euphoria with volatility low, and forced flows are predictable in size and direction. The counterparties are sellers of volatility in calm markets and forced sellers in panics. The edge persists because the volatility risk premium is real and most of the time protection loses money, which discourages holding it. A permanently high volatility premium, so that calm protection were never cheap, would end it. The expression is defined-cost options within the tail budget, and the levered-ETF rebalance and margin unwind with defined risk. The read is the Monthly's fragility panel, the vol-event block and the Digital Assets addendum's froth gauge where crypto leads.
+
+| Horizon | What is tradeable at a turn | Edge and counterparty | Ends it | Expression · Book | Read |
+|---|---|---|---|---|---|
+| Session | Opener aftermath; capitulation sessions | Dealer hedging; forced rebalancing | Dealers no longer short gamma at lows | Defined risk, resting stop · B/C tactics | 07:00 anchor; close Mechanics |
+| 1–5 days | Capitulation; the first failed rally | Forced sellers' overshoot | A bear whose cause persists | Defined risk from the list · C | Capitulation Count; vol event; dealer block |
+| 1–6 weeks | The stage | Variant perception against the narrative's holders | Everyone reading the same composite | Relative pair; written exits · B | Weekly positioning; concentration; froth |
+| 1–6 months | The regime | Constrained capital sells and buys late | A turn the instruments should have seen and missed | The band between floor and ceiling · A | Market state; T&B lines; bank stress; policy put |
+| No fixed horizon | Convexity; forced flow | Calm sellers of volatility; forced sellers | A permanently expensive premium | Defined-cost options; the tail budget · D | Fragility panel; vol event; froth gauge |
+
+## Chapter 22 — Wiring
+
+This chapter says which report prints which signpost, as each is specified. Several of the signposts named in this paper are filed and not yet built. Their build status is dated and is in Appendix B; this chapter gives only where each prints.
+
+**The 07:00 anchor** prints the overnight state: the volatile-day flag and its four arms, the dealer levels in ES, the vol-event block on a fired event, and the "rally inside bear" signal line (ST-10). At a turn, the anchor is where the opener's first morning is read.
+
+**The 12:30 slot** opens only on a gate: a volatility rise past its threshold, a bank-stress flag turning on, the funding hooks for the yen unwind and the yuan's devaluation tell. It is the turn's alert, never its analysis.
+
+**The 16:45 close** prints most of this paper's fast signposts:
+- the Capitulation Count, on exception;
+- the sector capitulation divergence line;
+- the bank-stress lines in Plumbing and in The read;
+- the dealer block and the vol-event block in Mechanics;
+- the AI chain's transmission line in "what doesn't fit";
+- the flag lines of the developed-market drawdown and gold events.
+
+**The Weekly** prints the slower ones:
+- the Capitulation Count every Sunday while the S&P 500 is more than five percent off its high;
+- the concentration twin and the peak-band flag in Mechanics;
+- the AI chain sub-panel and the AI ring drawdown table in the equities section;
+- the bank-stress line;
+- trend breadth in positioning and flows;
+- the tail register's lines in Ahead.
+
+**The Monthly** prints the panels and the base rates. In Plumbing and rates: the full bank-stress panel, the policy-put panel (on days the volatility state is in its top quintile) and the forward TGA path. In the slow layers: the fragility panel, froth breadth beside the negative-beta share, and the T&B harness's three lines (the overlays' states, the episode record and the false-positive rate per overlay).
+
+**The Alternative Assets Quarterly** prints the EM chapter, through the Emerging Markets paper's frame, and the overlays' "HY spread acceleration" row.
+
+**Base Rates** carries the tables: item 31's peak-concentration table, item 124a's two-sided tail table with the opener set as its own rows, and item 130's first-month-drawdown row.
+
+**The Top & Bottom report itself**, the composite and its triggers, is specified and not built in this repository. Its methodology is the Top & Bottom Report Manual's, and only the harness's overlays print.
+
+**What the annual review re-verifies.** The Annual Structural Review re-verifies, for this paper, four things:
+- the eight episodes' figures against the store as its histories lengthen;
+- the near-miss rule, against any new decline of fifteen percent or more;
+- the base-rate rows (items 31, 124a and 130), which it refreshes;
+- whether any turn since the last review was one the instruments should have seen and did not.
+
+The last is the paper's most important falsifier (Appendix A).
+
+| Signpost | 07:00 | 12:30 | 16:45 | Weekly | Monthly | Elsewhere |
+|---|---|---|---|---|---|---|
+| Valuation (CAPE, forward P/E, ERP) | | | | | Slow layers | Base Rates |
+| Concentration; item 31's band | | | | Mechanics | Mechanics | Base Rates |
+| Froth breadth (item 113) | | | | | Beside SR-19 | |
+| Leverage (fragility; margin debt) | Levels read line | | | | Slow layers | |
+| Capitulation Count (item 97) | | | On exception | Positioning and flows | | |
+| Bank stress (item 59) | | On a flag | Plumbing; The read | One line | Full panel | |
+| Policy-put panel (item 124d) | | | | | Plumbing and rates | |
+| Forward TGA path (item 121) | | | | | Plumbing and rates | |
+| EM shock screen (item 10) | | | Tape; what doesn't fit | Line on contagion | Line on contagion | Quarterly EM chapter |
+| AI chain (item 129) | | | What doesn't fit | Equities section | | |
+| T&B overlays (harness) | | | | | Three lines | Quarterly row |
+| Rally inside bear (ST-10) | Signal line | | | | | |
+
+## Chapter 23 — Environments
+
+The library's eighteen environments are Debt Cycles, Regimes and Environments' to define, and that paper's Part IV maps them against asset classes, signals and participants. This chapter does not re-derive them. It names the environments in which turns of each kind of this paper occur, so that the regime stamp on a decision doubles as a warning of which turn is possible. A fuller mapping onto the eighteen waits until that paper is on main.
+
+**Late expansion with euphoria.** Growth is strong, policy accommodative or only gently tightening, valuation high and rising, concentration rising, issuance and leverage expanding. This is the environment of valuation tops and of the bubble sequence's euphoria. The turn, when it comes, is preceded by narrowing breadth and the leaders' stall, and its trigger is often a rise in rates. The instruments are the concentration overlay, froth breadth and item 31's band. The error the environment invites is shorting it early.
+
+**Tightening into a slowdown.** The central bank is raising rates against inflation while growth is slowing; the curve is flat or inverted. This is the environment of policy and inflation tops: 1973, 1980 and 2022. The turn is driven by the policy bind, the bear is long because policy cannot turn, and the bottom comes on the inflation rate's inflection. The instruments are the Monthly's macro lens and the curve. The error this environment invites is buying the first rally on hope of a pivot that the inflation data forbid.
+
+**Credit contraction.** Lending standards are tightening, spreads widening at an accelerating rate, defaults rising and bank funding under stress. This is the environment of credit tops and banking crises: 2007, and 1990 in part. The turn is invisible to equity valuation and visible to spread acceleration and the bank-stress panel. The error it invites is reading moderate equity multiples as safety.
+
+**Liquidity stress.** Funding spreads are widening, the Treasury market's own volatility rising, dealers constrained, and a forced seller somewhere. This is the environment of the plumbing's failures and of mechanical declines. The turn is fast and is ended by the policy put if one is available. The instruments are the policy-put panel, the forward TGA path and the dealer read. The error it invites is selling the low, when the put has been announced and the forced selling is ending.
+
+**Exogenous shock onto a calm market.** Volatility is low and positioning long when an event arrives that no indicator anticipated. This is the environment of the opener and of exogenous tops. The turn is a surprise by definition. The damage depends on valuation at entry, and the duration on the policy response. The instruments arrive the day after. The error it invites is believing the calm, which is why the protection of Book D is bought in it.
+
+**The dollar squeeze.** The dollar is strengthening, U.S. rates rising, commodity prices falling, and capital leaving the weakest borrowers. This is the environment of emerging-market crises and of international tops that start abroad. The instruments are the EM shock screen, the dollar factor and the contagion rule. The error it invites is reading a foreign crisis as foreign when the dollar channel is carrying it home.
+
+**A global position.** A small number of markets trade on one driver, concentrated and levered. This is the environment of the AI chain. The turn shows first in the purest and most levered market and reaches the U.S. index through the transmission loop and its own concentration. The instruments are the AI-chain sub-panel and the concentration measures. The error it invites is treating the position's markets as diversification.
+
+| Environment | Kind of turn it hosts | The lead instrument | The error it invites |
+|---|---|---|---|
+| Late expansion with euphoria | Valuation top; bubble | Concentration; froth; item 31's band | Shorting it early |
+| Tightening into a slowdown | Policy and inflation top | The macro lens; the curve | Buying the pivot the data forbid |
+| Credit contraction | Credit top; banking crisis | Spread acceleration; bank stress | Reading moderate multiples as safety |
+| Liquidity stress | Plumbing failure; mechanical decline | Policy-put panel; TGA path; dealer read | Selling the low after the put |
+| Exogenous shock onto calm | The opener; exogenous top | None ahead; sizing and convexity | Believing the calm |
+| The dollar squeeze | EM crisis; foreign-led top | EM screen; dollar factor; contagion rule | Reading a foreign crisis as foreign |
+| A global position | Chain top | AI-chain sub-panel; concentration | Treating the chain as diversification |
+
+---
+
+## Appendix A — Assumptions and Falsifiers
+
+**The mechanisms this paper assumes.**
+
+- **Bubbles.** They form through the Minsky–Kindleberger sequence, with credit, belief and price feeding on each other, and the sequence's stages leave traces in valuation, concentration, issuance, leverage and froth.
+- **Banking crises.** They need a loss meeting a funding mismatch, and they resolve by guarantee.
+- **Liquidity crises.** They are failures of the plumbing's ability to turn safe assets into cash, and they resolve through the central bank when it is able to act.
+- **Emerging-market crises.** They follow the balance-of-payments template and propagate through the dollar-funding channel.
+- **Tops.** They differ by kind, and only some kinds leave a trace in advance.
+
+**The regularities, with their samples, and what would falsify each.**
+
+- **Tops are idiosyncratic; bottoms rhyme.** Sample: the eight bears and six near-misses since 1970, and the harness's thirteen episodes *(Tops and Bottoms, May 2026; the calibration of 3 September 2026)*. Falsifier: a point-in-time harness, once the store holds the histories, that classifies tops as reliably as bottoms with one composite. That would mean the overlay architecture is unnecessary.
+- **Corrections become bears only with a recession or a credit event.** Sample: the same fourteen declines. Falsifier: a bear of twenty percent or more with neither, other than a 1987-type mechanical crash, or a near-miss followed by one of the two that still resolves within months.
+- **Credit tops are read in the rate of change of spreads, not their level.** Sample: 2007, and the silences of 1987, 2018, 2020 and January 2022. Falsifier: a credit top that spread acceleration missed, or the overlay's false-positive rate, once the harness measures it, too high to act on. The harness's pre-registered false-positive ledger is the test.
+- **Peak concentration clusters near two-fifths of the market.** Sample: five historic bubbles, with baskets defined after the fact *(item 31, filed 15 October 2026)*. Falsifier: the post-peak ledger the register asked for showing no difference in the leaders' path after a forty-percent share from paths after lower shares.
+- **The policy put works through the funding markets and is fastest for plumbing failures.** Sample: 2019, March 2020, the 2022 gilt episode and the tail-days decade. Falsifier: a plumbing failure in which the central bank, able to act, did not, or acted only after the equity market's low.
+- **The Capitulation Count marks exhaustion, not the end of the cause.** Sample: the register's analysis of 2008 and 2022 *(item 97, filed 26 October 2026)*. Falsifier: the count's pre-registered ledger, at the thirteen episode lows and the near-misses, showing that four or five of five marked durable lows as often in credit and policy bears as in mechanical ones.
+- **Calm-surface openers are not visible on index volatility.** Sample: six openers since 1990 *(item 124, filed 6 November 2026)*. Falsifier: the internal-stress read's pre-registered test passing, which would make the opener partly visible. The paper would welcome being wrong here.
+- **The best days follow the worst because of volatility clustering, not reversal.** Sample: the decade's tail days, standardised *(item 124)*. Falsifier: the standardised two-sided clustering exceeding its shuffled baseline in the annual refresh.
+- **Analogs mislead; base rates inform.** Sample: item 130's case *(filed 6 November 2026)*. Falsifier: the first-month-drawdown row showing that the famous analogs sit at the centre of the distribution, not in its tail.
+
+**The paper's central falsifier.** At each Annual Structural Review, the question is whether any turn since the last review was of a kind this paper says the instruments can see, and the instruments did not see it. One such turn is information. Two of the same kind mean the paper's account of that kind is wrong.
+
+**The standing-register items that touch this paper.**
+
+- Item 31, peak concentration, with item 113's froth-breadth amendment.
+- SR-8, bear-market rallies, and the false-bottom gate.
+- Item 59, the bank-stress panel.
+- Item 97, the Capitulation Count, and its divergence line.
+- Item 10, the EM shock screen, and item 129's AI-chain sub-panel.
+- Item 121, the forward TGA path.
+- Item 124, the tail-days study, with its sub-items: 124a, the tail base rates; 124c, the volatility-state read and the internal-stress test; 124d, the policy-put panel.
+- Item 130, the first-month-drawdown row and the AI ring drawdown table.
+- Item 128's deleveraging flag on the fragility panel.
+
+**The dated figures and their series.**
+
+- **The episode figures** are Tops and Bottoms' (May 2026), from Shiller's data, FRED, the S&P 500's index record, NBER dating and Cboe's indices, hand-compiled for that study and now being read point in time by the harness.
+- **The calibration figures** are the report's of 3 September 2026, through the Top & Bottom Report Manual.
+- **The literature and history** (Minsky, Kindleberger, Greenwood–Shleifer–You, and the crisis histories of Parts III to V) are cited from the published sources and were not re-read in this session. Each is to be re-verified at the operator's read.
+- **The tail-days figures** are the study's draft 3 of 5 November 2026, filed with Batch 23, whose own verify items stand.
+
+## Appendix B — Dated: The 2026 episode as it stands (as of 6 November 2026)
+
+*This appendix is the paper's only present-tense content. It records the state of the episode at the as-of date from the filed orders and the box's replay. It makes no forecast, and a figure marked unverified is quoted as filed, not checked. It is replaced, not amended, by the next edition.*
+
+### B.1 — The opener (as of 6 November 2026)
+
+**5 November 2026 opened the episode from a calm surface.** It is the sixth calm-surface opener since 1990 and the first at minus four percent or worse. On the S&P 500 it ranks eleventh-worst of the decade, and tenth on Morningstar's index. The day before, the volatility index closed at 16.61, twenty-day realised volatility was 12.9 percent and the volatility curve was in contango.
+
+**The internals were extreme.** The equal-weighted index against the cap-weighted read at the 100th percentile, QQQ against SPY at the 2nd, sector dispersion at the 99th, and SPY's price impact at the 100th percentile of one year and the 72nd of three. None of the five earlier openers showed internals like these. That is why the internal-stress read is a pre-registered test and not a build.
+
+**The Nasdaq Composite closed 5 November 11.9 percent below its 6 October closing high**, confirmed by the replay *(the tail-days study and its filing, Batch 23, 6 November 2026; item 130's replay check)*.
+
+### B.2 — Credit and the policy put (as of 6 November 2026)
+
+**Aggregate credit gave no warning before 5 November, and no credit trigger of the policy-put panel was near firing.**
+
+- **Baa less the 10-year** stood at 152 basis points, widened six in twenty observations. Its post-1990 median is 213, and its 90th percentile 315.
+- **The excess bond premium** for October was −0.27.
+- **High-yield option-adjusted spread** was 332 basis points on 4 November in the box's store.
+
+**The store's history of the ICE BofA spreads begins in May 2023**, so long-window credit reads move to Baa less the 10-year (item 124i) *(the tail-days study's Part 7 and item 130's check; filed 6 November 2026)*.
+
+### B.3 — The AI chain (as of 6 November 2026)
+
+**The four markets — the U.S. semiconductor index, Korea, Taiwan and Japan — fell together in the first days of November.** These claims are as filed and unverified (V-108a):
+
+- **Korea** was at a drawdown from its peak reported at 44 or 48 percent, with a circuit-breaker halt reported for 6 November.
+- **Japan** had a session of minus seven percent.
+- **Taiwan** had its largest point drop.
+
+**Concentration, as cited.** Samsung Electronics and SK Hynix carry more than half of Korea's index and about seventy percent of its 2026 gains, and the leading foundry about 41 percent of Taiwan's. Korea had at least eight circuit breakers in 2026 by late July.
+
+**Leverage, as press-cited.** Korea's levered exchange-traded product complex was reported at about $50bn of net assets in June and $26bn by early November, with "roughly 75% of the deleveraging complete".
+
+**The U.S. semiconductor index was 26 percent below its 22 June high on 23 October**, the post's figure, unverified (V1 of item 97). The register's AI-chain sub-panel, which would read all of this from stored data, is filed and not yet built *(items 129 and 97, filed 6 November and 26 October 2026)*.
+
+### B.4 — Concentration, froth and the bottom reads (as of 6 November 2026)
+
+- **Concentration.** BofA's "AI Big 10" stood at about 42 percent of U.S. market capitalisation, inside the historic peak band of item 31's table *(BofA Global Investment Strategy, via secondary reporting, filed 15 October 2026)*.
+- **Froth breadth.** BofA's bubble-risk indicator counted 15 S&P 500 stocks above its threshold, about 2.2 percent of index weight. At the dot-com peak the count was fifty to a hundred stocks and twenty to forty percent of weight. Rotation was pushing defensive sectors toward the threshold *(item 113, BofA's reading of 23 October 2026, relayed)*.
+- **The Capitulation Count.** On 23 October, by the post's own reading, it stood at one of five: "panic is concentrated in semis, the index hasn't surrendered" *(item 97, unverified, V1)*.
+- **The T&B harness.** Its first edition is "insufficient" on the box's store, so no point-in-time overlay reading of the episode exists.
+
+### B.5 — The plumbing (as of 6 November 2026)
+
+**The Treasury's cash account stood at $1.040tn on 29 October.** On the Treasury's August assumption of an $850bn end-December balance, its run-down would return about $190bn of reserves before year-end; that assumption awaits confirmation (V-103a). The register names the first quarter of 2027 as the quarter to watch: its borrowing estimate, its share of bills and the cushion left in the reverse repo facility *(item 121, filed with Batch 22, 5 November 2026)*.
+
+### B.6 — What is built and what is filed (as of 6 November 2026)
+
+**Built and printing:**
+- the bank-stress panel (item 59);
+- the T&B harness's overlay lines;
+- the vol-event block (item 52);
+- the fragility panel (item 71);
+- the concentration twin (GTM-3);
+- the developed-market drawdown screen.
+
+**Filed and not yet built:**
+- the Capitulation Count and its feeds (item 97);
+- froth breadth (item 113);
+- the forward TGA path (item 121);
+- the tail-days sub-items (item 124), with Tranche 0 merging 9 November;
+- the EM shock screen (item 10) with its AI-chain sub-panel (item 129);
+- the first-month-drawdown row and the AI ring drawdown table (item 130);
+- the deleveraging flag (item 128).
+
+The Top & Bottom report's composite is specified and not built in this repository.
