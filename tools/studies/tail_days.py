@@ -63,35 +63,47 @@ SECTORS = ["XLB", "XLC", "XLE", "XLF", "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV"
 INDEX_SYMS = ["^GSPC", "^VIX3M", "^VVIX", "^MOVE"]
 CHECK_SYMS = ["^IXIC", "SPHB", "SPLV"]          # §4's spot checks only
 ETF_SYMS = ["SPY", "RSP"] + SECTORS
-FRED_IDS = ["VIXCLS", "BAMLH0A0HYM2", "BAMLC0A0CM", "DGS10", "T10Y2Y", "DTWEXBGS"]
+EXTRA_SYMS = ["QQQ"]                              # Part 5 only
+FRED_IDS = ["VIXCLS", "BAMLH0A0HYM2", "BAMLC0A0CM", "DGS10", "T10Y2Y", "DTWEXBGS",
+            "DTB3", "BAA10Y"]                     # DTB3: Part 6; BAA10Y: Part 7
+EBP_URL = "https://www.federalreserve.gov/econres/notes/feds-notes/ebp_csv.csv"
 
 FRED_MAX_FILL_DAYS = 5     # FRED holiday gaps; no longer carry-forward than this
+
+# Outside the repo and never committed: later runs read every pull from here.
+DEFAULT_CACHE = Path.home() / ".cache" / "chester-study" / "tail_days"
 
 
 # --------------------------------------------------------------------------- data
 class Data:
     def __init__(self, cache: Path | None):
         self.cache = cache
-        self.px: dict[str, pd.DataFrame] = {}      # close, ret, volume
+        self.px: dict[str, pd.DataFrame] = {}      # close, ret, volume, high, low
         self.fred: dict[str, pd.Series] = {}
         self.fred_via: dict[str, str] = {}
         self.errors: dict[str, str] = {}
-        self.pulled_at = datetime.now(ET)
+        self.ebp: pd.DataFrame | None = None
+        self.generated = datetime.now(ET)
+        self.pulled: dict[str, datetime] = {}      # name -> instant the pull was made
+        self.pulled_at = self.generated
 
     def _cached(self, name, fn):
         if self.cache:
             p = self.cache / f"{name.replace('^', '_')}.pkl"
             if p.exists():
+                self.pulled[name] = datetime.fromtimestamp(p.stat().st_mtime, ET)
                 return pickle.loads(p.read_bytes())
             v = fn()
             self.cache.mkdir(parents=True, exist_ok=True)
             p.write_bytes(pickle.dumps(v))
+            self.pulled[name] = datetime.now(ET)
             return v
+        self.pulled[name] = datetime.now(ET)
         return fn()
 
     def load(self):
         from altdata.sources import yfinance_source as yfs
-        for sym in INDEX_SYMS + ETF_SYMS + CHECK_SYMS:
+        for sym in INDEX_SYMS + ETF_SYMS + CHECK_SYMS + EXTRA_SYMS:
             try:
                 parsed = self._cached(f"yf_{sym}", lambda s=sym: yfs._fetch_symbol(s, period="max"))
             except Exception as exc:                            # noqa: BLE001
@@ -108,13 +120,27 @@ class Data:
             vol.index = pd.to_datetime(vol.index)
             vol = vol.reindex(close.index)
             ret = (close + div) / close.shift(1) - 1.0
-            self.px[sym] = pd.DataFrame({"close": close, "ret": ret, "volume": vol})
+            hl = {}
+            for k_ in ("highs", "lows"):
+                s_ = pd.Series(dict(parsed.get(k_) or []), dtype=float)
+                s_.index = pd.to_datetime(s_.index)
+                hl[k_] = s_.reindex(close.index)
+            self.px[sym] = pd.DataFrame({"close": close, "ret": ret, "volume": vol,
+                                         "high": hl["highs"], "low": hl["lows"]})
         for fid in FRED_IDS:
             try:
                 s, via = self._cached(f"fred_{fid}", lambda f=fid: _fred(f))
-                self.fred[fid], self.fred_via[fid] = s, via
+                # fredgraph's CSV now leaves holidays blank, which parse as NaN: drop them, so
+                # an as-of read carries the last real value and "n observations" counts values.
+                self.fred[fid], self.fred_via[fid] = s.dropna(), via
             except Exception as exc:                            # noqa: BLE001
                 self.errors[fid] = f"{type(exc).__name__}: {exc}"
+        try:
+            self.ebp = self._cached("fed_EBP", _ebp)
+        except Exception as exc:                                # noqa: BLE001
+            self.errors["EBP"] = f"{type(exc).__name__}: {exc}"
+        if self.pulled:
+            self.pulled_at = min(self.pulled.values())
 
     def first_last(self, name):
         s = self.px[name]["close"] if name in self.px else self.fred.get(name)
@@ -145,6 +171,17 @@ def _fred(fid: str) -> tuple[pd.Series, str]:
         via = "FRED fredgraph CSV"
     s = pd.Series({pd.Timestamp(d): v for d, v in rows if v is not None}, dtype=float).sort_index()
     return s, via
+
+
+def _ebp() -> pd.DataFrame:
+    """The Federal Reserve's GZ spread and excess bond premium, monthly (FEDS Notes CSV)."""
+    import requests
+    r = requests.get(EBP_URL, timeout=60,
+                     headers={"User-Agent": "chester-reports study (github.com/achester-trading)"})
+    r.raise_for_status()
+    df = pd.read_csv(io.StringIO(r.text))
+    df["date"] = pd.to_datetime(df["date"])
+    return df.set_index("date").sort_index()
 
 
 # ----------------------------------------------------------------------- helpers
@@ -536,13 +573,471 @@ def part3(d: Data, out: list[str]):
     return {"bh": a0, "vm": a1, "vmc": a2, "eb": np.median(eb), "ew": np.median(ew)}
 
 
+# ------------------------------------------------------------------ Parts 4-7 helpers
+SHUFFLES = 1000
+SEED = 20261105
+
+
+def _near(flag: np.ndarray, before: int, after: int) -> np.ndarray:
+    """For each i: is any flag set in [i-before, i+after], position i itself excluded?"""
+    n = len(flag)
+    f = flag.astype(np.int64)
+    c = np.concatenate([[0], np.cumsum(f)])
+    i = np.arange(n)
+    lo = np.clip(i - before, 0, n)
+    hi = np.clip(i + after + 1, 0, n)
+    return (c[hi] - c[lo] - f) > 0
+
+
+def tail_stats(x: pd.Series, shuffles: int = SHUFFLES) -> dict:
+    """Part 2's decile statistics (full-sample thresholds) on any daily series."""
+    v = x.values
+    n = len(v)
+    q10, q90 = np.quantile(v, 0.10), np.quantile(v, 0.90)
+    bot, top = v <= q10, v >= q90
+    out = {"n": n, "q10": q10, "q90": q90, "bot": bot, "top": top}
+    for name, src, tgt in (("b2t", bot, top), ("t2b", top, bot)):
+        for h in (1, 5, 10):
+            ok = np.arange(n) < n - h
+            fw = _near(tgt, 0, h)
+            out[(name, h)] = fw[src & ok].mean() * 100
+            out[(name, h, "n")] = int((src & ok).sum())
+            out[(name, h, "base")] = fw[ok].mean() * 100
+
+    def clus(b, t):
+        return _near(b, 5, 5)[t].mean() * 100
+
+    out["clus"] = clus(bot, top)
+    out["clus_n"] = int(top.sum())
+    out["clus_ind"] = (1 - (1 - bot.mean()) ** 10) * 100
+    rng = np.random.default_rng(SEED)
+    sh = np.empty(shuffles)
+    for k in range(shuffles):
+        p = rng.permutation(v)
+        sh[k] = clus(p <= q10, p >= q90)
+    out["clus_shuf"] = (sh.mean(), np.quantile(sh, 0.025), np.quantile(sh, 0.975))
+    return out
+
+
+def dist_cells(x: pd.Series) -> str:
+    x = x.dropna()
+    if len(x) == 0:
+        return "0 | gap | gap | gap | gap | gap"
+    return (f"{len(x):,} | {x.mean():+.2f} | {x.median():+.2f} | {x.quantile(.1):+.2f} | "
+            f"{x.quantile(.9):+.2f} | {(x > 0).mean()*100:.0f}%")
+
+
+def pct_of_history(s: pd.Series, day: pd.Timestamp, window: int | None = None):
+    """Percentile (0-100, share of values <= it) of s's value on `day` against its own
+    history up to and including `day` (the last `window` values, else all)."""
+    if s is None:
+        return np.nan
+    h = s.loc[:day].dropna()
+    if h.empty or h.index[-1] != day:
+        return np.nan
+    if window is not None:
+        if len(h) < window:
+            return np.nan
+        h = h.iloc[-window:]
+    return float((h <= h.iloc[-1]).mean() * 100)
+
+
+def roll_ret(d: Data, sym: str, k: int = 20) -> pd.Series | None:
+    if sym not in d.px:
+        return None
+    r = d.px[sym]["ret"]
+    return np.expm1(np.log1p(r).rolling(k, min_periods=k).sum())
+
+
+def tday_pos(gi: pd.DatetimeIndex, ds: str) -> int:
+    dt = pd.Timestamp(ds)
+    if dt in gi:
+        return gi.get_loc(dt)
+    return len(gi) if dt > gi[-1] else gi.searchsorted(dt)
+
+
+def _src_line(d: Data, names: list[str]) -> str:
+    bits = []
+    for nm in names:
+        if nm in d.px:
+            s = d.px[nm]["close"].dropna()
+            bits.append(f"{nm} (Yahoo Finance via `altdata.sources.yfinance_source`, "
+                        f"{s.index[0].date()} to {s.index[-1].date()})")
+        elif nm in d.fred:
+            s = d.fred[nm]
+            bits.append(f"FRED {nm} ({d.fred_via[nm]}, {s.index[0].date()} to {s.index[-1].date()})")
+        elif nm == "EBP" and d.ebp is not None:
+            bits.append(f"Federal Reserve excess bond premium (FEDS Notes CSV, {EBP_URL}, "
+                        f"{d.ebp.index[0]:%Y-%m} to {d.ebp.index[-1]:%Y-%m})")
+        else:
+            bits.append(f"{nm}: gap ({d.errors.get(nm, 'not pulled')})")
+    return ("Source: " + "; ".join(bits) + f". Data pulled {d.pulled_at:%Y-%m-%d %H:%M} ET "
+            f"(cache `{DEFAULT_CACHE.as_posix().replace(Path.home().as_posix(), '~')}`).\n")
+
+
+# ------------------------------------------------------------------ Part 4
+def garch_sigma(r: pd.Series, first_year: int) -> tuple[pd.Series, list]:
+    """One-step-ahead GARCH(1,1) daily sigma for each day of year Y >= first_year, from
+    parameters fitted on returns through the end of Y-1 (constant mean, normal errors)."""
+    from arch import arch_model
+    y = r * 100
+    sig = pd.Series(np.nan, index=r.index)
+    fits = []
+    last_year = r.index[-1].year
+    for yr in range(first_year, last_year + 1):
+        train = y.loc[: f"{yr - 1}-12-31"]
+        res = arch_model(train, mean="Constant", vol="GARCH", p=1, q=1, dist="normal",
+                         rescale=False).fit(disp="off")
+        through = y.loc[: f"{yr}-12-31"]
+        fixed = arch_model(through, mean="Constant", vol="GARCH", p=1, q=1, dist="normal",
+                           rescale=False).fix(res.params)
+        cv = fixed.conditional_volatility.loc[f"{yr}-01-01":] / 100
+        sig.loc[cv.index] = cv.values
+        fits.append((yr, res.params))
+    return sig, fits
+
+
+def part4(d: Data, out: list[str]):
+    g = d.px["^GSPC"].loc["1950-01-03":]
+    r = g["ret"].dropna()
+    c = g["close"].loc[r.index]
+    first_year = 1955
+    sig_g, fits = garch_sigma(r, first_year)
+    sig_rv = r.rolling(20, min_periods=20).std(ddof=1).shift(1)     # through T-1
+    out.append(_src_line(d, ["^GSPC"]))
+    yr, p = fits[-1]
+    persist = p["alpha[1]"] + p["beta[1]"]
+    out.append(f"Standardisation. GARCH(1,1), constant mean, normal errors, fitted by `arch` "
+               f"{__import__('arch').__version__} on daily ^GSPC returns from 1950-01-03 through each "
+               f"year-end and applied, with those parameters fixed, to the following year: σ_T is the "
+               f"one-step-ahead forecast made at T-1's close. First applied year {first_year} (1950–54 is "
+               f"the first fit). Latest fit (through {yr - 1}-12-31, applied to {yr}): ω = {p['omega']:.4f}, "
+               f"α = {p['alpha[1]']:.4f}, β = {p['beta[1]']:.4f}, α+β = {persist:.4f}. Cross-check: σ_T = "
+               f"sample standard deviation of the 20 daily returns ending T-1. z_T = r_T / σ_T (raw return, "
+               f"not demeaned). Deciles on each series' own full-sample thresholds; Part 2's rolling-10y "
+               f"definition is not repeated, because standardising already removes the level of vol.\n")
+
+    common = sig_g.notna() & sig_rv.notna()
+    idx = r.index[common]
+    series = {
+        "raw, Part 2 sample (1950–)": r * 100,
+        f"raw, matched sample ({idx[0].year}–)": r.loc[idx] * 100,
+        "GARCH-standardised": (r / sig_g).loc[idx],
+        "RV20-standardised": (r / sig_rv).loc[idx],
+    }
+    st = {k: tail_stats(v) for k, v in series.items()}
+    labels = list(series)
+    out.append(f"Matched sample: {idx[0].date()} to {idx[-1].date()}, n = {len(idx):,}.\n")
+
+    out.append("### Part 4.1 P(opposite-tail day within h sessions | tail day)\n")
+    out.append("| Series | bottom-decile threshold | n bottom days | P(top ≤1) | P(top ≤5) | P(top ≤10) | "
+               "any day ≤1 | any day ≤5 | any day ≤10 | n top days | P(bottom ≤5), given top | any day ≤5 |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for k in labels:
+        s = st[k]
+        unit = "%" if k.startswith("raw") else "σ"
+        out.append(f"| {k} | ≤ {s['q10']:.2f}{unit} | {s[('b2t', 1, 'n')]:,} | "
+                   + " | ".join(f"{s[('b2t', h)]:.1f}%" for h in (1, 5, 10)) + " | "
+                   + " | ".join(f"{s[('b2t', h, 'base')]:.1f}%" for h in (1, 5, 10)) + " | "
+                   f"{s[('t2b', 5, 'n')]:,} | {s[('t2b', 5)]:.1f}% | {s[('t2b', 5, 'base')]:.1f}% |")
+    out.append("")
+
+    out.append("### Part 4.2 Clustering against a shuffled baseline\n")
+    out.append(f"Share of top-decile days with a bottom-decile day within ±5 sessions (Part 2.4's statistic). "
+               f"Shuffled: the same series permuted {SHUFFLES:,} times (seed {SEED}), mean and 2.5–97.5% range. "
+               "\"If independent\" is Part 2.4's 1 − (1 − p)^10.\n")
+    out.append("| Series | top-decile days | share near a bottom-decile day | shuffled mean | shuffled 95% range | if independent | excess over shuffled |")
+    out.append("|---|---|---|---|---|---|---|")
+    for k in labels:
+        s = st[k]
+        m, lo, hi = s["clus_shuf"]
+        out.append(f"| {k} | {s['clus_n']:,} | {s['clus']:.1f}% | {m:.1f}% | {lo:.1f}–{hi:.1f}% | "
+                   f"{s['clus_ind']:.1f}% | {s['clus'] - m:+.1f}pp |")
+    out.append("")
+
+    out.append("### Part 4.3 Forward returns after a bottom-decile day\n")
+    out.append("Raw: close T to close T+h, percent. Standardised: the h-session log return divided by "
+               "σ_{T+1}·√h, σ_{T+1} being the forecast known at T's close under the same definition (GARCH or "
+               "RV20), in σ units. \"Bottom decile\" is each series' own (raw rows: raw deciles; standardised "
+               "rows: deciles of z). Columns: n | mean | median | 10th | 90th | share > 0.\n")
+    fwd_raw = {h: (c.shift(-h) / c - 1) * 100 for h in (1, 5, 20)}
+    lfwd = {h: np.log(c.shift(-h) / c) for h in (1, 5, 20)}
+    sig_next = {"GARCH-standardised": sig_g.shift(-1), "RV20-standardised": sig_rv.shift(-1)}
+    out.append("| Conditioning | h | raw: n | mean % | median % | 10th % | 90th % | >0 | std: n | mean σ | median σ | 10th σ | 90th σ | >0 |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for k in labels:
+        s = st[k]
+        x = series[k]
+        bmask = pd.Series(s["bot"], index=x.index)
+        for cond_lbl, mask in (("all days", pd.Series(True, index=x.index)), ("bottom decile", bmask)):
+            for h in (1, 5, 20):
+                sel = mask[mask].index
+                raw_cells = dist_cells(fwd_raw[h].reindex(sel))
+                if k in sig_next:
+                    z = (lfwd[h] / (sig_next[k] * np.sqrt(h))).reindex(sel)
+                    std_cells = dist_cells(z)
+                else:
+                    std_cells = "— | — | — | — | — | —"
+                out.append(f"| {k}: {cond_lbl} | {h} | {raw_cells} | {std_cells} |")
+    out.append("")
+    return {"st": st, "labels": labels}
+
+
+# ------------------------------------------------------------------ Part 5
+def part5(d: Data, out: list[str], p2_q90: float):
+    g = d.px["^GSPC"]
+    gi = g.index
+    allr = g["ret"]
+    r = allr.loc["1990-01-02":].dropna()
+    q01 = r.quantile(0.01)
+    vix = d.fred.get("VIXCLS")
+    vix_t1 = vix.reindex(gi).ffill(limit=3).shift(1).loc[r.index] if vix is not None else None
+    prior_max = allr.abs().rolling(20, min_periods=20).max().shift(1).loc[r.index]
+    bot1 = r <= q01
+    calm_v = bot1 & (vix_t1 < 20)
+    calm_q = bot1 & (prior_max < 0.02)
+    openers = r[bot1 & (vix_t1 < 20) & (prior_max < 0.02)]
+    big = openers[openers <= -0.04]
+
+    out.append(_src_line(d, ["^GSPC", "VIXCLS", "SPY", "RSP", "QQQ"] + SECTORS))
+    out.append(f"Definition: ^GSPC return in the bottom 1% of sessions since 1990-01-02 (threshold ≤ "
+               f"{q01*100:.2f}%, n = {len(r):,} sessions, {int(bot1.sum())} days), with FRED VIXCLS at the "
+               f"prior session's close below 20 and no session with |return| ≥ 2% among the 20 before T.\n")
+    out.append(f"Of the {int(bot1.sum())} bottom-1% days: {int(calm_v.sum())} had VIX < 20 at T-1; "
+               f"{int(calm_q.sum())} had no 2% day in the prior 20 sessions; **{len(openers)} had both** "
+               f"(the calm-surface openers). **{len(big)} of them fell 4% or more**: "
+               f"{', '.join(f'{t.date()} ({v*100:+.2f}%)' for t, v in big.items()) or 'none'}.\n")
+
+    out.append("### Part 5.1 The openers\n")
+    out.append("| # | Date | ^GSPC ret | VIX at T-1 | largest abs. ret, prior 20 | ≤ −4%? |")
+    out.append("|---|---|---|---|---|---|")
+    for k, (t, v) in enumerate(openers.items(), 1):
+        out.append(f"| {k} | {t.date()} | {v*100:+.2f}% | {vix_t1.loc[t]:.2f} | {prior_max.loc[t]*100:.2f}% | "
+                   f"{'yes' if v <= -0.04 else 'no'} |")
+    out.append("")
+
+    out.append("### Part 5.2 Part 1 condition rows at T-1\n")
+    out.append("Columns as Part 1 (§1). HY and IG OAS print \"gap\" before 6 Nov 2023 (FRED's window).\n")
+    hdr = ["Opener", "T-1 date"] + [SHORT[c] for c in COLS]
+    out.append("| " + " | ".join(hdr) + " |")
+    out.append("|" + "---|" * len(hdr))
+    for t in openers.index:
+        p = gi.get_loc(t) - 1
+        row = conditions(d, gi[p])
+        out.append("| " + " | ".join([str(t.date()), str(gi[p].date())] + [cell(c, row[c]) for c in COLS]) + " |")
+    out.append("")
+
+    # internals, each a percentile of its own history through T-1
+    rsp, spy, qqq = roll_ret(d, "RSP"), roll_ret(d, "SPY"), roll_ret(d, "QQQ")
+    rsp_rel = (rsp - spy).dropna() * 100 if rsp is not None and spy is not None else None
+    qqq_rel = (qqq - spy).dropna() * 100 if qqq is not None and spy is not None else None
+    sect = pd.DataFrame({s: roll_ret(d, s) for s in SECTORS if s in d.px})
+    avail = sect.notna().sum(axis=1)
+    disp = (sect.std(axis=1, ddof=1) * 100).where(avail >= 9)
+    if "SPY" in d.px:
+        p_ = d.px["SPY"]
+        ami = (p_["ret"].abs() / (p_["close"] * p_["volume"]).replace(0, np.nan)).rolling(20, min_periods=20).mean()
+    else:
+        ami = None
+    out.append("### Part 5.3 Internals at T-1, as percentiles of their own history\n")
+    out.append("Each value is as of T-1's close and its percentile is the share of the series' own values on or "
+               "before T-1 that are at or below it (expanding history from the series' first observation; "
+               "Amihud over the trailing 252 and 756 values). RSP-SPY and QQQ-SPY: 20-session total-return "
+               "difference, pp (RSP from 2003, QQQ from 1999). Sector dispersion: cross-sectional standard "
+               "deviation of the sector SPDRs' 20-session total returns, pp, computed when at least 9 sectors "
+               "have 20 sessions of history (9 until XLRE in 2015, 11 from XLC in 2018). Amihud: SPY's "
+               "20-session mean of |ret| ÷ dollar volume (100 = least liquid).\n")
+    out.append("| Opener | T-1 | RSP-SPY pp | pctl | QQQ-SPY pp | pctl | sector disp. pp | pctl | n sectors | Amihud 1y pctl | Amihud 3y pctl |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|---|")
+
+    def v_at(s, day):
+        return float(s.loc[day]) if s is not None and day in s.index and pd.notna(s.loc[day]) else np.nan
+
+    for t in openers.index:
+        day = gi[gi.get_loc(t) - 1]
+        out.append(f"| {t.date()} | {day.date()} | {fmt(v_at(rsp_rel, day), 2, sign=True)} | "
+                   f"{fmt(pct_of_history(rsp_rel, day), 0)} | {fmt(v_at(qqq_rel, day), 2, sign=True)} | "
+                   f"{fmt(pct_of_history(qqq_rel, day), 0)} | {fmt(v_at(disp, day), 2)} | "
+                   f"{fmt(pct_of_history(disp, day), 0)} | "
+                   f"{int(avail.loc[day]) if day in avail.index and v_at(disp, day) == v_at(disp, day) else 'gap'} | "
+                   f"{fmt(pct_of_history(ami, day, 252), 0)} | {fmt(pct_of_history(ami, day, 756), 0)} |")
+    out.append("")
+
+    out.append("### Part 5.4 What followed\n")
+    out.append(f"T+1: close T to close T+1, and that session's high-low range ÷ close T. T+1..T+5: close T to "
+               f"close T+5, and the highest high less the lowest low over the five sessions ÷ close T. Top decile "
+               f"is Part 2's full-sample threshold (≥ {p2_q90*100:.2f}%), looked for in T+1..T+5. \"gap\" where the "
+               "sessions have not happened yet.\n")
+    out.append("| Opener | ret T | ret T+1 | range T+1 | ret T+1..5 | range T+1..5 | top-decile day within 5? |")
+    out.append("|---|---|---|---|---|---|---|")
+    n_top, n_obs = 0, 0
+    for t, v in openers.items():
+        i = gi.get_loc(t)
+        cT = g["close"].iloc[i]
+        if i + 1 < len(gi):
+            r1 = (g["close"].iloc[i + 1] / cT - 1) * 100
+            rg1 = (g["high"].iloc[i + 1] - g["low"].iloc[i + 1]) / cT * 100
+        else:
+            r1 = rg1 = np.nan
+        if i + 5 < len(gi):
+            r5 = (g["close"].iloc[i + 5] / cT - 1) * 100
+            rg5 = (g["high"].iloc[i + 1: i + 6].max() - g["low"].iloc[i + 1: i + 6].min()) / cT * 100
+            hit = bool((g["ret"].iloc[i + 1: i + 6] >= p2_q90).any())
+            n_obs += 1
+            n_top += hit
+            hit_s = "yes" if hit else "no"
+        else:
+            r5 = rg5 = np.nan
+            hit_s = "gap"
+        out.append(f"| {t.date()} | {v*100:+.2f}% | {fmt(r1, 2, sign=True)}% | {fmt(rg1, 2)}% | "
+                   f"{fmt(r5, 2, sign=True)}% | {fmt(rg5, 2)}% | {hit_s} |".replace("gap%", "gap"))
+    out.append(f"\nA top-decile day followed within 5 sessions after **{n_top} of {n_obs}** openers with five "
+               "sessions of history.\n")
+    return {"n": len(openers), "big": big, "q01": q01, "n_bot1": int(bot1.sum()), "n_top": n_top,
+            "n_obs": n_obs}
+
+
+# ------------------------------------------------------------------ Part 6
+def part6(d: Data, out: list[str]):
+    g = d.px["^GSPC"].loc["1989-01-01":]
+    r_all = g["ret"].dropna()
+    lr = np.log1p(r_all)
+    rv = lr.rolling(20).var(ddof=1) * 252
+    expo = (0.12 ** 2 / rv).clip(lower=0.25, upper=1.5)
+    held_all = expo.shift(1)
+    sl = r_all.index >= pd.Timestamp("1990-01-02")
+    r, held = r_all[sl], held_all[sl]
+    tb = d.fred.get("DTB3")
+    if tb is None:
+        out.append("gap: FRED DTB3 unavailable, so the T-bill rows cannot be built.\n")
+        rf = None
+    else:
+        y = tb.reindex(g.index.union(tb.index)).ffill(limit=5).reindex(g.index)
+        rf = ((1 + y / 100) ** (1 / 252) - 1).shift(1).reindex(r.index)
+    ebar = float(held.mean())
+
+    def cm_turnover(port, w):
+        drift = w * (1 + r) / (1 + port)
+        t = (drift - w).abs().shift(1).fillna(w)          # rebalance at the next close; day 1 buys in
+        return t
+
+    vm_to = held.diff().abs().fillna(held.iloc[0])
+    rows = [("Buy and hold", r, pd.Series(1.0, index=r.index), pd.Series(0.0, index=r.index).where(
+        r.index != r.index[0], 1.0))]
+    rows.append(("Vol-managed, cash at zero (Part 3)", held * r, held, vm_to))
+    cm0 = ebar * r
+    rows.append((f"Constant mix {ebar:.2f}, cash at zero", cm0, pd.Series(ebar, index=r.index),
+                 cm_turnover(cm0, ebar)))
+    if rf is not None:
+        vmb = held * r + (1 - held) * rf
+        rows.append(("Vol-managed, cash and borrowing at DTB3", vmb, held, vm_to))
+        cmb = ebar * r + (1 - ebar) * rf
+        rows.append((f"Constant mix {ebar:.2f}, rest in DTB3", cmb, pd.Series(ebar, index=r.index),
+                     cm_turnover(cmb, ebar)))
+
+    def stats(x):
+        eq = (1 + x).cumprod()
+        yrs = len(x) / 252
+        cagr = eq.iloc[-1] ** (1 / yrs) - 1
+        vol = x.std(ddof=1) * np.sqrt(252)
+        sharpe = x.mean() / x.std(ddof=1) * np.sqrt(252)
+        xs = (x - rf) if rf is not None else None
+        sh_x = xs.mean() / xs.std(ddof=1) * np.sqrt(252) if xs is not None else np.nan
+        mdd = (eq / eq.cummax() - 1).min()
+        w20 = (eq / eq.shift(20) - 1).min()
+        return cagr, vol, sharpe, sh_x, mdd, w20
+
+    out.append(_src_line(d, ["^GSPC", "DTB3"]))
+    out.append(f"{r.index[0].date()} to {r.index[-1].date()}, n = {len(r):,}. The vol-managed rule is Part 3's. "
+               f"The constant mix holds the rule's average exposure, {ebar:.4f}, rebalanced at each close; its "
+               "turnover is the drift back to target. T-bill return: FRED DTB3 at T-1 (discount-basis annual %, "
+               "carried at most 5 days), compounded to a 252-day year. Sharpe (rf = 0) is Part 3's definition; "
+               "the next column is the same ratio on returns in excess of DTB3. Worst 20-session = the lowest "
+               "close-to-close return over any 20 sessions. Costs: 2bp × turnover each day (buy and hold: one "
+               "purchase). Price return, no dividends, as Part 3.\n")
+    out.append("| Strategy | costs | Ann. return (CAGR) | Ann. vol | Sharpe (rf = 0) | Sharpe (excess of DTB3) | Max drawdown | Worst 20-session | Avg exposure | Ann. turnover |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|")
+    res = {}
+    for lbl, x, e, to in rows:
+        for cl, xx in (("none", x), ("2bp", x - to * 0.0002)):
+            a, v, s, sx, m, w = stats(xx)
+            res[(lbl, cl)] = (a, v, s, sx, m, w, float(e.mean()))
+            out.append(f"| {lbl} | {cl} | {a*100:.2f}% | {v*100:.2f}% | {s:.2f} | {fmt(sx)} | {m*100:.1f}% | "
+                       f"{w*100:.1f}% | {e.mean():.2f} | {to.sum()/ (len(r)/252):.1f}x |")
+    out.append("")
+
+    out.append("### Part 6.1 Vol-managed exposure path, 2026-10-26 to the latest session\n")
+    out.append("RV20 and the exposure it sets are as of each session's close; \"held\" is the exposure carried "
+               "through that session (set at the prior close). The last row's set exposure applies to the next "
+               "session.\n")
+    out.append("| Date | ^GSPC ret | RV20 (ann.) | exposure set at close | exposure held |")
+    out.append("|---|---|---|---|---|")
+    path = []
+    for t in r_all.loc["2026-10-26":].index:
+        out.append(f"| {t.date()} | {r_all.loc[t]*100:+.2f}% | {np.sqrt(rv.loc[t])*100:.1f}% | "
+                   f"{expo.loc[t]:.2f} | {held_all.loc[t]:.2f} |")
+        path.append((t, expo.loc[t], held_all.loc[t], np.sqrt(rv.loc[t])))
+    out.append("")
+    return {"res": res, "ebar": ebar, "path": path}
+
+
+# ------------------------------------------------------------------ Part 7
+def part7(d: Data, out: list[str]):
+    g = d.px["^GSPC"]
+    gi = g.index
+    baa = d.fred.get("BAA10Y")
+    out.append(_src_line(d, ["BAA10Y", "EBP"]))
+    out.append("BAA10Y (Moody's seasoned Baa corporate yield less the 10-year Treasury, percent, shown in bp) on "
+               "the Part 1 calendar: the value at T-k's date, carried at most 5 days. Δ20 = change over the "
+               "20 FRED observations before T-1's value. EBP: the Federal Reserve's excess bond premium "
+               "(Gilchrist–Zakrajšek, percentage points) and GZ spread for the calendar month before T; the CSV "
+               "is the current vintage, not what was published at the time.\n")
+    out.append("| Tail day | side | BAA10Y T-1 bp | Δ20 at T-1 bp | BAA10Y T-5 bp | BAA10Y T-20 bp | EBP month | EBP pp | GZ spread pp |")
+    out.append("|---|---|---|---|---|---|---|---|---|")
+    vals = {}
+    for side, dates in (("worst", WORST), ("best", BEST)):
+        for ds in dates:
+            pos = tday_pos(gi, ds)
+            v = {k: asof(baa, gi[pos - k]) * 100 if baa is not None else np.nan for k in OFFSETS}
+            chg = (asof(baa, gi[pos - 1]) - asof_shift(baa, gi[pos - 1], 20)) * 100 if baa is not None else np.nan
+            mth = (pd.Timestamp(ds).to_period("M") - 1).to_timestamp()
+            if d.ebp is not None and mth in d.ebp.index:
+                e_, gz = d.ebp.loc[mth, "ebp"], d.ebp.loc[mth, "gz_spread"]
+            else:
+                e_ = gz = np.nan
+            vals[ds] = (v[1], chg, e_)
+            out.append(f"| {ds} | {side} | {fmt(v[1], 0)} | {fmt(chg, 0, sign=True)} | {fmt(v[5], 0)} | "
+                       f"{fmt(v[20], 0)} | {mth:%Y-%m} | {fmt(e_, 2, sign=True)} | {fmt(gz, 2)} |")
+    out.append("")
+    if baa is not None:
+        b = baa.dropna()
+        ref = b.loc["1990-01-01":]
+        out.append(f"Context: BAA10Y since 1990 has median {ref.median()*100:.0f}bp, 90th percentile "
+                   f"{ref.quantile(.9)*100:.0f}bp; its last observation is {b.index[-1].date()} at "
+                   f"{b.iloc[-1]*100:.0f}bp.\n")
+    out.append("### Part 7.1 Earliest observation FRED serves\n")
+    out.append("| Series | Via | First obs. | Last obs. | n |")
+    out.append("|---|---|---|---|---|")
+    for fid in ("BAMLH0A0HYM2", "BAMLC0A0CM", "BAA10Y"):
+        s = d.fred.get(fid)
+        if s is None or s.empty:
+            out.append(f"| {fid} | gap — {d.errors.get(fid, 'not pulled')} | gap | gap | gap |")
+        else:
+            out.append(f"| {fid} | {d.fred_via[fid]}, pulled {d.pulled.get('fred_' + fid, d.pulled_at):%Y-%m-%d %H:%M} ET | "
+                       f"{s.index[0].date()} | {s.index[-1].date()} | {len(s):,} |")
+    out.append("")
+    return {"vals": vals}
+
+
 # ------------------------------------------------------------------ main
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", default=str(REPO / "docs/studies/tail-days-2016-2026-data.md"))
-    ap.add_argument("--cache", default=None, help="pickle cache dir for the pulls (optional)")
+    ap.add_argument("--cache", default=str(DEFAULT_CACHE),
+                    help="pickle cache dir for the pulls (default ~/.cache/chester-study/tail_days; "
+                         "'' for no cache)")
     a = ap.parse_args(argv)
-    d = Data(Path(a.cache) if a.cache else None)
+    d = Data(Path(a.cache).expanduser() if a.cache else None)
     d.load()
     if "^GSPC" not in d.px:
         print("^GSPC unavailable:", d.errors.get("^GSPC"))
@@ -551,20 +1046,24 @@ def main(argv=None):
     out: list[str] = []
     out.append("# Tail days 2016–2026: data replay")
     out.append("")
-    out.append(f"**Generated** {d.pulled_at:%Y-%m-%d %H:%M} ET by `tools/studies/tail_days.py` "
+    out.append(f"**Generated** {d.generated:%Y-%m-%d %H:%M} ET from data pulled {d.pulled_at:%Y-%m-%d %H:%M} ET by `tools/studies/tail_days.py` "
                "(branch `study/tail-days`). Companion to `docs/studies/tail-days-study-2026-11-05.md`. "
                "Study output only: no store, regime or report code was read or written.")
     out.append("")
     out.append("## 0. Sources and coverage\n")
     out.append("| Series | Source | First obs. | Last obs. (as of) |")
     out.append("|---|---|---|---|")
-    for s in INDEX_SYMS + ETF_SYMS + CHECK_SYMS:
+    for s in INDEX_SYMS + ETF_SYMS + CHECK_SYMS + EXTRA_SYMS:
         f, l = d.first_last(s) if s in d.px else ("gap", "gap")
         out.append(f"| {s} | Yahoo Finance via `altdata.sources.yfinance_source._fetch_symbol` "
                    f"(split-adj., dividends beside){' — ' + d.errors[s] if s in d.errors else ''} | {f} | {l} |")
     for fid in FRED_IDS:
         f, l = d.first_last(fid) if fid in d.fred else ("gap", "gap")
         out.append(f"| {fid} | {d.fred_via.get(fid, 'gap — ' + d.errors.get(fid, ''))} | {f} | {l} |")
+    if d.ebp is not None:
+        out.append(f"| EBP | Federal Reserve FEDS Notes CSV ({EBP_URL}) | {d.ebp.index[0]:%Y-%m} | {d.ebp.index[-1]:%Y-%m} |")
+    else:
+        out.append(f"| EBP | gap — {d.errors.get('EBP', '')} | gap | gap |")
     out.append("")
     last_gspc = g.index[-1].date().isoformat()
     missing = [x for x in BEST + WORST if pd.Timestamp(x) not in g.index]
@@ -752,13 +1251,32 @@ def main(argv=None):
     for a_, b_, c_ in chk:
         out.append(f"| {a_} | {b_} | {c_} |")
     out.append("")
+    # ---------------- Parts 4-7 (the study's §6 replay parts)
+    out.append("## Part 4. Vol-standardised tail base rates, ^GSPC since 1950\n")
+    out.append("Parts 4–7 are numbered as the study's §6 cites them, apart from §§0–4 above.\n")
+    part4(d, out)
+    q90 = d.px["^GSPC"]["ret"].loc["1950-01-03":].dropna().quantile(0.90)
+    out.append("## Part 5. Calm-surface openers, ^GSPC since 1990\n")
+    part5(d, out, q90)
+    out.append("## Part 6. Vol-managed exposure against a matched constant mix, ^GSPC since 1990\n")
+    part6(d, out)
+    out.append("## Part 7. Credit substitute: BAA10Y and the excess bond premium\n")
+    part7(d, out)
+
     marker = "<!-- CONTRADICTS -->"
-    keep = ""
+    cmark = "<!-- NEW-PARTS-CHANGE -->"
+    keep, ckeep = "", ""
     op = Path(a.out)
-    if op.exists():                       # the hand-written §5 survives a re-run
+    if op.exists():                       # the hand-written sections survive a re-run
         old = op.read_text(encoding="utf-8")
         if marker in old:
-            keep = old.split(marker, 1)[1].lstrip("\n")
+            head, keep = old.split(marker, 1)
+            keep = keep.lstrip("\n")
+            if cmark in head:
+                ckeep = head.split(cmark, 1)[1].strip("\n") + "\n"
+    out.append(cmark)
+    out.append(ckeep or "## What the new parts change\n\n(hand-written; the script keeps this "
+               "section when it is re-run)\n")
     out.append(marker)
     Path(a.out).write_text("\n".join(out) + "\n" + keep, encoding="utf-8")
     print(f"wrote {a.out}")
