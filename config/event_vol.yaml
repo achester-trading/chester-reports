@@ -1,0 +1,91 @@
+# event_vol.yaml -- item 119's event-vol pricing ledger (signal-triage Batch 22,
+# the order's 101) with Batch 23 item 124f's catalyst-class tags and the T, T+1,
+# T+2 window (Batch 23 section 0, Q3; D-2). A129, 6 Nov 2026. Read by
+# altdata/event_vol.py; the seeds by altdata/vol_event.py's seed-tags command.
+#
+# PRE-REGISTERED before the code: docs/ledgers/event-vol-preregistration-2026-11.md,
+# whose SHA-256 (LF bytes) is held here and by tools/validate_item_119.py.
+#
+# RIGHTS: the Ahead line (the close and the Weekly) and the "cheap event vol"
+# flag, in Ahead only. Nothing here enters a composite, a dial, the market-state
+# object, a tell, a setup, a size or the register. FlashAlpha is never read (the
+# 9 Oct rule): the implied move is the box's own captured chain's.
+version: event-vol-v1
+updated: 2026-11-06
+preregistration: docs/ledgers/event-vol-preregistration-2026-11.md
+preregistration_sha256: 639d142c2d794c7e0e4552971c6a5de38bd61d4ecb2d5820357a059d33329e70
+
+# Log-only until this many RESOLVED rows of a type; no flag below it.
+min_events: 20
+
+# THE TYPES. `match` is a case-insensitive pattern on the stored calendar row's
+# title (altdata/events.py's calendar, the close's Ahead) or on Ahead's event
+# text (the Weekly); `classes` are config/weekly_ahead.yaml's classes a ranked
+# row may carry; `timing` is when the event lands against the close ("before" or
+# "after"; an earnings row's time is read from the row, "unknown" when absent);
+# `underlying` is the chain and the closes read (an earnings row reads the name);
+# `time` (ET) decides the straddle's expiry by Ahead's rule: an event before the
+# open counts the event date's own expiry, any later one the first expiry after
+# the date.
+types:
+  fomc:      {match: "FOMC statement|FOMC decision", classes: [fomc_decision], timing: before, time: "14:00", underlying: SPY, default_class: "policy response"}
+  cpi:       {match: "Consumer Price Index|^CPI\\b", classes: [inflation_print], timing: before, time: "08:30", underlying: SPY, default_class: "data print"}
+  payrolls:  {match: "Employment Situation|Payrolls", classes: [labour_print], timing: before, time: "08:30", underlying: SPY, default_class: "data print"}
+  refunding: {match: "refunding", classes: [refunding], timing: before, time: "08:30", underlying: SPY, default_class: "policy shock"}
+  election:  {match: "election day|midterm election|US midterm|presidential election", classes: [us_election], timing: after, underlying: SPY, default_class: "political"}
+  earnings:  {match: "^([A-Z.]+) earnings", classes: [earnings_mega, earnings_index, earnings_bank, earnings_tracked], timing: unknown, underlying: name, default_class: "earnings"}
+
+# THE LEDGER'S OWN SEED ROWS (the first edition prints them, marked; the store's
+# ledger never holds them and no median counts them): the 2026 midterm, its
+# implied move the order's figure (a sell-side desk's estimate the order quotes,
+# never a chain read; V-101b), its realised moves from the edition's source.
+ledger_seeds:
+  - {type: election, underlying: SPY, event: "US midterm election, 3 Nov 2026", event_date: "2026-11-03", time: "results after the close", timing: after, implied_text: "about 1.2% (order's figure)", scheduled: scheduled, catalyst_class: political, mark: "seed, order's figure (V-101b)"}
+
+# The earnings names: the box's 13 (config.options_universe()); SPY, QQQ and IWM
+# report nothing. Read from altdata.config at run time; listed for the reader.
+earnings_names: [NVDA, AAPL, MSFT, AMZN, META, GOOGL, TSLA, MSTR, COIN, ASTS]
+
+# 124f's two fields (nullable on every row of both ledgers).
+tags:
+  scheduled: [scheduled, unscheduled]
+  catalyst_class: [policy shock, policy response, exogenous, data print,
+                   positioning unwind, earnings, political]
+
+# THE SEED ROWS (124f, with D-2): judgment drafts for the operator's accept-all
+# (rule 31), written into item 52's vol.event_ledger by
+# `python -m altdata.vol_event seed-tags [--dry-run]` (the box's, dry run first)
+# as rows marked seed: true, which never count toward the ledger's 30-event
+# right. Dates and moves are the study's (docs/studies/tail-days-study-2026-11-05.md
+# section 1 and tail-days-2016-2026-data.md Part 5 on branch study/tail-days):
+# Morningstar's index for the twenty, the S&P 500 for 27 Feb 2020 and the
+# openers. Classes and catalysts are this session's drafts; the five earlier
+# openers' catalysts are the study's own, from memory (V-106h), marked so.
+# 5 Nov 2026 is both a Morningstar day and an opener: one row, both sets named.
+seeds:
+  - {day: "2018-12-26", sets: [morningstar_best], move_pct: 5.0, scheduled: unscheduled, catalyst_class: positioning unwind, catalyst: "the post-Christmas Eve rebound after a Q4 de-grossing", status: draft}
+  - {day: "2020-02-24", sets: [opener], move_pct: -3.35, scheduled: unscheduled, catalyst_class: exogenous, catalyst: "the Italian COVID weekend (the study's label, from memory)", status: "draft (V-106h)"}
+  - {day: "2020-02-27", sets: [sp500_ninth_worst], move_pct: -4.42, scheduled: unscheduled, catalyst_class: exogenous, catalyst: "COVID's spread outside China", status: draft}
+  - {day: "2020-03-02", sets: [morningstar_best], scheduled: unscheduled, catalyst_class: policy response, catalyst: "expectations of coordinated central-bank easing", status: draft}
+  - {day: "2020-03-09", sets: [morningstar_worst], scheduled: unscheduled, catalyst_class: exogenous, catalyst: "COVID and the oil price war", status: draft}
+  - {day: "2020-03-10", sets: [morningstar_best], scheduled: unscheduled, catalyst_class: policy response, catalyst: "promised fiscal relief", status: draft}
+  - {day: "2020-03-11", sets: [morningstar_worst], scheduled: unscheduled, catalyst_class: exogenous, catalyst: "the WHO's pandemic declaration", status: draft}
+  - {day: "2020-03-12", sets: [morningstar_worst], scheduled: unscheduled, catalyst_class: exogenous, catalyst: "the European travel ban and COVID's spread", status: draft}
+  - {day: "2020-03-13", sets: [morningstar_best], scheduled: unscheduled, catalyst_class: policy response, catalyst: "the national emergency declaration", status: draft}
+  - {day: "2020-03-16", sets: [morningstar_worst], scheduled: unscheduled, catalyst_class: exogenous, catalyst: "COVID shutdowns, after the Sunday emergency cut", status: draft}
+  - {day: "2020-03-17", sets: [morningstar_best], scheduled: unscheduled, catalyst_class: policy response, catalyst: "the Fed's commercial-paper facility and a fiscal package", status: draft}
+  - {day: "2020-03-18", sets: [morningstar_worst], scheduled: unscheduled, catalyst_class: exogenous, catalyst: "COVID shutdowns and a dash for cash", status: draft}
+  - {day: "2020-03-24", sets: [morningstar_best], scheduled: unscheduled, catalyst_class: policy response, catalyst: "the relief bill's progress and the Fed's open-ended purchases", status: draft}
+  - {day: "2020-03-26", sets: [morningstar_best], scheduled: unscheduled, catalyst_class: policy response, catalyst: "the Senate's passage of the relief bill", status: draft}
+  - {day: "2020-04-01", sets: [morningstar_worst], scheduled: unscheduled, catalyst_class: exogenous, catalyst: "COVID's case and death projections", status: draft}
+  - {day: "2020-04-06", sets: [morningstar_best], scheduled: unscheduled, catalyst_class: exogenous, catalyst: "signs the infection curve was flattening", status: draft}
+  - {day: "2020-06-11", sets: [morningstar_worst], scheduled: unscheduled, catalyst_class: positioning unwind, catalyst: "second-wave fears after a crowded rebound", status: draft}
+  - {day: "2022-11-10", sets: [morningstar_best], move_pct: 5.7, scheduled: scheduled, catalyst_class: data print, catalyst: "the October CPI below consensus", status: draft}
+  - {day: "2025-04-03", sets: [morningstar_worst], move_pct: -5.0, scheduled: scheduled, catalyst_class: policy shock, catalyst: "the 2 Apr tariff announcement", status: draft}
+  - {day: "2025-04-04", sets: [morningstar_worst], move_pct: -5.9, scheduled: unscheduled, catalyst_class: policy shock, catalyst: "China's retaliatory tariffs", status: draft}
+  - {day: "2025-04-09", sets: [morningstar_best], move_pct: 9.6, scheduled: unscheduled, catalyst_class: policy response, catalyst: "the 90-day tariff pause", status: draft}
+  - {day: "2026-11-05", sets: [morningstar_worst, opener], move_pct: -4.36, scheduled: unscheduled, catalyst_class: political, catalyst: "post-midterm data-center policy news and OpenAI's capacity reports (two sessions after the 3 Nov election)", status: draft}
+  - {day: "1991-11-15", sets: [opener], move_pct: -3.66, scheduled: unscheduled, catalyst_class: political, catalyst: "a Senate vote and a biotech selloff (the study's label, from memory)", status: "draft (V-106h)"}
+  - {day: "2007-02-27", sets: [opener], move_pct: -3.47, scheduled: unscheduled, catalyst_class: exogenous, catalyst: "the Shanghai crash (the study's label, from memory)", status: "draft (V-106h)"}
+  - {day: "2016-06-24", sets: [opener], move_pct: -3.59, scheduled: scheduled, catalyst_class: political, catalyst: "the Brexit vote (the study's label, from memory)", status: "draft (V-106h)"}
+  - {day: "2018-10-10", sets: [opener], move_pct: -3.29, scheduled: unscheduled, catalyst_class: positioning unwind, catalyst: "a rates-led de-grossing (the study's label, from memory)", status: "draft (V-106h)"}

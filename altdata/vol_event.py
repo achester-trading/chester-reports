@@ -6,6 +6,15 @@ attribution's pattern (altdata/rates_attribution.py), extended to volatility.
     python -m altdata.vol_event show [--date D]          # the session's read
     python -m altdata.vol_event seed --date 2026-10-16   # the ledger's first row
     python -m altdata.vol_event resolve                  # fill realised outcomes
+    python -m altdata.vol_event seed-tags [--dry-run]    # 124f's seed rows (the box's)
+
+BATCH 23 ITEM 124f (A129, 6 Nov 2026): every ledger row carries two more fields,
+`scheduled` (scheduled / unscheduled) and `catalyst_class` (policy shock, policy
+response, exogenous, data print, positioning unwind, earnings, political), NULL
+until set; rows written before them are untouched and read as NULL. The seed
+rows -- the twenty Morningstar days, 27 Feb 2020 and the six calm-surface openers
+-- are judgment drafts in config/event_vol.yaml `seeds`, written by `seed-tags`
+as rows marked seed: true, which never count toward the 30-event right.
 
 ST-R6.52a THE TRIGGER, two-sided (config/vol_event.yaml): a one-day VIX change of
 15% or 3 points either way; a five-day change beyond its own 95th percentile on a
@@ -782,7 +791,9 @@ def ledger_row(ev: dict, now: str, outcomes: Optional[dict]) -> dict:
             "arms": {k: v.get("fired") for k, v in (ev["trigger"].get("arms") or {}).items()},
             "vix": ev["trigger"]["level"]["value"],
             "attribution": {LENS_TITLES[k]: ev["lenses"][k]["line"] for k in LENS_ORDER},
-            "outcomes": outcomes}
+            "outcomes": outcomes,
+            # 124f: nullable; the operator tags a fired day (or accepts a draft).
+            "scheduled": ev.get("scheduled"), "catalyst_class": ev.get("catalyst_class")}
     if ev.get("liquidity"):
         body["report_only"] = {LIQUIDITY_TITLE: ev["liquidity"]["line"]}
     return {"registry_key": LEDGER_KEY, "instrument": ev["day"], "observed_at": ev["day"],
@@ -809,24 +820,91 @@ def outcomes(day: str, vix: list, spx: list, cfg: Optional[dict] = None) -> dict
 
 
 def ledger_status(rows: list[dict], cfg: Optional[dict] = None) -> str:
+    """The ledger's count. Seed rows (124f) are named apart and never counted
+    toward the right."""
     cfg = cfg or config()
-    n = len(rows)
-    res = sum(1 for r in rows if (r.get("outcomes") or {}).get("resolved"))
+    live = [r for r in rows if not r.get("seed")]
+    seeds = len(rows) - len(live)
+    n = len(live)
+    res = sum(1 for r in live if (r.get("outcomes") or {}).get("resolved"))
     need = int(cfg["ledger"]["rights_after_events"])
     return (f"event ledger: {n} events, {res} resolved; no modifier right before "
-            f"{need} events")
+            f"{need} events" + (f" ({seeds} seed rows, not counted)" if seeds else ""))
+
+
+TAGS_PATH = REPO / "config" / "event_vol.yaml"
+
+
+def tag_vocabulary() -> dict:
+    import yaml                                                 # noqa: PLC0415
+    with open(TAGS_PATH, encoding="utf-8") as fh:
+        return (yaml.safe_load(fh) or {}).get("tags") or {}
+
+
+def tag_faults(row: dict, vocab: Optional[dict] = None) -> list[str]:
+    """124f: a set tag must be in the vocabulary; NULL is allowed."""
+    vocab = vocab or tag_vocabulary()
+    out = []
+    for k in ("scheduled", "catalyst_class"):
+        v = row.get(k)
+        if v is not None and v not in (vocab.get(k) or []):
+            out.append(f"{k} {v!r} is not in the vocabulary")
+    return out
+
+
+def seed_rows(now: str) -> list[dict]:
+    """124f's seed rows as vol.event_ledger rows, marked seed: true, each a
+    judgment draft (config/event_vol.yaml `seeds`)."""
+    import yaml                                                 # noqa: PLC0415
+    with open(TAGS_PATH, encoding="utf-8") as fh:
+        seeds = (yaml.safe_load(fh) or {}).get("seeds") or []
+    out = []
+    for s in seeds:
+        body = {"day": s["day"], "seed": True, "sets": s.get("sets"),
+                "move_pct": s.get("move_pct"), "scheduled": s.get("scheduled"),
+                "catalyst_class": s.get("catalyst_class"), "catalyst": s.get("catalyst"),
+                "status": s.get("status"), "outcomes": None}
+        out.append({"registry_key": LEDGER_KEY, "instrument": s["day"],
+                    "observed_at": s["day"], "available_at": now,
+                    "value": json.dumps(body, sort_keys=True, default=str),
+                    "source": "vol_event"})
+    return out
 
 
 def _main(argv: list[str]) -> int:
     import argparse                                             # noqa: PLC0415
     from . import observations, session                         # noqa: PLC0415
     ap = argparse.ArgumentParser(prog="python -m altdata.vol_event")
-    ap.add_argument("cmd", choices=["show", "seed", "resolve"])
+    ap.add_argument("cmd", choices=["show", "seed", "resolve", "seed-tags"])
     ap.add_argument("--date", default=None)
+    ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
     cfg = config()
     now = session.utc_iso()
     day = a.date or session.session_date()
+    if a.cmd == "seed-tags":
+        rows = seed_rows(now)
+        bad = [f"{json.loads(r['value'])['day']}: {f}" for r in rows
+               for f in tag_faults(json.loads(r["value"]))]
+        if bad:
+            print("refused: " + "; ".join(bad))
+            return 1
+        with observations.ObservationStore() as st:
+            have = {r["instrument"] for r in st.as_of(LEDGER_KEY, now)}
+        new = [r for r in rows if r["instrument"] not in have]
+        for r in new:
+            b = json.loads(r["value"])
+            print(f"  {b['day']}  {b['scheduled']:11s}  {b['catalyst_class']:18s}  "
+                  f"{b['status']}")
+        if a.dry_run:
+            print(f"dry run: {len(new)} seed row(s) would be written "
+                  f"({len(rows) - len(new)} day(s) already in the ledger, left as they are)")
+            return 0
+        if new:
+            with observations.ObservationStore() as st:
+                st.write_many(new)
+        print(f"seeded {len(new)} row(s) into {LEDGER_KEY}")
+        return 0
     if a.cmd == "resolve":
         with observations.ObservationStore() as st:
             ser = read_series(st, now, cfg)

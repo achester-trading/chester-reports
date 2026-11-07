@@ -941,6 +941,7 @@ def ahead_section(p: dict, st, cutoff: str, outlook_rows: list[dict]) -> dict:
             "OPEX", "minutes", "refunding", "midterm", "Surveys of Consumers",
             "Job Openings")
     seen = set()
+    typed: list = []
     for r in cal:
         t = str(r.get("title") or "")
         if not any(k.lower() in t.lower() for k in keep):
@@ -950,6 +951,24 @@ def ahead_section(p: dict, st, cutoff: str, outlook_rows: list[dict]) -> dict:
             continue
         seen.add(key)
         items.append(item(f"ahead:{key[0]}:{key[1]}", f"{key[0]}: {key[1]}.", 2, key))
+        typed.append((len(items) - 1, {"title": key[1], "date": key[0], "cls": None,
+                                       "time": None}))
+    # ITEM 119 (A129): each event of the six types carries its implied move from
+    # today's capture beside its type's median realised move ("accruing (n=k of
+    # 20)" below 20) and, at 20 or more, "cheap event vol". Ahead only.
+    try:
+        from altdata import event_vol                           # noqa: PLC0415
+        anns = event_vol.ahead_annotations([e for _, e in typed], p["session"],
+                                           str(st.path), cutoff)
+        for (i, _), a in zip(typed, anns):
+            if a:
+                it = items[i]
+                items[i] = item(it["key"], it["text"].rstrip(".")
+                                + f" — event vol: {a['text']}.", 2, (it["key"], a["text"]))
+    except Exception:                                           # noqa: BLE001
+        import logging                                          # noqa: PLC0415
+        logging.getLogger(__name__).warning(
+            "event vol: the close's Ahead annotations are unavailable", exc_info=True)
     for o in outlook_rows:
         if o["state"] != "computed":
             continue

@@ -19,6 +19,12 @@ base-rate table and the 3 Nov 2026 row in the Weekly's Ahead (paste A78, 26 Oct
      "odds not stored"; a week without the date has no row.
   D  NO NAME OF A PERSON in the new code, config, ledger or appendix line
      (H5), checked against digests so this gate carries none either.
+  E  THE 2026 ROW (Batch 22 item 119, A129): a midterm year in progress prints
+     one row beside the sample, never in it (the computation's SHA-256 holds,
+     still nineteen rows); its first and second sessions after election day
+     from the closes; the implied move marked "order's figure"; the headline
+     carries the row only once both sessions are stored. The ledger the config
+     copies is the 2026-11-06 edition.
 
     python tools/validate_batch16_midterm.py
 """
@@ -47,7 +53,8 @@ import midterm_base_rate as mbr                                 # noqa: E402
 TD = Path(gate_mkdtemp("batch16_midterm_"))
 LINE = "=" * 78
 PASS = FAIL = 0
-LEDGER = REPO / "docs" / "ledgers" / "midterm-base-rate-2026-10-28.md"
+# A129 (item 119): the 2026-11-06 edition carries the 2026 row; the config copies it.
+LEDGER = REPO / "docs" / "ledgers" / "midterm-base-rate-2026-11-06.md"
 CSV = LEDGER.with_suffix(".csv")
 CLAIM = "cal.midterm_election_2026"
 # The first 16 hex of the SHA-256 of each lower-cased name in the order's voices
@@ -253,9 +260,14 @@ def group_c() -> None:
     st.close()
     r2, _ = ahead_row(str(TD / "empty.db"))
     r3, _ = ahead_row(None)
-    check(r2 and r2["consensus"] == "odds not stored" and r3
-          and r3["consensus"] == "odds not stored",
+    # A129 (item 119): the election row's consensus cell also carries its
+    # event-vol clause after the odds ("event vol: ..."), so the odds are its head.
+    check(r2 and r2["consensus"].split("; event vol: ")[0] == "odds not stored" and r3
+          and r3["consensus"].split("; event vol: ")[0] == "odds not stored",
           "no odds stored (an empty store, or none passed): 'odds not stored'")
+    check(r3 and "; event vol: " in r3["consensus"]
+          and "accruing (n=0 of 20)" in r3["consensus"],
+          "the election row carries item 119's clause: accruing (n=0 of 20)")
     r4, _ = ahead_row(None, week_ending="2026-11-07")
     check(r4 is None, "the following week has no midterm row")
 
@@ -283,12 +295,54 @@ def group_d() -> None:
     check(not hits, f"none of the order's named people appears ({sorted(set(hits))})")
 
 
+def group_e() -> None:
+    head("E. THE 2026 ROW: BESIDE THE SAMPLE, NEVER IN IT")
+    days = weekdays("1950-01-02", "2026-11-05")
+    px = [(d, 100.0) for d in days]
+    i3, i4 = days.index("2026-11-03"), days.index("2026-11-04")
+    px[i4] = ("2026-11-04", 101.58)
+    px[i4 + 1] = ("2026-11-05", 101.58 * (1 - 0.0436))
+    r = mbr.study(px, None)
+    w = r["in_progress"]
+    check(len(r["rows"]) == 19 and r["last_complete"] == 2025
+          and all(int(x["year"]) != 2026 for x in r["rows"]),
+          "the sample stays the nineteen completed midterm years; 2026 is not in it")
+    check(w is not None and w["year"] == 2026 and w["election_day"] == "2026-11-03"
+          and w["election_close_date"] == days[i3],
+          "the year in progress prints its own row with the election-day close")
+    check(w["first_session"] == "2026-11-04" and abs(w["first_session_pct"] - 1.58) < 1e-6
+          and w["second_session"] == "2026-11-05"
+          and abs(w["second_session_pct"] + 4.36) < 1e-6,
+          f"the first and second sessions after election day from the closes "
+          f"({w['first_session_pct']}, {w['second_session_pct']})")
+    check(w["implied_next_day"] == "about 1.2% (order's figure)",
+          "the implied move is the order's figure, marked so (V-101b)")
+    line = mbr.headline(r["rows"], r["others"], "2026-11-06", w)
+    check("2026 (in progress, not in the sample)" in line and "+1.58%" in line
+          and "−4.36%" in line and "order's figure" in line,
+          "the headline carries the row once both sessions are stored")
+    stale = mbr.study([p for p in px if p[0] <= "2026-09-21"], None)
+    sw = stale["in_progress"]
+    check(sw is not None and sw["first_session"] == mbr.NOT_STORED
+          and sw["election_close_date"] == mbr.NOT_STORED
+          and mbr.headline(stale["rows"], stale["others"], "x", sw)
+          == mbr.headline(stale["rows"], stale["others"], "x"),
+          "a store that ends before election day prints 'not stored' and no clause")
+    check(mbr.study([p for p in px if p[0] <= "2025-12-31"], None)["in_progress"] is None,
+          "a store ending in a non-midterm year prints no row")
+    md = LEDGER.read_text(encoding="utf-8").replace("\r\n", "\n")
+    check("## The 2026 row (in progress; not in the sample)" in md
+          and "about 1.2% (order's figure)" in md,
+          "the 2026-11-06 edition prints the 2026 row and the order's figure")
+
+
 def main() -> int:
     try:
         group_a()
         group_b()
         group_c()
         group_d()
+        group_e()
     finally:
         import shutil                                           # noqa: PLC0415
         shutil.rmtree(TD, ignore_errors=True)

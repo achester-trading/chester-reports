@@ -332,6 +332,10 @@ commands:
     domain: computed
     line: 'The one-day 10-year trigger and its event ledger (D15): `show [--date D]`, `seed --date D [--dry-run]`, `resolve [--dry-run]`'
     sources: [oneday_10y]
+  altdata.event_vol:
+    domain: computed
+    line: 'The event-vol pricing ledger (Batch 22 item 119, with 124f): `eod [--date D] [--dry-run]` records T-1 implied moves and resolves T, T+1, T+2; `show`; `check-chains [--date D]` (V-101a, read-only); `edition --source public|store`'
+    sources: [event_vol]
   altdata.ai_trade:
     domain: computed
     line: 'One big AI trade (Batch 14 item 65): the AI-bottleneck PPI line, the Broad-AI proxy pair (AIQ against SPXT, labelled proxy) and the AI-credit gap; `show [--as-of ISO]`; reads only'

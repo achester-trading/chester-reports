@@ -501,6 +501,27 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
     rows.sort(key=lambda r: (r["tier"], r["date"], str(r.get("time")), r["event"]))
     for i, r in enumerate(rows, start=1):
         r["rank"] = i
+    # ITEM 119 (A129, the event-vol pricing ledger): each ranked event of the six
+    # types prints its implied move beside its type's median realised move, or
+    # "accruing (n=k of 20)"; "cheap event vol" when the implied move sits below
+    # that median. An earnings row's implied move is already item 57's, so only
+    # the median and the flag are added to it. Ahead only.
+    fired_any = False
+    try:
+        from altdata import event_vol                           # noqa: PLC0415
+        anns = event_vol.ahead_annotations(
+            [{"title": r.get("event"), "cls": r.get("cls"), "date": r.get("date"),
+              "time": r.get("time"), "symbol": r.get("symbol"),
+              "has_implied": bool(r.get("implied_move"))} for r in rows],
+            now[:10], db_path, now, chain_base)
+        for r, a in zip(rows, anns):
+            if a:
+                r["consensus"] = "; ".join(x for x in (r.get("consensus"),
+                                                       f"event vol: {a['text']}") if x)
+                r["cheap_event_vol"] = a["fired"]
+                fired_any = fired_any or a["fired"]
+    except Exception:                                           # noqa: BLE001
+        log.warning("event vol: Ahead annotations unavailable", exc_info=True)
     table = {"columns": list(COLUMNS),
              "rows": [[f"{_day(r['date'])}, {r.get('time')}", r["event"], r["tier"],
                        r.get("consensus") or "—", r["why"], r["amplify"]]
@@ -541,6 +562,9 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
     notes.append("Ranked by importance tier (1 moves every market, 3 one), then "
                  "time; the tiers, channels and amplifiers are declared in config, "
                  "never chosen by the model.")
+    if fired_any:
+        from altdata.event_vol import FLAG_NOTE                 # noqa: PLC0415
+        notes.append(FLAG_NOTE)
     if absent:
         notes.append("Hand-seeded calendars not present on this branch: "
                      + ", ".join(absent) + ".")

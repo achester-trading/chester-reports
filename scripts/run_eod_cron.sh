@@ -215,6 +215,15 @@ VR_OUT="$("$VENV_PY" -m altdata.vol_event resolve 2>&1 | tail -3)"
 VR_RC=$?
 printf '%s\n' "$VR_OUT" | sed 's/^/  /' >>"$LOG"
 [[ $VR_RC -ne 0 ]] && log "WARN vol_event resolve exited $VR_RC -- continuing"
+# BATCH 22 ITEM 119 (A129): the event-vol pricing ledger -- the implied move of
+# every ranked event whose T-1 is today, from today's capture (taken above), and
+# the realised T, T+1 and T+2 moves of the open rows as they land (a new vintage,
+# never an overwrite). Warn-only: a calibration record, never the pass's verdict.
+log "event vol: record T-1 and resolve the ledger"
+EV_OUT="$("$VENV_PY" -m altdata.event_vol eod 2>&1 | tail -3)"
+EV_RC=$?
+printf '%s\n' "$EV_OUT" | sed 's/^/  /' >>"$LOG"
+[[ $EV_RC -ne 0 ]] && log "WARN event_vol eod exited $EV_RC -- continuing"
 # BATCH 14 ITEM 65: the speed-flag ledger's awaiting attributions, once the
 # term-structure models' inputs land, and its realised 5- and 20-session
 # outcomes (a new vintage, never an overwrite). Warn-only, as above.

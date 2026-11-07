@@ -2854,6 +2854,23 @@ sources:
     implemented_by: altdata/vol_event.py
     status: live
 
+  event_vol:
+    name: The event-vol pricing ledger (Batch 22 item 119, with Batch 23 item 124f)
+    tier: derived
+    epistemic_role: own_computation
+    domain: [internal]
+    geography: [US]
+    latency: written by the EOD pass (record on T-1, resolve as T+2 lands)
+    timestamp_reliability: inherits
+    timestamp_notes: >-
+      Written by altdata/event_vol.py through scripts/run_eod_cron.sh:
+      event_vol.ledger, observed on the event's date and available when written;
+      a resolution writes a later vintage.
+    license: own work
+    allowed_reports: [daily_cascade, weekly_tactical]
+    implemented_by: altdata/event_vol.py
+    status: live
+
   oneday_10y:
     name: The one-day 10-year trigger's attribution (D15)
     tier: derived

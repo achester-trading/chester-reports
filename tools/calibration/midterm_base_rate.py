@@ -177,6 +177,67 @@ def _r(v: Optional[float], nd: int = 2) -> Optional[float]:
     return None if v is None else round(v, nd)
 
 
+# ---------------------------------------------------------------------------
+# The year in progress (Batch 22 item 119, the order's 101; A129, 6 Nov 2026)
+# ---------------------------------------------------------------------------
+# THE 2026 ROW is printed BESIDE the sample, never in it: the pre-registered
+# computation above (its SHA-256 unchanged) keeps the nineteen completed midterm
+# years. This text is the row's own, printed with it.
+ROW_IN_PROGRESS = """\
+THE ROW IN PROGRESS. A midterm year not yet complete prints one row beside the
+sample, never counted in it: the year's drawdown to the store's last close (the
+same rule as the sample's), the election-day close, and the S&P 500's close-to-
+close moves on the first and second sessions after election day (election
+results land after the close, so the first is the day the result is priced),
+each "not stored" when the store has not reached it. The implied move for the
+day after the election is the order's figure (a sell-side desk's estimate the
+order quotes, marked so), never a chain read."""
+ORDER_IMPLIED_2026 = "about 1.2% (order's figure)"
+
+
+def row_in_progress(spx: Daily) -> Optional[dict]:
+    """The 2026 row (or any midterm year in progress), or None when the store's
+    last close is not in a midterm year."""
+    c = Closes(spx)
+    last = c.days[-1]
+    y = last.year
+    if y % 4 != 2 or last >= dt.date(y, 12, 31):
+        return None
+    idx = c.year(y)
+    dd, pk, tr = drawdown(c, idx) if idx else (None, None, None)
+    ed = election_day(y)
+    e = c.on_or_before(ed)
+    out = {"year": y, "election_day": ed.isoformat(), "through": last.isoformat(),
+           "drawdown_to_date_pct": _r(dd),
+           "peak_date": c.days[pk].isoformat() if pk is not None else None,
+           "trough_date": c.days[tr].isoformat() if tr is not None else None,
+           "election_close_date": (c.days[e].isoformat()
+                                   if e is not None and c.days[e] >= ed else NOT_STORED),
+           "implied_next_day": ORDER_IMPLIED_2026 if y == 2026 else NOT_STORED}
+    after = [i for i, d in enumerate(c.days) if d > ed]
+    for k, name in ((0, "first"), (1, "second")):
+        if len(after) > k and after[k] > 0:
+            i = after[k]
+            out[f"{name}_session"] = c.days[i].isoformat()
+            out[f"{name}_session_pct"] = _r(100.0 * (c.px[i] / c.px[i - 1] - 1.0))
+        else:
+            out[f"{name}_session"] = NOT_STORED
+            out[f"{name}_session_pct"] = None
+    return out
+
+
+def in_progress_clause(w: Optional[dict]) -> str:
+    """The headline's clause for the year in progress: only once both sessions
+    after election day are stored (else nothing, so a stale store never prints
+    a half row in Ahead)."""
+    if not w or w.get("second_session_pct") is None:
+        return ""
+    return (f" {w['year']} (in progress, not in the sample): the first two sessions "
+            f"after election day {pc(w['first_session_pct'], 2)} and "
+            f"{pc(w['second_session_pct'], 2)}, against an implied move of "
+            f"{w['implied_next_day']}.")
+
+
 def study(spx: Daily, usrec: Optional[Daily]) -> dict:
     c = Closes(spx)
     last = c.days[-1]
@@ -224,7 +285,9 @@ def study(spx: Daily, usrec: Optional[Daily]) -> dict:
                     "drawdown_pct": _r(ytd)} if ytd is not None else None,
             "all_years_since_1980_mean": _r(statistics.mean(since_1980))
             if since_1980 else None,
-            "recession_stored": bool(usrec)}
+            "recession_stored": bool(usrec),
+            # A129 (item 119): the year in progress, beside the sample.
+            "in_progress": row_in_progress(spx)}
 
 
 # ---------------------------------------------------------------------------
@@ -270,8 +333,15 @@ def pc(v: Optional[float], nd: int = 1, sign: bool = True) -> str:
     return s.replace("-", "−")
 
 
-def headline(rows: list[dict], others: list[dict], edition: str) -> str:
-    """The base-rate line the Weekly's Ahead prints beside the midterm row."""
+def headline(rows: list[dict], others: list[dict], edition: str,
+             in_progress: Optional[dict] = None) -> str:
+    """The base-rate line the Weekly's Ahead prints beside the midterm row, with
+    the year in progress's clause once its two post-election sessions are stored
+    (A129)."""
+    return _headline(rows, others, edition) + in_progress_clause(in_progress)
+
+
+def _headline(rows: list[dict], others: list[dict], edition: str) -> str:
     s = summary(rows, others)
     return (f"Base rate, the {s['n']} midterm years since {FIRST_YEAR} (ledger "
             f"{edition}): the year's drawdown, median {pc(s['mid_median'])} "
@@ -407,9 +477,34 @@ def render(r: dict, edition: str, mode: str, csv_name: str, csv_sha: str) -> str
           "`config/weekly_ahead.yaml`, held to this file by "
           "`tools/validate_batch16_midterm.py`):",
           "",
-          f"> {headline(rows, others, edition)}",
-          "",
-          "## The order's chat figures against this ledger (V11)",
+          f"> {headline(rows, others, edition, r.get('in_progress'))}",
+          ""]
+    w = r.get("in_progress")
+    if w:
+        def cell(name: str) -> str:
+            v = w.get(f"{name}_session_pct")
+            return (f"{pc(v, 2)} ({w[f'{name}_session']})" if v is not None
+                    else NOT_STORED)
+        L += [f"## The {w['year']} row (in progress; not in the sample)",
+              "",
+              "```text", ROW_IN_PROGRESS, "```",
+              "",
+              "| Year | Election day | Drawdown to date | Peak → trough | Election-day "
+              "close | Implied move, the day after | First session after | Second "
+              "session after |",
+              "|---|---|---|---|---|---|---|---|",
+              f"| {w['year']} | {w['election_day']} | {pc(w['drawdown_to_date_pct'])} "
+              f"(through {w['through']}) | {w['peak_date']} → {w['trough_date']} | "
+              f"{w['election_close_date']} | {w['implied_next_day']} | {cell('first')} "
+              f"| {cell('second')} |",
+              "",
+              ("The headline carries the row once both sessions after election day are "
+               "stored." if w.get("second_session_pct") is not None else
+               f"The store ends {w['through']}, before the sessions after election day, "
+               f"so the headline does not carry the row yet; the box's re-run (its "
+               f"store holds 4 and 5 Nov) writes a new edition that does."),
+              ""]
+    L += ["## The order's chat figures against this ledger (V11)",
           "",
           "The order's figures were approximate; this ledger replaces them. Both, "
           "where they differ:",
@@ -477,7 +572,7 @@ def main(argv=None) -> int:
     md, cv = publish(r, Path(a.out) if a.out else LEDGER_DIR, edition, mode)
     print(f"midterm base rate: n {len(r['rows'])}; as of {r['as_of']}")
     print(f"  wrote {md.name} and {cv.name}")
-    print("  " + headline(r["rows"], r["others"], edition))
+    print("  " + headline(r["rows"], r["others"], edition, r.get("in_progress")))
     return 0
 
 

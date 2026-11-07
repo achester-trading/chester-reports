@@ -245,7 +245,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and sixty-seven code gates (one hundred and sixty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and sixty-eight code gates (one hundred and sixty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -957,6 +957,35 @@ House and Senate odds from the stored prediction markets as its consensus, "odds
 not stored" without them, and the ledger's headline COPIED into config beside its
 channel, since a live row never reads a ledger. A new edition is copied in by the
 session that files it. `tools/validate_batch16_midterm.py` holds it.
+
+**Event volatility is priced against what events of its kind realised (Batch 22
+item 119, with Batch 23 item 124f; A129, 6 Nov 2026).** The Ahead line and one flag
+are its only rights.
+- **The ledger.** `altdata/event_vol.py` (`config/event_vol.yaml`) logs every ranked
+  scheduled event of six types: FOMC, CPI, payrolls, refunding and elections on SPY,
+  and the earnings of the 13, each name its own type.
+- **The implied move.** It is read from the box's own T−1 capture (at or before 16:35
+  ET) through Ahead's straddle helpers (item 57), with the event day's share of
+  variance separated by the term structure.
+- **The realised moves and the tags.** It records the realised T, T+1 and T+2 moves
+  and two nullable tags, scheduled and catalyst class. Rows are written by the EOD
+  pass (`event_vol eod`), and a resolution is a new vintage of `event_vol.ledger`.
+- **Pre-registration.** It is `docs/ledgers/event-vol-preregistration-2026-11.md`,
+  held by SHA-256. No pass rule is stated, and it stays log-only until 20 resolved
+  events of a type.
+- **Where it prints.** Ahead, in both the close and the Weekly, prints each event's
+  implied move beside its type's median realised move ("accruing (n=k of 20)" below
+  20). "Cheap event vol" fires below that median, in Ahead only.
+- **FlashAlpha is never read.** SPX's vendor capture carries no quotes, so SPY is
+  the macro record.
+- **The tags on item 52's ledger.** The same two tags join `vol.event_ledger`, and
+  its existing rows are untouched. The 26 seed days (the twenty Morningstar days,
+  27 Feb 2020 and the six openers) are drafts in that config, written by `vol_event
+  seed-tags` and never counted.
+- **The midterm ledger.** It gains its 2026 row beside the sample
+  (`midterm-base-rate-2026-11-06.md`).
+
+`tools/validate_item_119.py` holds it.
 
 **A bad print is checked before it is read (AUD-3c, 15 Oct 2026).**
 `python -m altdata.quality check [--date D] [--db PATH]` opens the store

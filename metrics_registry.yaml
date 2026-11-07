@@ -10801,6 +10801,25 @@ metrics:
       the trigger, each term-structure model's one-session split ("awaiting"
       until its input is stored) and the 10-year's 5- and 20-session change.
       A resolution is a new vintage. Report only: no right, no market-state input.
+  event_vol.ledger:
+    source: event_vol
+    mechanism_group: move_screen
+    native_horizon: daily
+    freq: event
+    information_half_life: permanent
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: revised
+    units: label
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 22 item 119 with Batch 23 item 124f (A129): the event-vol pricing
+      ledger, one JSON row per ranked scheduled event of six types (instrument =
+      the event's id): the T-1 implied move from the box's own chain with the
+      event day's share of variance, the realised T, T+1 and T+2 moves and the
+      two catalyst tags. Written by the EOD pass; a resolution is a new vintage.
+      Report only: the Ahead line and its flag, no market-state input.
   gdelt.events_total:
     source: gdelt
     mechanism_group: narrative
@@ -20850,6 +20869,9 @@ market_state_barred:
     rule: "report only: nothing here enters a composite or the market-state object"
     keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
     pending: b59-trigger-sources
+  - order: docs/change-order-signal-triage-batch-22-2026-11-05.md (item 119, the order's 101; A129)
+    rule: "the Ahead line and the cheap-event-vol flag only: nothing enters a composite or the market-state object"
+    keys: ["event_vol.*"]
   - order: docs/briefs/learning-loop-v2-brief-2026-10-25.md (section 3; decisions 1 and 11 ruled 25 Oct 2026; B73)
     rule: "report only: the system's own grades are evidence for the sittings, never an input to the object"
     keys: ["brier.decomposition", "grade.counterfactual", "learning.error_corpus", "learning.value_of_information"]
@@ -21362,6 +21384,7 @@ lens_excluded:
   zec.cap_probe: "units 'label': not a level series"
   zec.shielded_probe: "units 'label': not a level series"
   rates.oneday_event_ledger: "units 'label': a JSON record per trigger day (D15), not a level series"
+  event_vol.ledger: "units 'label': a JSON record per ranked event (item 119), not a level series"
   ai.model_release_event: "units 'label': a JSON record per repository (D26), not a level series"
   gold.attr.real_yield: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
   gold.attr.breakeven: "units 'label': a JSON record per fired gold day (item 87, B75), not a level series"
