@@ -593,6 +593,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `tb-harness-fpr-2026-10-26.md` | diagnostic | n 0 | The T&B harness's continuous false-positive rate -- pre-registered, laptop edition (6i-3; report only) |
 | `trend-breadth-2026-10-26.md` | FAIL | n 163 | Trend-signal breadth against what followed -- calibration ledger (Batch 16 item 89(b); report only) |
 | `vendor-divergence-notes.md` | diagnostic | n — | Vendor divergence notes -- FlashAlpha against the engine |
+| `vol-state-calibration-2026-11.md` | diagnostic | n 9019 | Vol-state calibration -- P(a 3% move within 10 sessions) by vol-state decile, pre-registered with no pass rule, as of 5 Nov 2026 (item 124c(i); a daily line and the sizing input) |
 | `wealth-effect-preregistration-2026-10.md` | diagnostic | n — | The wealth-effect impulse against real consumption -- pre-registration (ST-R6.66c, Batch 14 item 66) |
 <!-- /table -->
 

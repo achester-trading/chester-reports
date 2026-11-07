@@ -124,3 +124,8 @@ was not pushed a second time to fix the line.
 ## CI
 
 Read once after the push.
+
+**B142.** CI run 42325423633 was red on `check_master_guide`:
+"[ledgers] vol-state-calibration-2026-11.md is not in Table 7". Its row is now in
+Table 7a, verdict "diagnostic" (the ledger prints no verdict row: its pass rule is
+"none"). The Guide's "As of" line is left for chain-13's refresh.
