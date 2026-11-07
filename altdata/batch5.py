@@ -13,6 +13,10 @@ daily_cascade/batch5_block.py. Nothing here fetches, and nothing is a state.
                               attribution (strongest when breakeven-led)
     ST-R4.17a  net_liquidity  calc.net_liquidity's 4- and 13-week changes and
                               the component attribution
+    item 121   forward_tga    the forward TGA-path row: the DTS's TGA against
+                              the latest refunding's assumed end-of-quarter
+                              balance (a stored scan figure), the implied reserve
+                              add or drain, Q1 2027 named as the quarter to watch
     ST-R4.21a  (batch3.py)    Greece-Bund beside OAT-Bund, untiered
     ST-R4.23a  construction   Census VIP data centers and construction ex data
                               centers, real, with the level against 2019
@@ -31,6 +35,7 @@ import datetime as dt
 import json
 import logging
 import math
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -319,6 +324,111 @@ def net_liquidity(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Batch 22 item 121 (the order's 103) -- the forward TGA-path row in item 17
+# ---------------------------------------------------------------------------
+_MONTHS = {m: i for i, m in enumerate(
+    ("january", "february", "march", "april", "may", "june", "july", "august",
+     "september", "october", "november", "december"), start=1)}
+_AMOUNT = re.compile(r"\$?\s*([\d][\d,]*(?:\.\d+)?)\s*(trillion|tn|billion|bn)\b", re.I)
+_PATTERN = r"(?i)assumed\s+end[- ]of[- ](\w+)\s+(\d{4})\s+cash\s+balance"
+
+
+def parse_amount(text: str) -> Optional[float]:
+    """'$850 billion' / '$1.000 trillion' / '850bn' -> dollars; None otherwise."""
+    m = _AMOUNT.search(str(text or ""))
+    if not m:
+        return None
+    v = float(m.group(1).replace(",", ""))
+    return v * (1e12 if m.group(2).lower() in ("trillion", "tn") else 1e9)
+
+
+def _month_end(month: str, year: str) -> Optional[str]:
+    mon = next((n for k, n in _MONTHS.items() if k.startswith(month.lower()[:3])), None)
+    if not mon:
+        return None
+    nxt = dt.date(int(year) + (mon == 12), mon % 12 + 1, 1)
+    return (nxt - dt.timedelta(days=1)).isoformat()
+
+
+def refunding_assumptions(rows: list[dict], pattern: str = _PATTERN) -> list[dict]:
+    """The stored refunding read's assumptions, one per quarter end: each the
+    scan figure's value in dollars, its quarter end, the statement's date (the
+    figure's as_of), its URL and section. A row whose value does not parse is
+    left out, never guessed."""
+    rx = re.compile(pattern)
+    out = []
+    for r in rows:
+        m = rx.search(str(r.get("metric") or ""))
+        if not m:
+            continue
+        end, val = _month_end(m.group(1), m.group(2)), parse_amount(r.get("value"))
+        if not end or val is None:
+            continue
+        out.append({"quarter_end": end, "value": val, "refunding_date": r.get("as_of"),
+                    "read_on": r.get("read_on"), "source_url": r.get("source_url"),
+                    "section_ref": r.get("section_ref"), "metric": r.get("metric")})
+    return sorted(out, key=lambda a: a["quarter_end"])
+
+
+def forward_tga(st, cutoff: str, cfg: Optional[dict] = None,
+                scan_rows: Optional[list[dict]] = None) -> dict:
+    """Item 121: the current TGA (DTS) against the latest refunding's assumed
+    end-of-quarter balance, the difference the implied reserve add (TGA falling)
+    or drain (rising), with the refunding date; the watch quarter named. The
+    assumption is read only from the scans table (`scan_rows` for a fixture);
+    with none stored it says "no refunding read stored". Decides nothing."""
+    c = ((cfg or config()).get("net_liquidity") or {}).get("forward_tga") or {}
+    out: dict[str, Any] = {"watch_label": c.get("watch_label"),
+                           "watch_quarter": c.get("watch_quarter")}
+    tga = _pts(st, c.get("tga_key", "fiscaldata.dts_tga_close"), cutoff)
+    if tga:
+        out["tga"] = {"as_of": tga[-1][0][:10], "value": tga[-1][1]}
+        age = (dt.date.fromisoformat(cutoff[:10])
+               - dt.date.fromisoformat(tga[-1][0][:10])).days
+        if age > int(c.get("stale_days", 7)):
+            out["tga"]["stale_days"] = age
+    else:
+        out["tga"] = None
+        out["tga_reason"] = "no Daily Treasury Statement TGA stored"
+    if scan_rows is None:
+        from . import scans                                     # noqa: PLC0415
+        path = getattr(st, "path", None)
+        scan_rows = scans.latest(as_of=cutoff, db_path=str(path) if path else None)
+    fam = c.get("scan_family", "treasury-refunding")
+    mine = [r for r in scan_rows if r.get("family") == fam
+            and str(r.get("read_on") or "") <= cutoff[:10]]
+    assumptions = refunding_assumptions(mine, c.get("metric_pattern", _PATTERN))
+    out["assumptions"] = assumptions
+    if not assumptions:
+        out["refunding"] = None
+        out["reason"] = "no refunding read stored"
+        return out
+    ahead = [a for a in assumptions if a["quarter_end"] >= cutoff[:10]]
+    current = ahead[0] if ahead else None
+    out["refunding"] = current
+    if current is None:
+        out["reason"] = ("the stored refunding read's assumptions all end before "
+                         f"{cutoff[:10]}: no forward quarter")
+    elif out["tga"]:
+        diff = out["tga"]["value"] - current["value"]
+        out["implied"] = {"amount": abs(diff),
+                          "direction": "add" if diff > 0 else "drain" if diff < 0 else "none",
+                          "from": out["tga"]["as_of"], "to": current["quarter_end"]}
+    watch = c.get("watch_quarter")
+    if watch:
+        w = next((a for a in assumptions if a["quarter_end"] == watch), None)
+        prev = [a for a in assumptions if a["quarter_end"] < watch]
+        if w and prev:
+            d = prev[-1]["value"] - w["value"]
+            out["watch"] = {"assumption": w, "from_assumption": prev[-1],
+                            "amount": abs(d),
+                            "direction": "add" if d > 0 else "drain" if d < 0 else "none"}
+        elif w:
+            out["watch"] = {"assumption": w}
+    return out
+
+
+# ---------------------------------------------------------------------------
 # ST-R4.23a -- construction spending, real
 # ---------------------------------------------------------------------------
 def _yoy(ser: dict, day: str) -> Optional[float]:
@@ -410,6 +520,7 @@ def build(as_of: Optional[str] = None, store=None) -> dict:
         for name, fn in (("term_premium", term_premium), ("fiscal_bark", fiscal_bark),
                          ("capex_guidance_revisions", capex_guidance_revisions),
                          ("stock_bond", stock_bond), ("net_liquidity", net_liquidity),
+                         ("forward_tga", forward_tga),
                          ("construction", construction)):
             try:
                 out[name] = fn(st, cutoff, cfg)

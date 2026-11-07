@@ -135,7 +135,9 @@ altdata/                  Shared ingestion package — used by every report
                           1 in FRED_BATCH15_A_SERIES (item 73's Nikkei 225);
                           1 in FRED_6I_SERIES (the Quarterly's OVX);
                           2 in FRED_6I3_SERIES (6i-3's Baa proxy);
-                          FRED_PULL_SERIES, 286, is the union the
+                          2 in FRED_ITEM122_SERIES (item 122's NIPA
+                          profits legs);
+                          FRED_PULL_SERIES, 288, is the union the
                           pull walks.
                           + ENABLED_SOURCES switches (fred, eia and cftc on;
                           CoinGecko is no source and has no switch)
@@ -245,7 +247,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and sixty-seven code gates (one hundred and sixty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and sixty-eight code gates (one hundred and sixty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -394,6 +396,31 @@ clause carries its percentile and z once a consensus is stored; the edition's
 first z says "against the release's own surprise history". Engine 4 reads the
 consensus surprise by name ahead of the naive one (for FOMC, the market-implied
 key). `tools/validate_releases_b.py` holds it.
+
+**The forward TGA row and earnings quality (Batch 22 items 121 and 122; A134,
+7 Nov 2026).** Report lines and one flag.
+- **Item 121.** `batch5.forward_tga()` adds one row to item 17's net-liquidity
+  block (Plumbing & rates, the Weekly and the Monthly). It reads the TGA from
+  the Daily Treasury Statement (`fiscaldata.dts_tga_close`, the fiscaldata
+  writer extended) against the latest refunding's assumed end-of-quarter
+  balance. That balance is read only from a stored scan, family
+  `treasury-refunding`, which the reading-shelf watch writes per
+  `docs/scans/PROMPT-treasury-refunding.md`. The difference prints as the
+  implied reserve add or drain, with the refunding date, and Q1 2027 is named.
+  With no read stored the row prints "no refunding read stored" (rule 30).
+- **Item 122.** `altdata/earnings_quality.py` puts a line in the Monthly's
+  earnings chain ("What's carrying the index", Monthly only). It compares the
+  growth on the year of CPATAX and BEA's domestic nonfinancial profits
+  (A463RC1Q027SBEA) with S&P EPS. The EPS is Shiller's, as reported, because
+  operating EPS has no keyless source since S&P DJI withdrew its file. The gap
+  prints with them.
+  - The flag fires when EPS growth runs at least the margin above CPATAX growth
+    two quarters running.
+  - O-3's margin is 15 points, set by `tools/calibration/earnings_quality.py`
+    under the rule pre-registered at the head of
+    `docs/ledgers/earnings-quality-calibration-2026-11.md` (SHA held in
+    `config/earnings_quality.yaml`).
+- **The gate.** `tools/validate_items_121_122.py` holds both items.
 
 **The PRL data layer (signal-triage ST-13, Tranche 5; st-t5-prl, 18 Oct 2026).**
 PRL is the Security Master's first `crypto.watch` instrument (SM00118,

@@ -171,9 +171,11 @@ def net_liquidity_subsection(st, now: str, cfg: Optional[dict] = None) -> dict:
 def _net_liquidity(st, now: str, cfg: Optional[dict] = None) -> dict:
     """ST-R4.17a. Report only: the modifier waits for the 17b ledger."""
     nl = batch5.net_liquidity(st, now, cfg)
+    fwd_row, fwd_line, fwd = _forward_tga(st, now, cfg)
     if nl.get("absent"):
-        return {"title": TITLE_NL, "lines": [f"Net liquidity: {nl['reason']}."],
-                "paragraph_wanted": False, "data": {"net_liquidity": nl}}
+        return {"title": TITLE_NL, "lines": [f"Net liquidity: {nl['reason']}.", fwd_line],
+                "paragraph_wanted": False,
+                "data": {"net_liquidity": nl, "forward_tga": fwd}}
     rows, lines = [], []
     for w, x in nl["windows"].items():
         if x.get("absent"):
@@ -186,6 +188,9 @@ def _net_liquidity(st, now: str, cfg: Optional[dict] = None) -> dict:
         if x.get("led_by"):
             lines.append(f"Over {w} weeks, {_usd_bn(x['change'])}, led by "
                          f"{x['meaning']}.")
+    if fwd_row:
+        rows.append(fwd_row)
+    lines.append(fwd_line)
     return {"title": TITLE_NL,
             "table": {"columns": ["Window", "Net liquidity", "Fed assets", "Less the TGA",
                                   "Less the RRP", "From and to"], "rows": rows},
@@ -194,8 +199,53 @@ def _net_liquidity(st, now: str, cfg: Optional[dict] = None) -> dict:
                        "(ST-R4.17b)."],
             "paragraph_wanted": False,
             "table_note": ("Each leg's contribution in dollars: a TGA or RRP that FELL "
-                           "adds to net liquidity. The legs sum to the change."),
-            "data": {"net_liquidity": nl}}
+                           "adds to net liquidity. The legs sum to the change. The "
+                           "forward row is the TGA leg alone: the DTS's TGA to the "
+                           "refunding's assumed quarter-end balance."),
+            "data": {"net_liquidity": nl, "forward_tga": fwd}}
+
+
+def _usd_amt(v: float) -> str:
+    return f"${v / 1e12:,.3f}tn" if v >= 1e12 else f"${v / 1e9:,.0f}bn"
+
+
+def _forward_tga(st, now: str, cfg: Optional[dict] = None):
+    """Batch 22 item 121: the forward TGA-path row and its line. Returns (table
+    row or None, line, data). The assumption is a stored scan figure only; with
+    none stored the line says "no refunding read stored". Report only."""
+    try:
+        f = batch5.forward_tga(st, now, cfg)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("forward TGA row faulted", exc_info=True)
+        return None, f"Forward TGA path: not computed ({type(exc).__name__}).", {}
+    watch = f.get("watch_label") or "Q1 2027"
+    tga = f.get("tga")
+    tga_txt = (f"TGA {_usd_amt(tga['value'])} on {tga['as_of']} (Daily Treasury "
+               f"Statement" + (f", {tga['stale_days']} days old" if tga.get("stale_days")
+                               else "") + ")") if tga else f"the TGA: {f.get('tga_reason')}"
+    ref = f.get("refunding")
+    w = f.get("watch") or {}
+    if w.get("amount") is not None:
+        a = w["assumption"]
+        watch_txt = (f"{watch} is the quarter to watch: the assumed {_usd_amt(a['value'])} "
+                     f"at {a['quarter_end']} against {_usd_amt(w['from_assumption']['value'])} "
+                     f"implies a {w['direction']} of {_usd_amt(w['amount'])}.")
+    else:
+        watch_txt = (f"{watch} is the quarter to watch (the borrowing estimate, the "
+                     f"bills share, the RRP cushion left).")
+    if not ref:
+        return (None, f"Forward TGA path: {f.get('reason', 'no refunding read stored')}; "
+                f"{tga_txt}. {watch_txt}", f)
+    imp = f.get("implied")
+    head = (f"Forward TGA path (refunding of {ref['refunding_date']}): {tga_txt} to the "
+            f"assumed {_usd_amt(ref['value'])} at {ref['quarter_end']}")
+    if not imp:
+        return None, f"{head}; no implied add or drain without the current TGA. {watch_txt}", f
+    signed = imp["amount"] if imp["direction"] == "add" else -imp["amount"]
+    row = [f"Forward, to {ref['quarter_end']}", _usd_bn(signed), "—", _usd_bn(signed), "—",
+           f"{imp['from']} to {imp['to']} (refunding {ref['refunding_date']})"]
+    word = {"add": "reserve add", "drain": "reserve drain"}.get(imp["direction"], "no change")
+    return (row, f"{head} = an implied {word} of {_usd_amt(imp['amount'])}. {watch_txt}", f)
 
 
 def plumbing_subsections(st, now: str, then: str, cadence: str = "weekly",

@@ -536,6 +536,7 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `dealer-scorecard-preregistration-2026-10-h6.md` | diagnostic | n — | Dealer scorecard — pre-registration H6, level clusters (Batch 11 item 55) |
 | `dealer-scorecard-preregistration-2026-10.md` | diagnostic | n — | Dealer scorecard — pre-registration (6b, October 2026) |
 | `d15-ledger-2026-10-24.md` | INSUFFICIENT | n 67 | D15 ledger -- the 10-year one-day trigger's attribution against the next 5 sessions (rulings of 24 Oct 2026; report only) |
+| `earnings-quality-calibration-2026-11.md` | diagnostic | n 147 | Earnings quality: the flag margin's calibration, NIPA profits against S&P EPS — 15 points, 4 false-positive episodes since 1990 (Batch 22 item 122, O-3; report line and flag) |
 | `false-bottom-audit-2026.md` | FAIL | n 16 | SR-8 ledger -- the false-bottom audit: the bottom side, rally by rally |
 | `fed-cycles-ledger-2026-10-19.md` | NO GATE | n 21 | FED-CYCLES ledger -- the hiking-cycle table, computed by rule |
 | `gex-scale-flashalpha-2026-09-30.md` | diagnostic | n — | GEX / DEX scale against FlashAlpha — 30 Sep 2026 SPY (read-only diagnostic) |

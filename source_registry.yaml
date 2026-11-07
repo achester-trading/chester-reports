@@ -1075,7 +1075,7 @@ sources:
       - Not the ibkr.auction_* family, which is the equity closing auction.
 
   fiscaldata:
-    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I) and the Monthly Treasury Statement (Table 4, customs duties)
+    name: US Treasury Fiscal Data -- Monthly Statement of the Public Debt (Table I), the Monthly Treasury Statement (Table 4, customs duties) and the Daily Treasury Statement (the TGA)
     tier: A0
     epistemic_role: primary_fact
     domain: [treasury_supply, sovereign]
@@ -1100,6 +1100,11 @@ sources:
         in dollars as served, gross, refunds and net; the effective tariff rate
         reads the gross, since refunds of IEEPA duties turned net receipts
         negative from mid-2026.
+      - >-
+        The Daily Treasury Statement's TGA closing balance (Batch 22 item 121,
+        A134, 7 Nov 2026), operating_cash_balance, millions stored in dollars,
+        daily from 18 Apr 2022, published about 16:00 ET the next business day;
+        the closing line carries its figure in open_today_bal.
 
   manual_input:
     name: Operator-entered figures (tools/manual_input.py)

@@ -1,0 +1,35 @@
+# Batch 22 item 122 (the order's 104; A134, 7 Nov 2026): earnings quality, NIPA
+# profits against reported EPS. Read by altdata/earnings_quality.py; printed in
+# the Monthly's earnings chain ("What's carrying the index", What's priced),
+# Monthly only (quarterly data with a lag). Report line and flag only.
+
+keys:
+  nipa: fred.cpatax                       # CPATAX, after tax with IVA and CCAdj
+  # V-104a (7 Nov 2026): BEA's domestic nonfinancial corporate profits are on
+  # FRED as A463RC1Q027SBEA ("Corporate profits with inventory valuation and
+  # capital consumption adjustments: Domestic industries: Nonfinancial").
+  nonfin: fred.profits_domestic_nonfin
+  # V-104a: S&P operating EPS has no keyless source -- S&P DJI's EPS file was
+  # withdrawn on 17 Oct 2026 and answers 403 (probed 7 Nov 2026) -- so the line
+  # reads the earnings chain's trailing series, Shiller's as-reported EPS.
+  eps: shiller.sp_earnings
+
+eps_label: "S&P EPS (Shiller, trailing twelve months, as reported; operating EPS not tracked)"
+
+# THE MARGIN (O-3). Written from the calibration ledger's Result; the gate holds
+# it equal to the ledger. 10 points when the calibration is ambiguous.
+margin: 15
+# Printed beside the flag: plain words, no path (the calibration ledger holds it).
+margin_basis: "the margin calibrated to fire in 1999-2000 and 2006-07, with 4 false-positive episodes since 1990"
+
+calibration:
+  ledger: docs/ledgers/earnings-quality-calibration-2026-11.md
+  # SHA-256 of the pre-registered rule quoted at the ledger's head, over its
+  # whitespace-normalised text (earnings_quality.rule_sha256).
+  rule_sha256: 30174e18250c5c1cc3d85c82914ccae94348505b3170d008d23cfca4739aa8f9
+  targets:
+    "1999-2000": ["1999Q1", "2000Q4"]
+    "2006-07": ["2006Q1", "2007Q4"]
+  fp_from: "1990Q1"
+  candidates: [5, 30]
+  ambiguous_margin: 10

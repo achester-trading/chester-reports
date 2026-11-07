@@ -15692,6 +15692,20 @@ metrics:
     trigger_eligible: false
     description: >-
       Customs duties collected in the month, GROSS of refunds, dollars (Monthly Treasury Statement Table 4, line "Customs Duties", current_month_gross_rcpt_amt), observed at the month-end. Not seasonally adjusted. GTM-15's monthly effective tariff rate divides it by the month's goods imports.
+  # Batch 22 item 121 (A134, 7 Nov 2026): the forward TGA-path row's current TGA.
+  fiscaldata.dts_tga_close:
+    source: fiscaldata
+    mechanism_group: macro_sovereign
+    native_horizon: daily
+    freq: daily
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: never
+    units: usd
+    trigger_eligible: false
+    description: >-
+      The Treasury General Account's closing balance for the record date, dollars (Daily Treasury Statement, operating_cash_balance, line "Treasury General Account (TGA) Closing Balance"; millions as served, x1e6). Item 17's forward TGA-path row reads it against the refunding's assumed end-of-quarter balance.
   fiscaldata.mts_customs_refunds:
     source: fiscaldata
     mechanism_group: macro_sovereign
@@ -18471,6 +18485,35 @@ bulk_imports:
     mechanism_group_map:
       "6": macro_valuation_credit
 
+  fred_item122:
+    description: >-
+      Batch 22 item 122 (A134, 7 Nov 2026; V-104a): NIPA corporate profits
+      after tax with IVA and CCAdj (CPATAX) and BEA's domestic nonfinancial
+      corporate profits with IVA and CCAdj (A463RC1Q027SBEA), both billions at a
+      seasonally adjusted annual rate, quarterly, from 1947, read off FRED. The
+      earnings-quality line's NIPA legs against S&P EPS (altdata/earnings_quality.py).
+      See altdata/config.py FRED_ITEM122_SERIES. Report only: barred from the
+      market-state object.
+    source: fred
+    members_from: altdata.config.FRED_ITEM122_SERIES
+    member_families:
+      fred.cpatax: release
+      fred.profits_domestic_nonfin: release
+    member_key: key
+    key_prefix: "fred."
+    expected_members: 2
+    units: from_member
+    native_horizon: from_member
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    revision_source: "ALFRED (alfred.stlouisfed.org), through altdata.fred_history"
+    trigger_eligible: false
+    mechanism_group_from_member: pillar
+    mechanism_group_map:
+      "2": macro_momentum
+
   fred_aq3:
     description: >-
       The real-estate and global-rates legs (AQ-3 part 2, 11 Oct 2026), each
@@ -19792,6 +19835,7 @@ families:
   fiscaldata.mts_customs_gross: quantity
   fiscaldata.mts_customs_refunds: quantity
   fiscaldata.mts_customs_net: quantity
+  fiscaldata.dts_tga_close: quantity
   edgar.xbrl_operating_cash_flow: quantity
   edgar.xbrl_capex: quantity
   edgar.capex_guidance.amzn: quantity
@@ -20862,6 +20906,9 @@ market_state_barred:
   - order: the 6i brief's decision 6 (25 Oct 2026; 6i-3, A79)
     rule: "the T&B harness's long credit proxy: report only; nothing enters a composite, the market-state object, a dial, a band or a packet"
     keys: ["fred.dbaa", "fred.baa", "calc.baa_less_10y", "calc.baa_less_10y_m"]
+  - order: "Batch 22 item 122 (the order's 104; A134, 7 Nov 2026)"
+    rule: "report line and flag only: the earnings-quality legs and flag enter no composite, dial, band or the market-state object"
+    keys: ["fred.cpatax", "fred.profits_domestic_nonfin", "calc.earnings_quality_*"]
 
   - order: "ruling D34 of 24 Oct 2026 (b69-quarterly-readers-1; docs/briefs/quarterly-source-checks-2026-10-25.md)"
     rule: "report only: the Quarterly's readers enter no composite, flag, dial or the market-state object"
@@ -20913,6 +20960,7 @@ long_windows:
   fiscaldata.mts_customs_gross: full
   fiscaldata.mts_customs_refunds: full
   fiscaldata.mts_customs_net: full
+  fiscaldata.dts_tga_close: full
   edgar.xbrl_operating_cash_flow: full
   edgar.xbrl_capex: full
   yfinance.mkt_tip: full

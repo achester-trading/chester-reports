@@ -13,3 +13,54 @@
 | Rights consequence | None. A report line and a flag (the order's Rights); the flag decides nothing. |
 
 <!-- RESULT BELOW. The head above is pre-registered and never edited. -->
+
+## Result
+
+**Edition:** laptop run, 2026-11-07T13:16 UTC, public sources (FRED fredgraph CSV; Shiller's ie_data.xls), never the observation store. Quarters scored 1989Q4 to 2026Q2 (the gap needs both growth rates; the fire needs the quarter before). EPS is Shiller's trailing twelve months as reported, read at the quarter's last month; NIPA is the latest vintage, so the read is not point in time.
+
+**Verdict: the margin is 15 points**, the one admissible margin with the fewest false-positive episodes.
+
+At 15 points: 1999-2000 yes, 2006-07 yes; **4 false-positive episodes since 1990** (1995Q1 to 1995Q2, 2004Q1 to 2004Q3, 2010Q1 to 2011Q3, 2021Q4 to 2022Q2); 6 episodes in all, 19 fired quarters.
+
+Admissible margins (fire in both targets): 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15.
+
+| Margin (pts) | 1999-2000 | 2006-07 | Admissible | Episodes | False positives | Fired quarters |
+|---|---|---|---|---|---|---|
+| 5 | yes | yes | yes | 10 | 8 | 50 |
+| 6 | yes | yes | yes | 10 | 8 | 46 |
+| 7 | yes | yes | yes | 11 | 9 | 40 |
+| 8 | yes | yes | yes | 11 | 9 | 39 |
+| 9 | yes | yes | yes | 11 | 9 | 35 |
+| 10 | yes | yes | yes | 11 | 9 | 34 |
+| 11 | yes | yes | yes | 9 | 7 | 32 |
+| 12 | yes | yes | yes | 9 | 7 | 28 |
+| 13 | yes | yes | yes | 7 | 5 | 24 |
+| 14 | yes | yes | yes | 7 | 5 | 23 |
+| 15 | yes | yes | yes | 6 | 4 | 19 |
+| 16 | yes | no | no | 5 | 4 | 16 |
+| 17 | yes | no | no | 5 | 4 | 16 |
+| 18 | yes | no | no | 5 | 4 | 15 |
+| 19 | yes | no | no | 5 | 4 | 15 |
+| 20 | yes | no | no | 5 | 4 | 15 |
+| 21 | yes | no | no | 5 | 4 | 14 |
+| 22 | yes | no | no | 5 | 4 | 14 |
+| 23 | yes | no | no | 5 | 4 | 13 |
+| 24 | yes | no | no | 4 | 3 | 12 |
+| 25 | yes | no | no | 4 | 3 | 12 |
+| 26 | yes | no | no | 4 | 3 | 12 |
+| 27 | yes | no | no | 4 | 3 | 11 |
+| 28 | yes | no | no | 4 | 3 | 10 |
+| 29 | yes | no | no | 4 | 3 | 10 |
+| 30 | yes | no | no | 4 | 3 | 10 |
+
+**Beside it, never selecting:** BEA's domestic nonfinancial profits at 15 points: 1999-2000 yes, 2006-07 no, 5 false-positive episodes (6 in all).
+
+**Reading the false positives.** Most fire in the first quarters of a recovery, when reported EPS rebounds off write-down-depressed troughs faster than NIPA profits, which exclude those write-downs: a known property of as-reported EPS against NIPA, and one an operating-EPS series would soften. The flag is a report line; it decides nothing.
+
+| Source | URL |
+|---|---|
+| nipa | https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPATAX |
+| nonfin | https://fred.stlouisfed.org/graph/fredgraph.csv?id=A463RC1Q027SBEA |
+| eps | https://img1.wsimg.com/blobby/go/e5e77e0b-59d1-44d9-ab25-4763ac982e53/downloads/1449043e-a1ed-4e2e-8e9c-7b9a2a064493/ie_data.xls?ver=1791297298731 |
+
+The per-quarter growth rates and gaps are in `earnings-quality-calibration-2026-11.csv` beside this file.

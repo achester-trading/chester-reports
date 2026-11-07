@@ -101,6 +101,13 @@ def priced_subsection(st, now: str, cadence: str = "weekly", margin: bool = True
             lines += pe_dispersion.lines(pe_dispersion.rows(st, now))
         except Exception:                                       # noqa: BLE001
             log.warning("the P/E dispersion line faulted", exc_info=True)
+        # Batch 22 item 122 (A134): the earnings-quality line and its flag, NIPA
+        # profits against S&P EPS, quarterly -- Monthly only.
+        try:
+            from altdata import earnings_quality as eq          # noqa: PLC0415
+            lines += eq.lines(eq.read(st, now))
+        except Exception:                                       # noqa: BLE001
+            log.warning("the earnings-quality line faulted", exc_info=True)
     note = ("Price = EPS × P/E, so the log change of the S&P 500 splits exactly "
             "into the log change of EPS and of the P/E; each share is that leg's "
             "part of the move, printed when the move is at least 1% in logs. "

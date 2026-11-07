@@ -760,6 +760,19 @@ FRED_6I3_SERIES: list[SeriesSpec] = [
     SeriesSpec("baa",  "BAA",  "Moody's Seasoned Baa Corporate Bond Yield, monthly average", "6", "%", "monthly"),
 ]
 
+# Batch 22 item 122 (the order's 104; A134, 7 Nov 2026; V-104a): the earnings-
+# quality line's two NIPA legs, ids and titles read off FRED 7 Nov 2026. CPATAX,
+# "Corporate Profits After Tax with Inventory Valuation Adjustment (IVA) and
+# Capital Consumption Adjustment (CCAdj)", billions SAAR, quarterly, from 1947;
+# A463RC1Q027SBEA, "Corporate profits with inventory valuation and capital
+# consumption adjustments: Domestic industries: Nonfinancial", billions SAAR,
+# quarterly, from 1947. Lens 18 reads CP (without the adjustments) and stays as
+# it is. Report-only: barred from the market-state object.
+FRED_ITEM122_SERIES: list[SeriesSpec] = [
+    SeriesSpec("cpatax", "CPATAX", "Corporate profits after tax with IVA and CCAdj, billions, SAAR", "2", "B", "quarterly"),
+    SeriesSpec("profits_domestic_nonfin", "A463RC1Q027SBEA", "Corporate profits with IVA and CCAdj, domestic industries, nonfinancial, billions, SAAR", "2", "B", "quarterly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
@@ -768,7 +781,8 @@ FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
                                       + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
                                       + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES
-                                      + FRED_6I_SERIES + FRED_6I3_SERIES)
+                                      + FRED_6I_SERIES + FRED_6I3_SERIES
+                                      + FRED_ITEM122_SERIES)
 
 
 # Quick lookup by key

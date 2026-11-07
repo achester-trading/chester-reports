@@ -83,6 +83,28 @@ the same run but never fails the MSPD rows: a fault in it is logged and its keys
 come back empty in the summary. The MTS is published on the eighth business day
 of the following month.
 
+-----------------------------------------------------------------------------
+THE DAILY TREASURY STATEMENT'S TGA (Batch 22 item 121, A134, 7 Nov 2026)
+-----------------------------------------------------------------------------
+
+Item 17's forward TGA-path row reads the Treasury General Account daily, not
+FRED's weekly Wednesday level (fred.tga). https://api.fiscaldata.treasury.gov/
+services/api/fiscal_service/v1/accounting/dts/operating_cash_balance, the line
+"Treasury General Account (TGA) Closing Balance", no key, amounts in MILLIONS,
+stored in DOLLARS (x1e6):
+
+  fiscaldata.dts_tga_close        the TGA's closing balance for the record date
+
+THE FIELD QUIRK. Since the DTS's October 2021 redesign the closing-balance line
+carries its figure in `open_today_bal` and serves `close_today_bal` as the
+string "null" (probed 7 Nov 2026: 29 Oct 2026 reads 1040236, $1.040tn). The
+reader takes close_today_bal when it is a number, else open_today_bal. Asked
+from 1 Oct 2021 (DTS_START), the line is served from 18 Apr 2022 (1,142 days to
+5 Nov 2026); earlier days carried a different account layout and are not read --
+fred.tga holds the weekly history. The DTS is
+published at about 16:00 ET on the next business day; available_at is the write
+instant, an upper bound. A fault in this line never fails the MSPD rows.
+
 AVAILABILITY. MSPD is published around the fourth business day of the following
 month; Fiscal Data serves no publication timestamp per row, so available_at is the
 write instant (`ingest_instant`), an upper bound. The first pull backfills from
@@ -117,6 +139,13 @@ MTS_KEYS = {"current_month_gross_rcpt_amt": "fiscaldata.mts_customs_gross",
             "current_month_refund_amt": "fiscaldata.mts_customs_refunds",
             "current_month_net_rcpt_amt": "fiscaldata.mts_customs_net"}
 
+DTS_URL = ("https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/"
+           "accounting/dts/operating_cash_balance")
+DTS_LINE = "Treasury General Account (TGA) Closing Balance"
+DTS_KEY = "fiscaldata.dts_tga_close"
+DTS_START = "2021-10-01"
+DTS_REFRESH_DAYS = 45
+
 TOTAL_KEY = "fiscaldata.mspd_marketable_total"
 NET_KEY = "fiscaldata.mspd_net_marketable_issuance"
 CLASS_KEYS = {"bills": "fiscaldata.mspd_bills",
@@ -124,7 +153,7 @@ CLASS_KEYS = {"bills": "fiscaldata.mspd_bills",
               "bonds": "fiscaldata.mspd_bonds",
               "tips": "fiscaldata.mspd_tips",
               "frn": "fiscaldata.mspd_frn"}
-KEYS = [TOTAL_KEY, *CLASS_KEYS.values(), NET_KEY, *MTS_KEYS.values()]
+KEYS = [TOTAL_KEY, *CLASS_KEYS.values(), NET_KEY, *MTS_KEYS.values(), DTS_KEY]
 
 
 def _bucket(cls: str) -> Optional[str]:
@@ -275,6 +304,64 @@ def fetch_records(start: str) -> list[dict]:
         page += 1
 
 
+def rows_from_dts(records: list[dict], available: str) -> list[dict]:
+    """Observation rows from the DTS operating-cash-balance records: the TGA's
+    closing balance per record date, in dollars. close_today_bal when it is a
+    number, else open_today_bal (the post-2021 layout's quirk)."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    for rec in records:
+        if str(rec.get("account_type") or "").strip() != DTS_LINE:
+            continue
+        day = str(rec.get("record_date") or "")[:10]
+        if len(day) != 10 or day in seen:
+            continue
+        v = None
+        for field in ("close_today_bal", "open_today_bal"):
+            try:
+                v = float(rec.get(field))
+                break
+            except (TypeError, ValueError):
+                continue
+        if v is None:
+            continue
+        seen.add(day)
+        out.append({"registry_key": DTS_KEY, "instrument": None, "observed_at": day,
+                    "value": v * MILLIONS, "available_at": available,
+                    "availability_kind": "ingest_instant"})
+    return out
+
+
+def fetch_dts(start: str) -> list[dict]:
+    records: list[dict] = []
+    page = 1
+    while True:
+        data = http_get_json(DTS_URL, params={
+            "filter": f"account_type:eq:{DTS_LINE},record_date:gte:{start}",
+            "fields": "record_date,account_type,open_today_bal,close_today_bal",
+            "sort": "record_date", "page[size]": PAGE, "page[number]": page},
+            timeout=60)
+        records.extend(data.get("data") or [])
+        total_pages = int(((data.get("meta") or {}).get("total-pages")) or 1)
+        if page >= total_pages:
+            return records
+        page += 1
+
+
+def _dts_start(db: Optional[observations.ObservationStore]) -> str:
+    """DTS_START on the first pull; else the last DTS_REFRESH_DAYS."""
+    own = db is None
+    store = db or observations.open_writer(__name__)
+    try:
+        held = pub.newest_observed(store, [DTS_KEY])
+    finally:
+        if own:
+            store.close()
+    if not held.get(DTS_KEY):
+        return DTS_START
+    return (session.session_date_obj() - dt.timedelta(days=DTS_REFRESH_DAYS)).isoformat()
+
+
 def pull(run_id: Optional[str] = None, db=None) -> dict:
     def produce() -> list[dict]:
         now = session.utc_iso(timespec="microseconds")
@@ -283,6 +370,11 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
             rows += rows_from_mts(fetch_mts(_mts_start(db)), now)
         except Exception as exc:                              # noqa: BLE001
             log.warning("fiscaldata: the MTS customs line failed, the MSPD rows "
+                        "stand: %s", exc)
+        try:
+            rows += rows_from_dts(fetch_dts(_dts_start(db)), now)
+        except Exception as exc:                              # noqa: BLE001
+            log.warning("fiscaldata: the DTS TGA line failed, the MSPD rows "
                         "stand: %s", exc)
         return rows
     # The MTS backfill reaches to its first month (2015): wider than the default

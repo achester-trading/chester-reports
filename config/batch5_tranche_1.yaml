@@ -86,6 +86,25 @@ net_liquidity:
     fed_assets: "the Fed's balance sheet: the durable kind"
     tga: "the Treasury's cash balance: transient, reverses at tax dates and issuance"
     rrp: "the reverse repo facility draining: little left to run"
+  # Batch 22 item 121 (the order's 103; A134, 7 Nov 2026): THE FORWARD TGA-PATH
+  # ROW. The current TGA from the Daily Treasury Statement (fiscaldata, keyless)
+  # against the assumed end-of-quarter cash balance of the latest refunding, as
+  # the reading-shelf publication watch stored it (a scan of family
+  # `scan_family`, ingested by altdata.scans; docs/scans/PROMPT-treasury-refunding.md
+  # names its shape). No by-hand entry (rule 30): with no read stored the row
+  # says so. TGA falling to the assumption = reserves added; rising = drained.
+  forward_tga:
+    tga_key: fiscaldata.dts_tga_close
+    scan_family: treasury-refunding
+    # The reference-table metric naming an assumption, e.g. "Assumed
+    # end-of-December 2026 cash balance"; its month and year are the quarter end.
+    metric_pattern: '(?i)assumed\s+end[- ]of[- ](\w+)\s+(\d{4})\s+cash\s+balance'
+    # The quarter the order names to watch (item 103's thought process: the
+    # borrowing estimate, the bills share and the RRP cushion left).
+    watch_quarter: "2027-03-31"
+    watch_label: "Q1 2027"
+    # A DTS reading older than this many days at the cutoff prints its age.
+    stale_days: 7
 
 # ST-R4.21a -- GREECE-BUND, a watch spread beside OAT-Bund (SR-30), untiered,
 # from the ECB convergence series (altdata/sources/ecb_irs.py, GR added). The
