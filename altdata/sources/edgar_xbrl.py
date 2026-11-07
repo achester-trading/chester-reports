@@ -611,6 +611,21 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
             except Exception as exc:                            # noqa: BLE001
                 log.warning("edgar_xbrl: A102's fundamentals failed, the rest "
                             "stand: %s", exc)
+        # B136 (item 123): the cash-cycle scorecard's facts -- company facts every
+        # run, the cloud segments' instances only after a new 10-Q or 10-K.
+        if cc_config()["facts"].get("enabled"):
+            try:
+                own2 = db is None
+                st2 = db or observations.open_writer(__name__)
+                try:
+                    newest = newest_segment_rows(st2)
+                finally:
+                    if own2:
+                        st2.close()
+                rows += fetch_cash_cycle({"User-Agent": ua}, newest=newest)[0]
+            except Exception as exc:                            # noqa: BLE001
+                log.warning("edgar_xbrl: the cash-cycle facts failed, the rest "
+                            "stand: %s", exc)
         if ec.get("enabled"):
             try:
                 pairs, _rep = fetch_earnings(ec, float(fc.get("request_pause_s", 0.15)),
@@ -623,8 +638,239 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
     # The bridge reaches back to 2019: a backfilled year is older than the default
     # write window and must still land on the first run.
     keys = KEYS + (FUND_KEYS if (a102_config().get("fundamentals") or {}).get("enabled")
-                   else [])
+                   else []) + (CC_KEYS if cc_config()["facts"].get("enabled") else [])
     return pub.run(SOURCE, keys, produce, run_id=run_id, db=db, window_days=3700)
+
+
+# -- item 123: the AI infrastructure cash-cycle scorecard's facts (B136) --------
+# Batch 22 item 123 (the order's 105; 6 Nov 2026). Two readers, both keyless,
+# through the same contact and pacing:
+#   company facts (non-dimensional): remaining performance obligations, operating
+#     and finance lease liabilities, finance-lease principal payments, operating
+#     cash flow and capex, per filer -- edgar.cc_<ticker>_<field>;
+#   each periodic filing's own XBRL instance (dimensional: the company-facts API
+#     carries no segment), for the cloud segment's revenue and operating income as
+#     reported (config/cash_cycle.yaml `segments`) -- edgar.seg_<ticker>_revenue
+#     and _operating_income.
+# Every fact is stored at its filing's acceptance instant (observed), else its
+# filed date's end ET (reconstructed): point in time, late never early.
+import re as _re                                                    # noqa: E402
+
+CC_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "cash_cycle.yaml"
+ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accn}/{doc}"
+# The instance's own prefixes vary by filing agent (xbrli: or none), so both read.
+_CTX = _re.compile(r'<(?:xbrli:)?context\b[^>]*\bid="([^"]+)"[^>]*>(.*?)</(?:xbrli:)?context>',
+                   _re.S)
+_DIM = _re.compile(r'<(?:xbrldi:)?explicitMember\b[^>]*dimension="([^"]+)"[^>]*>\s*([^<\s]+)\s*<')
+SEGMENT_QUALIFIERS = {("srt:ConsolidationItemsAxis", "us-gaap:OperatingSegmentsMember")}
+_START = _re.compile(r"<(?:xbrli:)?startDate>\s*([0-9-]{10})")
+_END = _re.compile(r"<(?:xbrli:)?endDate>\s*([0-9-]{10})")
+
+
+def cc_config(path: Optional[Path] = None) -> dict:
+    return yaml.safe_load(Path(path or CC_CONFIG_PATH).read_text(encoding="utf-8"))
+
+
+def cc_key(ticker: str, field: str) -> str:
+    return f"edgar.cc_{ticker.lower()}_{field}"
+
+
+def seg_key(ticker: str, field: str) -> str:
+    return f"edgar.seg_{ticker.lower()}_{field}"
+
+
+def cc_keys(cfg: Optional[dict] = None) -> list[str]:
+    cfg = cfg or cc_config()
+    fx = cfg["facts"]
+    out = [cc_key(f["ticker"], fld) for f in fx["filers"] for fld in fx["fields"]]
+    out += [seg_key(s["ticker"], fld) for s in cfg["segments"]
+            for fld in ("revenue", "operating_income")]
+    return out
+
+
+CC_KEYS = cc_keys()
+
+
+def newest_segment_rows(db) -> dict[str, str]:
+    """{ticker: the newest available_at among its stored cash-cycle rows}: a
+    periodic filing accepted after it is new, and only then is the filer read
+    again (its company facts, and its segment's instances)."""
+    out = {}
+    for t in {f["ticker"] for f in cc_config()["facts"]["filers"]}:
+        like = (f"edgar.cc_{t.lower()}_%", f"edgar.seg_{t.lower()}_%")
+        row = db.conn.execute("SELECT MAX(available_at) FROM observations WHERE "
+                              "registry_key LIKE ? OR registry_key LIKE ?", like).fetchall()
+        if row and row[0][0]:
+            out[t] = str(row[0][0])
+    return out
+
+
+def instance_contexts(xml: str, axis: str) -> dict[str, tuple[str, str, Optional[str]]]:
+    """{context id: (start, end, member)} for duration contexts with no dimension
+    (member None) or exactly one, on `axis`. Any other dimension: not a context
+    this reader uses."""
+    out = {}
+    for cid, body in _CTX.findall(xml):
+        s, e = _START.search(body), _END.search(body)
+        if not (s and e):
+            continue
+        # ASU 2023-07 filers tag a segment's profit with a second dimension, the
+        # consolidation items axis at its operating-segments member (Alphabet's
+        # Google Cloud operating income): that one is the segment's own figure.
+        dims = [d for d in _DIM.findall(body) if d not in SEGMENT_QUALIFIERS]
+        if not dims:
+            if len(_DIM.findall(body)) == 0:
+                out[cid] = (s.group(1), e.group(1), None)
+        elif len(dims) == 1 and dims[0][0] == axis:
+            out[cid] = (s.group(1), e.group(1), dims[0][1])
+    return out
+
+
+def instance_facts(xml: str, tags: list[str], members: list[str], axis: str,
+                   inst: str, kind: str = "observed"
+                   ) -> dict[tuple[str, str], list[tuple[str, float, str]]]:
+    """One filing's {(start, end): [(available_at, value, kind)]} for the first
+    of `tags` that carries a period, on one of `members` of `axis` -- the shape
+    period_facts returns, so quarterly_flow reads it."""
+    ctx = instance_contexts(xml, axis)
+    out: dict[tuple[str, str], list] = {}
+    for tag in tags:
+        pat = _re.compile(r"<" + _re.escape(tag) + r'\b[^>]*\bcontextRef="([^"]+)"[^>]*>'
+                          r"\s*(-?[0-9.]+)\s*<")
+        for cid, val in pat.findall(xml):
+            c = ctx.get(cid)
+            if not c or c[2] not in members:
+                continue
+            p = (c[0], c[1])
+            if p not in out:
+                out[p] = [(inst, float(val), kind)]
+        if out:
+            break
+    return out
+
+
+def merge_facts(*parts: dict) -> dict:
+    out: dict = {}
+    for p in parts:
+        for k, v in p.items():
+            out[k] = sorted(set(out.get(k, [])) | set(v))
+    return out
+
+
+def periodic_filings(submissions: dict, n: int) -> list[dict]:
+    """The newest `n` 10-Q and 10-K filings: accession, primary document,
+    report date, acceptance instant."""
+    rec = (submissions.get("filings") or {}).get("recent") or {}
+    out = []
+    for i, form in enumerate(rec.get("form") or []):
+        if form not in ("10-Q", "10-K"):
+            continue
+        acc = rec["acceptanceDateTime"][i]
+        out.append({"accn": rec["accessionNumber"][i], "doc": rec["primaryDocument"][i],
+                    "report": rec["reportDate"][i], "form": form,
+                    "accepted": observations.canonical_instant(acc) if acc else None})
+        if len(out) >= n:
+            break
+    return out
+
+
+def segment_rows(ticker: str, cik: int, seg: dict, filings: list[dict],
+                 headers: dict, pause: float, since: str,
+                 fetch_text=None) -> list[dict]:
+    """The segment's quarterly revenue and operating income from its filings'
+    instances, each vintage at its filing's acceptance."""
+    import time                                                 # noqa: PLC0415
+    from ._base import http_get_text                            # noqa: PLC0415
+    fetch_text = fetch_text or (lambda u: http_get_text(u, headers=headers, timeout=90))
+    axis = seg.get("axis", "us-gaap:StatementBusinessSegmentsAxis")
+    rev, oi = [], []
+    for f in filings:
+        if not f.get("accepted") or not str(f.get("doc", "")).endswith(".htm"):
+            continue
+        url = ARCHIVE_URL.format(cik=cik, accn=f["accn"].replace("-", ""),
+                                 doc=f["doc"].replace(".htm", "_htm.xml"))
+        wait = _LAST_CALL[0] + pause - time.monotonic()
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            xml = fetch_text(url)
+        except Exception as exc:                                # noqa: BLE001
+            log.warning("edgar_xbrl: %s instance %s unread: %s", ticker, f["accn"], exc)
+            continue
+        finally:
+            _LAST_CALL[0] = time.monotonic()
+        rev.append(instance_facts(xml, seg["revenue_tags"], seg["members"], axis,
+                                  f["accepted"]))
+        oi.append(instance_facts(xml, seg["operating_income_tags"], seg["members"], axis,
+                                 f["accepted"]))
+    rows = []
+    for field, parts in (("revenue", rev), ("operating_income", oi)):
+        for end, inst, val, k in quarterly_flow(merge_facts(*parts), since):
+            rows.append({"registry_key": seg_key(ticker, field), "instrument": None,
+                         "observed_at": end, "value": val, "available_at": inst,
+                         "availability_kind": k})
+    return rows
+
+
+def company_rows(ticker: str, companyfacts: dict, accept: dict[str, str],
+                 fields: dict, since: str) -> list[dict]:
+    """The cash cycle's non-dimensional facts: flows by quarter, stocks by
+    period end, every vintage at its acceptance."""
+    rows = []
+    for field, spec in fields.items():
+        facts = period_facts(companyfacts, spec["tags"], accept)
+        if spec["kind"] == "flow":
+            sign = float(spec.get("sign", 1))
+            for end, inst, val, k in quarterly_flow(facts, since):
+                rows.append({"registry_key": cc_key(ticker, field), "instrument": None,
+                             "observed_at": end, "value": sign * val,
+                             "available_at": inst, "availability_kind": k})
+        else:
+            for end, vints in instant_series(facts, since).items():
+                last = None
+                for inst, val, k in vints:
+                    if val != last:
+                        rows.append({"registry_key": cc_key(ticker, field),
+                                     "instrument": None, "observed_at": end,
+                                     "value": val, "available_at": inst,
+                                     "availability_kind": k})
+                        last = val
+    return rows
+
+
+def fetch_cash_cycle(headers: dict, cfg: Optional[dict] = None,
+                     newest: Optional[dict] = None) -> tuple[list[dict], dict]:
+    """Every filer's company facts, and the cloud segments' last `filings_back`
+    instances -- read only when a periodic filing was accepted after
+    `newest[ticker]` (the newest stored segment row's available_at), since a
+    quarter is the year to date less earlier filings' and needs them all."""
+    cfg = cfg or cc_config()
+    fx = cfg["facts"]
+    pause = float(fx.get("request_pause_s", 0.15))
+    since = str(fx.get("quarters_from") or "2023-01-01")
+    rows: list[dict] = []
+    rep: dict = {"fields": {}}
+    segs = {s["ticker"]: s for s in cfg["segments"]}
+    for f in fx["filers"]:
+        t, cik = str(f["ticker"]), int(f["cik"])
+        subs = _sec_get(SUBMISSIONS_URL.format(cik=cik), headers, pause)
+        fl = periodic_filings(subs, int(fx.get("filings_back", 6)))
+        cut = (newest or {}).get(t)
+        if cut and not any(x["accepted"] and x["accepted"] > cut for x in fl):
+            rep["fields"][t] = ["unchanged: no periodic filing since the last read"]
+            continue
+        facts = _sec_get(COMPANYFACTS_URL.format(cik=cik), headers, pause)
+        got = company_rows(t, facts, acceptance_map(subs), fx["fields"], since)
+        rows += got
+        have = {fld for fld in fx["fields"] if any(r["registry_key"] == cc_key(t, fld)
+                                                     for r in got)}
+        if t in segs:
+            srows = segment_rows(t, cik, segs[t], fl, headers, pause, since)
+            rows += srows
+            have |= {"segment_" + fld for fld in ("revenue", "operating_income")
+                     if any(r["registry_key"] == seg_key(t, fld) for r in srows)}
+        rep["fields"][t] = sorted(have)
+    return rows, rep
 
 
 if __name__ == "__main__":

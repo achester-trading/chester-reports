@@ -1,0 +1,190 @@
+# cash_cycle.yaml -- signal-triage Batch 22 item 123 (the order's 105), the AI
+# infrastructure cash-cycle scorecard; section 0's O-4; V-105a to V-105d. Paste
+# B136, 6 Nov 2026. Read by altdata/cash_cycle.py (the rows, the treadmill flag,
+# the prints) and altdata/sources/edgar_xbrl.py (the facts).
+#
+# RIGHTS (the order): Factor I input lines and a flag; no composite change. A
+# Factor I sub-panel, quarterly, in the Monthly's slow layers and the Disruptive
+# Themes refresh; the Weekly prints nothing.
+#
+# NO BY-HAND DATA LINE. Every figure is read from a filing's XBRL (keyless, EDGAR,
+# through CHESTER_SEC_CONTACT) or is a DATED RECORD below: a figure quoted from a
+# filed release or filing, with its date and URL, labelled "dated record" wherever
+# it prints, and never refreshed by hand -- a new one is a new entry.
+
+version: cash-cycle-v1
+updated: 2026-11-06
+
+# ---------------------------------------------------------------------------
+# THE FACTS (altdata/sources/edgar_xbrl.py, rides the daily edgar_xbrl pull)
+# ---------------------------------------------------------------------------
+facts:
+  enabled: true
+  quarters_from: "2023-01-01"
+  filings_back: 6            # the cloud segments' instances re-read on a new 10-Q/10-K
+  request_pause_s: 0.15      # SEC fair access
+  filers:
+    - {ticker: AMZN, cik: 1018724}
+    - {ticker: GOOGL, cik: 1652044}
+    - {ticker: MSFT, cik: 789019}
+    - {ticker: META, cik: 1326801}
+    - {ticker: ORCL, cik: 1341439}
+    - {ticker: CRWV, cik: 1769628}     # a listed neocloud, where tagged
+    - {ticker: NBIS, cik: 1513845}     # a listed neocloud; annual filer: no quarters
+  fields:
+    rpo:
+      kind: stock
+      tags: [RevenueRemainingPerformanceObligation]
+    operating_lease_liability:
+      kind: stock
+      tags: [OperatingLeaseLiability]
+    finance_lease_liability:
+      kind: stock
+      tags: [FinanceLeaseLiability]
+    finance_lease_principal:
+      kind: flow
+      tags: [FinanceLeasePrincipalPayments, RepaymentsOfLongTermCapitalLeaseObligations]
+    operating_cash_flow:
+      kind: flow
+      tags: [NetCashProvidedByUsedInOperatingActivities]
+    capex:
+      kind: flow              # stored POSITIVE, the payment as filed
+      tags: [PaymentsToAcquirePropertyPlantAndEquipment, PaymentsToAcquireProductiveAssets]
+
+# The cloud segments AS REPORTED: dimensional facts, read from each periodic
+# filing's own instance (the company-facts API carries no segment). A segment
+# redefinition is a break, never a splice: only the member below is read, and a
+# filing restates its prior-year comparatives under it.
+segments:
+  - ticker: AMZN
+    label: AWS
+    members: ["amzn:AmazonWebServicesSegmentMember"]
+    revenue_tags: ["us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax", "us-gaap:Revenues"]
+    operating_income_tags: ["us-gaap:OperatingIncomeLoss"]
+  - ticker: GOOGL
+    label: Google Cloud
+    members: ["goog:GoogleCloudMember"]
+    revenue_tags: ["us-gaap:Revenues", "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax"]
+    operating_income_tags: ["us-gaap:OperatingIncomeLoss"]
+  - ticker: MSFT
+    label: "Microsoft's cloud segment as reported (Agents & Infra; Intelligent Cloud before its redefinition)"
+    members: ["msft:AgentsAndInfraMember"]
+    revenue_tags: ["us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax", "us-gaap:Revenues"]
+    operating_income_tags: ["us-gaap:OperatingIncomeLoss"]
+
+# ---------------------------------------------------------------------------
+# THE EIGHT ROWS (the order's ruling, in its order)
+# ---------------------------------------------------------------------------
+rows:
+  - id: cloud_growth
+    label: Cloud revenue growth
+    formula: the segment's revenue in the latest quarter over the same quarter a year before, less 1
+    sources: [edgar.seg_<ticker>_revenue]
+  - id: incremental_margin
+    label: Incremental segment margin
+    formula: >-
+      the sum, over the latest four quarters, of the change in segment operating
+      income on the year, over the same sum of the change in segment revenue
+    sources: [edgar.seg_<ticker>_revenue, edgar.seg_<ticker>_operating_income]
+  - id: backlog
+    label: Backlog
+    formula: >-
+      remaining performance obligations (level; growth on the year); coverage of
+      the next twelve months' capex, read as the latest four quarters' capex while
+      no guide is recorded; the AI-lab concentration note where disclosed (a
+      dated record)
+    sources: [edgar.cc_<ticker>_rpo, edgar.cc_<ticker>_capex, dated_records]
+  - id: capex_ocf
+    label: Capex against operating cash flow
+    formula: >-
+      capex over operating cash flow, four quarters; free cash flow after leases
+      = operating cash flow less capex less finance-lease principal payments, four
+      quarters; the capex guide a dated record from the release, never a feed
+    sources: [edgar.cc_<ticker>_capex, edgar.cc_<ticker>_operating_cash_flow,
+              edgar.cc_<ticker>_finance_lease_principal, dated_records]
+  - id: financing_ledger
+    label: Financing-structure ledger
+    formula: >-
+      the signal scan's proposed rows (docs/scans/signal-scan-YYYY-MM.md, its
+      "Financing" section), each confirmed by the operator at a sitting (O-4); a
+      confirmed row is listed in `financing_confirmed` by the session that files
+      the sitting's rulings; "no confirmed rows" until then
+    sources: [docs/scans/signal-scan-YYYY-MM.md]
+  - id: private_credit
+    label: Private-credit window (folded into SR-16)
+    formula: >-
+      Oracle's spread from the store where a key exists, else "not tracked";
+      CoreWeave's yields, data-center ABS and CMBS spreads and SpaceX CDS as
+      dated records; printed in SR-16's Factor I lines and here
+    sources: [dated_records]
+  - id: gpu_rental
+    label: GPU rental price index
+    formula: a keyless public series (V-105a), else "gap"
+    sources: []
+  - id: useful_life
+    label: Useful-life assumptions
+    formula: >-
+      cross-referenced from the round-7 useful-life watch (Batch 16 item 83(b),
+      register row 61): its quarterly read is a listed gap (H3), and no filer tags
+      server useful life in XBRL (Oracle last in 2012)
+    sources: []
+
+# V-105a (searched once, 6 Nov 2026): keyless candidates exist -- Ornn's Compute
+# Price Index (OCPI; free tier: the latest settled value and three months of daily
+# history, no key) and gpu.ai's GPU Cloud Price Index (a public no-auth JSON API,
+# list prices). Neither has a writer: a source is read only after its terms and
+# robots are checked (the 16 Oct rule), so the row prints "gap" naming them until
+# the operator rules a source check.
+gpu_rental:
+  state: gap
+  candidates:
+    - {name: "Ornn Compute Price Index (OCPI)", url: "https://data.ornn.com/", note: "free tier: latest settled value and three months of daily history, no key; transacted prices"}
+    - {name: "gpu.ai GPU Cloud Price Index", url: "https://gpu.ai/gpu-price-index", note: "public no-auth JSON API; list prices"}
+
+# Oracle's credit spread: no store key holds one (no keyless CDS or bond-spread
+# series for a single name); "not tracked" until a source is ruled.
+oracle_spread_key: null
+
+# THE DATED RECORDS: a figure from a filed release or filing, with its date and
+# URL, printed "dated record". V-105d checked the 3 Nov chat's figures against
+# them (docs/briefs/b136-notes.md).
+dated_records:
+  - id: amzn_backlog_2026q3
+    row: backlog
+    ticker: AMZN
+    date: "2026-09-30"
+    filed: "2026-10-30"
+    text: >-
+      Commitments in customer contracts not yet recognized, primarily related to
+      AWS, contracts with original terms over one year: approximately $578 billion
+      as of 30 Sep 2026 (Amazon's total, not AWS alone)
+    value_usd_bn: 578
+    url: https://www.sec.gov/Archives/edgar/data/1018724/000101872426000040/amzn-20260930.htm
+  - id: amzn_capex_guide_2026
+    row: capex_ocf
+    ticker: AMZN
+    date: "2026-10-29"
+    filed: "2026-10-29"
+    text: "2026 cash capital expenditures expected to be approximately $220 billion (the Q3 release, Exhibit 99.1)"
+    value_usd_bn: 220
+    url: https://www.sec.gov/Archives/edgar/data/1018724/000101872426000038/amzn-20260930xex991.htm
+
+# Placeholders the order names, with no primary record filed at the build: each
+# prints "no dated record filed".
+undated:
+  - {row: private_credit, item: "CoreWeave's bond yields"}
+  - {row: private_credit, item: "data-center ABS and CMBS spreads"}
+  - {row: private_credit, item: "SpaceX CDS"}
+  - {row: backlog, item: "the AI-lab concentration of backlog"}
+
+# O-4: the financing ledger's confirmed rows, each "<scan file>#<row id>", added by
+# the session that files a sitting's rulings. Empty until a sitting confirms one.
+financing_confirmed: []
+
+# THE TREADMILL FLAG: capex growing faster than cloud revenue for two quarters
+# running while the incremental margin falls. The capex series is ACTUAL capex on
+# the year (the guide is a dated record, not a quarterly series), said so where it
+# prints. Per segment filer; the panel prints how many fire.
+treadmill:
+  quarters: 2
+  capex_series: actual

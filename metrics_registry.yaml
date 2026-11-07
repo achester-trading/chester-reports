@@ -19659,6 +19659,35 @@ bulk_imports:
     mechanism_group: corporate_fundamentals
     expected_members: 40   # Yahoo's 40 keys, member for member (A102)
 
+  edgar_cash_cycle:
+    description: >-
+      B136 (signal-triage Batch 22 item 123, 6 Nov 2026): the AI infrastructure
+      cash-cycle scorecard's facts, keyless from EDGAR. edgar.cc_<ticker>_<field>
+      from the company facts for AMZN, GOOGL, MSFT, META, ORCL, CRWV and NBIS:
+      remaining performance obligations, operating and finance lease liabilities
+      (stocks, at the period end), finance-lease principal payments, operating
+      cash flow and capex (flows by fiscal quarter, capex POSITIVE as filed); and
+      edgar.seg_<ticker>_revenue and _operating_income, the cloud segment as
+      reported (AWS, Google Cloud, Microsoft's), read from each periodic filing's
+      own XBRL instance because the company facts carry no segment. Dollars;
+      observed_at the period end; available_at the filing's acceptance (a later
+      filing with a different value is a revision row at its own acceptance).
+      Tags and members: config/cash_cycle.yaml. Factor I input lines only;
+      barred from the market-state object.
+    source: edgar_xbrl
+    members_from: altdata.sources.edgar_xbrl.CC_KEYS
+    family: quantity
+    units: usd
+    native_horizon: quarterly
+    freq: quarterly
+    information_half_life: until_next_release
+    invalidated_by: none
+    observation_type: observed
+    revision_policy: revised
+    trigger_eligible: false
+    mechanism_group: corporate_fundamentals
+    expected_members: 48   # seven filers x six fields, three segments x two
+
 families:
   # Signal-triage Batch 6, the rest of Tranche 1 (16 Oct 2026).
   sp500.member_weight: ratio
@@ -20859,6 +20888,9 @@ market_state_barred:
   - order: docs/change-order-signal-triage-round-7-2026-10-26.md (Batch 16 item 89(b), written as 82(b); B76)
     rule: "trend breadth is a report; it enters the Top & Bottom intake queue only after its calibration ledger is read"
     keys: ["trend.*"]
+  - order: docs/change-order-signal-triage-batch-22-2026-11-05.md (item 123, the order's 105; B136)
+    rule: "the cash-cycle scorecard's facts are Factor I input lines and a flag; no composite change"
+    keys: ["edgar.cc_*", "edgar.seg_*"]
   - order: the 6i brief's decision 6 (25 Oct 2026; 6i-3, A79)
     rule: "the T&B harness's long credit proxy: report only; nothing enters a composite, the market-state object, a dial, a band or a packet"
     keys: ["fred.dbaa", "fred.baa", "calc.baa_less_10y", "calc.baa_less_10y_m"]
