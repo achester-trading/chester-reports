@@ -406,6 +406,173 @@ def levels_line(ev: dict) -> str:
     return f"Liquidity: {ev['flag']['line']}"
 
 
+# ---------------------------------------------------------------------------
+# Batch 23 item 124e (A133, 6 Nov 2026; section 0's Q3, D-1 as amended): the
+# illiquidity proxy as a core input. Item 71's Amihud measure is EXTENDED, never
+# duplicated: SPY's 20-session mean above (daily_depth / rolling_mean) and the
+# same measure on ES from the stored ES bars (altdata.bars, the ES block's
+# source; dollar volume = the close x the contracts x the multiplier), each as a
+# one-year and a three-year percentile with its n, the three-year carried as the
+# figure. No new yfinance dependency: ES volume is read from the bars already
+# stored; with none, ES prints "gap: no keyless volume". Barred from the
+# market-state object; 124c(ii) reads the stored keys if its test passes.
+# ---------------------------------------------------------------------------
+AMIHUD_KEYS = {"spy": ("calc.amihud_spy_3y_pct", "calc.amihud_spy_1y_pct"),
+               "es": ("calc.amihud_es_3y_pct", "calc.amihud_es_1y_pct")}
+ES_GAP = "gap: no keyless volume"
+
+
+def pct_windows(series: list[tuple[str, float]], windows: dict) -> dict:
+    """{label: (percentile, n)} of the series' last value within each trailing
+    window of sessions (the share of the window's values at or below it, x 100)."""
+    if not series:
+        return {}
+    vals = [v for _, v in series]
+    x = vals[-1]
+    out = {}
+    for label, n in windows.items():
+        w = vals[-int(n):]
+        out[label] = (100.0 * sum(1 for v in w if v <= x) / len(w), len(w))
+    return out
+
+
+def es_daily_bars(day: str, cutoff: str, db_path: Optional[str], n: int) -> dict:
+    """{bars: [daily OHLCV, oldest first], reason}: ES's complete sessions up to
+    and including `day`, roll-adjusted, from the stored 5-minute bars, as the ES
+    block and the volatile-day flag read them."""
+    from . import bars as bars_mod, es_block                    # noqa: PLC0415
+    try:
+        try:
+            from . import volume_profile as vp                  # noqa: PLC0415
+            share = vp.complete_share()
+        except Exception:                                       # noqa: BLE001
+            share = 0.9
+        ecfg = es_block.load_config()
+        with bars_mod.BarStore(db_path) as bst:
+            # Read only from the first stored ES bar: the 5-minute history is
+            # months deep, and each session is one read (about 50 ms).
+            inst = ecfg.get("instrument", "es")
+            row = bst.conn.execute(
+                "SELECT MIN(observed_at) FROM bars WHERE instrument = ? AND "
+                "interval = '5m'", (inst,)).fetchone()
+            if not row or not row[0]:
+                return {"bars": [], "reason": "no ES bars stored"}
+            first = str(row[0])[:10]
+            sessions = [s for s in es_block._sessions_back(day, n)  # noqa: SLF001
+                        if s >= first]
+            per = es_block.read_sessions(bst, sessions, cutoff,
+                                         ecfg.get("instrument", "es"))
+            per, _ = es_block.roll_adjust(per, es_block.contracts_of(
+                sessions, getattr(bst, "conn", None), cutoff, ecfg))
+    except Exception as exc:                                    # noqa: BLE001
+        return {"bars": [], "reason": f"ES bars not read ({type(exc).__name__})"}
+    kept = [x for x in per if x["expected"]
+            and es_block._complete([x], share) is None]         # noqa: SLF001
+    daily = [b for b in (es_block.daily_bar(x) for x in kept) if b]
+    return {"bars": daily, "reason": None if daily else "no complete ES session stored"}
+
+
+def es_depth(daily: list[dict], multiplier: float) -> list[tuple[str, Optional[float]]]:
+    """[(day, amihud)] in bp per $1bn traded: |log return| over close x contracts
+    x the multiplier; None on a day whose volume the bars do not carry."""
+    out = []
+    for a, b in zip(daily, daily[1:]):
+        vol = b.get("volume")
+        if not vol or vol <= 0 or not a["close"] or not b["close"]:
+            out.append((b["observed_at"], None))
+            continue
+        dv_bn = float(b["close"]) * float(vol) * multiplier / 1e9
+        out.append((b["observed_at"], abs(math.log(b["close"] / a["close"])) * 1e4 / dv_bn))
+    return out
+
+
+def amihud_read(st, day: str, cutoff: str, db_path: Optional[str] = None,
+                cfg: Optional[dict] = None, es_daily: Optional[list] = None) -> dict:
+    """SPY's and ES's 20-session Amihud means with their 1y and 3y percentiles
+    and n; ES's gap with its reason; SPY's quoted spread, not tracked."""
+    cfg = cfg or config()
+    ac = cfg.get("amihud") or {}
+    windows = {k: int(v) for k, v in (ac.get("windows") or {"1y": 252, "3y": 756}).items()}
+    n, mn = int(cfg["mean_sessions"]), int(cfg["min_sessions_in_mean"])
+    longest = max(windows.values()) + n + 5
+    out: dict[str, Any] = {"day": day, "windows": windows,
+                           "spread": ac.get("spread_gap") or "SPY quoted spread: not tracked"}
+    s = cfg["spy"]
+    bars = {k: _pts(st, s[k], cutoff) for k in ("close", "high", "low", "volume")}
+    d = daily_depth(_upto(bars["close"], day), _upto(bars["high"], day),
+                    _upto(bars["low"], day), _upto(bars["volume"], day))
+    am = rolling_mean([(x, a) for x, a, _ in d], n, mn)
+    if am and am[-1][0] == day:
+        out["spy"] = {"state": "computed", "value": am[-1][1], "pct": pct_windows(am, windows)}
+    else:
+        out["spy"] = {"state": "absent", "reason": "no SPY volume stored" if not d
+                      else f"no {n}-session mean on {day}"}
+    if es_daily is None:
+        er = es_daily_bars(day, cutoff, db_path, longest)
+        es_daily, reason = er["bars"], er["reason"]
+    else:
+        reason = None if es_daily else "no complete ES session stored"
+    ed = es_depth(es_daily, float(ac.get("es_multiplier", 50.0)))
+    if es_daily and not any(v is not None for _, v in ed):
+        reason = "the stored ES bars carry no volume"
+    em = rolling_mean(ed, n, mn)
+    if em and em[-1][0] == day:
+        out["es"] = {"state": "computed", "value": em[-1][1], "pct": pct_windows(em, windows)}
+    else:
+        out["es"] = {"state": "gap", "reason": ES_GAP + (f" ({reason})" if reason else
+                                                         f" (no {n}-session mean on {day})")}
+    return out
+
+
+def _ordp(p: float) -> str:
+    return _ord(round(p))
+
+
+def amihud_line(r: dict) -> str:
+    """The close's tape line: both measures, the three-year carried, the one-year
+    in brackets, each with its n; the spread's state."""
+    def part(x, name):
+        if x.get("state") != "computed":
+            return f"{name} {x.get('reason')}"
+        p3, n3 = x["pct"]["3y"]
+        p1, n1 = x["pct"]["1y"]
+        return f"{name} {_ordp(p3)} (n {n3}) [1y {_ordp(p1)}, n {n1}]"
+    return (f"Illiquidity (Amihud, 20-session mean; three-year percentile, one-year "
+            f"in brackets): {part(r['spy'], 'SPY')}; {part(r['es'], 'ES')}. "
+            f"{r['spread']}.")
+
+
+def amihud_rows(r: dict, available_at: str) -> list[dict]:
+    """The four stored keys (percentiles, points 0-100) for the day; a measure
+    not computed writes nothing."""
+    out = []
+    for name, (k3, k1) in AMIHUD_KEYS.items():
+        x = r.get(name) or {}
+        if x.get("state") != "computed":
+            continue
+        for key, lab in ((k3, "3y"), (k1, "1y")):
+            out.append({"registry_key": key, "instrument": None, "observed_at": r["day"],
+                        "available_at": available_at,
+                        "value": round(x["pct"][lab][0], 3), "source": "derived_state"})
+    return out
+
+
+def feature_rows(st, as_of: Optional[str] = None) -> dict:
+    """The features pass's step: the four keys' rows for the last stored SPY
+    session at or before the cutoff, available at the cutoff (no input is known
+    later than the pass that reads it). This module only READS: the features
+    pass (altdata/market_features.py) writes the rows it returns."""
+    from . import session                                       # noqa: PLC0415
+    cutoff = as_of or session.utc_iso()
+    spy = _pts(st, config()["spy"]["close"], cutoff)
+    if not spy:
+        return {"rows": [], "reason": "no SPY close stored"}
+    day = spy[-1][0]
+    r = amihud_read(st, day, cutoff, str(getattr(st, "path", "")) or None)
+    return {"day": day, "rows": amihud_rows(r, cutoff),
+            "spy": r["spy"].get("state"), "es": r["es"].get("state")}
+
+
 def _main(argv: list[str]) -> int:
     import argparse                                             # noqa: PLC0415
     from . import observations, session                         # noqa: PLC0415

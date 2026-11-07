@@ -1437,7 +1437,20 @@ Both ledgers are pre-registered:
 - ST-R6.65a: INSUFFICIENT, n 28;
 - ST-R6.71d: FAIL, n 2965.
 
-`tools/validate_batch14_b1.py` holds it.
+**Batch 23 item 124e (A133, 6 Nov 2026) extends the Amihud measure; it does not
+duplicate it.**
+- **Two instruments.** SPY's 20-session mean and the same measure on ES are each
+  carried as a three-year percentile, with the one-year beside it and n on both.
+- **ES's volume.** It comes from the stored ES bars, in contracts times $50. That is
+  never a new yfinance dependency. With no volume, ES prints "gap: no keyless volume".
+- **Where it prints.** The close's tape carries one line, and the Weekly's
+  Positioning & flows carries the same as a row. SPY's quoted spread is "not
+  tracked".
+- **Stored.** The features pass writes `calc.amihud_{spy,es}_{3y,1y}_pct` (the
+  module returns the rows and writes nothing), barred from the market-state object.
+  124c(ii) reads them if its test passes.
+
+`tools/validate_batch14_b1.py` holds it, group I for 124e.
 
 **Gold and developed-market events are flags with their own ledgers; gold-ETF
 ownership is a report (Batch 15 items 72, 73 and 76, a58, 23 Oct 2026; merges after

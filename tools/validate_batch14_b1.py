@@ -34,6 +34,13 @@ filing amendments F1-F8; session A's a57-batch14-b1).
   H  NO VENDOR VALUE, NO BY-HAND KEY, NO WRITE beyond the ledger row; no
      composite, market-state object, register or order path; no person's name in
      the new files.
+  I  BATCH 23 ITEM 124e (A133): the Amihud measure on ES by hand (close x
+     contracts x the multiplier); the one- and three-year percentiles with n; SPY
+     and ES on a fixture; the gap path ("gap: no keyless volume") with no bars and
+     with bars carrying no volume; the tape line and the Weekly row; the four keys'
+     rows returned for the features pass to write (fragility.py still writes
+     nothing), registered and barred from the market-state object; no new yfinance
+     import.
 
 Synthetic fixtures only: no live store, no network, no model.
 """
@@ -566,6 +573,110 @@ def group_h() -> None:
                     f"({hits or 'none'})")
 
 
+def es_fixture(n: int, volume: bool = True, days: list = None) -> list[dict]:
+    """Synthetic ES daily bars (invented): alternating moves, steady contracts,
+    the last ten sessions thinner and wider."""
+    out, p = [], 6000.0
+    for i, d in enumerate(days[-n:] if days else weekdays("2023-01-02", n)):
+        p *= 1 + (0.003 if i % 2 else -0.003) * (2.0 if i >= n - 10 else 1.0)
+        out.append({"observed_at": d, "close": p,
+                    "volume": (1.5e6 if i < n - 10 else 1.0e6) if volume else None,
+                    "available_at": f"{d}T22:00:00+00:00"})
+    return out
+
+
+def group_i() -> None:
+    head("I. BATCH 23 ITEM 124e: THE AMIHUD MEASURE ON SPY AND ES (A133)")
+    import ast as _ast
+    from altdata import fragility as fr, observations
+    bars = [{"observed_at": "2026-10-01", "close": 6000.0, "volume": 1e6},
+            {"observed_at": "2026-10-02", "close": 6060.0, "volume": 1.2e6}]
+    ed = fr.es_depth(bars, 50.0)
+    dv = 6060.0 * 1.2e6 * 50.0 / 1e9
+    check(len(ed) == 1 and abs(ed[0][1] - abs(math.log(1.01)) * 1e4 / dv) < 1e-9,
+          "ES Amihud by hand: |log return| bp over close x contracts x $50, per $1bn")
+    check(fr.es_depth([bars[0], {**bars[1], "volume": None}], 50.0)[0][1] is None,
+          "a day whose bars carry no volume is None, never a guess")
+    pw = fr.pct_windows([(str(i), float(i)) for i in range(1, 1001)], {"1y": 252, "3y": 756})
+    check(pw["1y"] == (100.0, 252) and pw["3y"] == (100.0, 756),
+          "the percentile within each trailing window, with n")
+    pw2 = fr.pct_windows([(str(i), v) for i, v in enumerate([5.0, 1.0, 2.0, 3.0])],
+                         {"1y": 3, "3y": 10})
+    check(abs(pw2["1y"][0] - 100.0) < 1e-9 and pw2["1y"][1] == 3
+          and abs(pw2["3y"][0] - 75.0) < 1e-9 and pw2["3y"][1] == 4,
+          "a window longer than the history uses what there is and says n")
+    db = TD / "amihud.db"
+    last = seed_fragility(db, n=1000)
+    cfg = fr.config()
+    esf = es_fixture(900, days=weekdays("2021-01-04", 1000))
+    es_last = esf[-1]["observed_at"]
+    cut = f"{last}T23:00:00+00:00"
+    with observations.ObservationStore(str(db)) as st:
+        r = fr.amihud_read(st, last, cut, None, cfg, es_daily=esf)
+        r2 = fr.amihud_read(st, es_last, f"{es_last}T23:00:00+00:00", None, cfg,
+                            es_daily=esf)
+        gap = fr.amihud_read(st, last, cut, None, cfg, es_daily=[])
+        novol = fr.amihud_read(st, last, cut, None, cfg,
+                               es_daily=es_fixture(900, volume=False))
+        nobars = fr.amihud_read(st, last, cut, str(db), cfg)
+    check(r["spy"]["state"] == "computed" and r["spy"]["pct"]["3y"][1] == 756
+          and r["spy"]["pct"]["1y"][1] == 252 and r["spy"]["pct"]["3y"][0] >= 90,
+          f"SPY: the spike's 20-session mean sits high on three years, n 756 and 252 "
+          f"({r['spy']['pct']})")
+    check(r2["es"]["state"] == "computed" and r2["es"]["pct"]["3y"][1] == 756
+          and r2["es"]["pct"]["3y"][0] >= 90,
+          f"ES: the invented bars' last weeks, thin and wide, high on three years "
+          f"({r2['es'].get('pct')})")
+    check(gap["es"]["state"] == "gap" and gap["es"]["reason"].startswith(fr.ES_GAP)
+          and novol["es"]["reason"].startswith(fr.ES_GAP)
+          and "carry no volume" in novol["es"]["reason"]
+          and nobars["es"]["reason"].startswith(fr.ES_GAP),
+          "the gap path: no bars, or bars without volume, print 'gap: no keyless volume' "
+          "with the reason")
+    line = fr.amihud_line(gap)
+    check(line.startswith("Illiquidity (Amihud") and "(n 756) [1y " in line
+          and "ES gap: no keyless volume" in line and "not tracked" in line,
+          f"the tape line: the 3y carried, the 1y in brackets, n, the gap, the spread "
+          f"({line[:110]}...)")
+    rows = fr.amihud_rows(r2, "2026-11-06T22:00:00+00:00")
+    check(sorted(x["registry_key"] for x in rows) == sorted(
+        k for ks in fr.AMIHUD_KEYS.values() for k in ks)
+          and len(fr.amihud_rows(gap, "x")) == 2,
+          "four keys' rows when both are computed; ES's gap gives none of its two")
+    with observations.ObservationStore(str(db)) as st:
+        fr_ = fr.feature_rows(st, cut)
+    check(fr_["day"] == last and fr_["spy"] == "computed" and fr_["es"] == "gap"
+          and len(fr_["rows"]) == 2,
+          f"the features step on a store with no ES bars: SPY's two rows, ES's gap "
+          f"({ {k: v for k, v in fr_.items() if k != 'rows'} })")
+    from daily_cascade import batch14_b1_block as bb
+    with observations.ObservationStore(str(db)) as st:
+        built = {"mechanics": {"items": []}, "tape": {"items": []}}
+        bb.close_extras(built, st, last, cut, None)
+        sub = bb.amihud_positioning_subsection(st, cut)
+    tape = [i for i in built["tape"]["items"] if i["key"] == "tape:amihud"]
+    check(len(tape) == 1 and tape[0]["text"].startswith("Illiquidity (Amihud"),
+          "the close's tape carries the line")
+    check(sub and sub["table"]["rows"][0][0] == "SPY" and "(n 756)" in sub["table"]["rows"][0][1]
+          and sub["table"]["rows"][1][0] == "ES" and fr.ES_GAP in sub["table"]["rows"][1][1],
+          "the Weekly's Positioning & flows row: SPY's percentiles, ES's gap")
+    reg = (REPO / "metrics_registry.yaml").read_text(encoding="utf-8")
+    keys = [k for ks in fr.AMIHUD_KEYS.values() for k in ks]
+    check(all(f"\n  {k}:\n" in reg and f"\n  {k}: ratio\n" in reg for k in keys)
+          and 'keys: ["calc.amihud_*"]' in reg,
+          "the four keys registered (family ratio, units percentile) and barred from "
+          "the market-state object")
+    src = (REPO / "altdata" / "fragility.py").read_text(encoding="utf-8")
+    tree = _ast.parse(src)
+    mods = [n.module or "" for n in _ast.walk(tree) if isinstance(n, _ast.ImportFrom)] + \
+        [a.name for n in _ast.walk(tree) if isinstance(n, _ast.Import) for a in n.names]
+    check(not any("yfinance" in m for m in mods) and "import_yfinance" not in src,
+          "no new yfinance import: ES volume is read from the stored bars")
+    mf = (REPO / "altdata" / "market_features.py").read_text(encoding="utf-8")
+    check("fragility.feature_rows(db, as_of)" in mf and "db.write_many(amr[\"rows\"])" in mf,
+          "the features pass computes them and writes the rows")
+
+
 def main() -> int:
     ev = None
     for g in (group_a, group_b, group_c):
@@ -585,7 +696,7 @@ def main() -> int:
             import traceback
             traceback.print_exc()
             check(False, f"{g.__name__} raised {type(exc).__name__}: {exc}")
-    for g in (group_f, group_g, group_h):
+    for g in (group_f, group_g, group_h, group_i):
         try:
             g()
         except Exception as exc:                                # noqa: BLE001

@@ -66,6 +66,55 @@ def fragility_panel(st, day: Optional[str], cutoff: str) -> Optional[dict]:
     return fragility.panel(ev) if ev else None
 
 
+# ---------------------------------------------------------------------------
+# Batch 23 item 124e (A133): the Amihud measure on SPY and ES, the close's tape
+# line and the Weekly's Positioning & flows row (altdata/fragility.py computes)
+# ---------------------------------------------------------------------------
+AMIHUD_TITLE = "Illiquidity: the Amihud measure, SPY and ES"
+
+
+def amihud_read(st, day: Optional[str], cutoff: str) -> Optional[dict]:
+    from altdata import fragility                               # noqa: PLC0415
+    day = day or _last_day(st, cutoff)
+    if not day:
+        return None
+    return _safe(lambda: fragility.amihud_read(st, day, cutoff,
+                                               str(getattr(st, "path", "")) or None),
+                 "the Amihud read")
+
+
+def amihud_tape_item(st, day: str, cutoff: str) -> Optional[dict]:
+    """The close's one tape line (124e item 2)."""
+    from altdata import fragility                               # noqa: PLC0415
+    r = amihud_read(st, day, cutoff)
+    if not r:
+        return None
+    line = fragility.amihud_line(r)
+    return _item("tape:amihud", line, 2, line)
+
+
+def amihud_positioning_subsection(st, now: str) -> Optional[dict]:
+    """The Weekly's Positioning & flows row: the same figures as the tape line."""
+    from altdata import fragility                               # noqa: PLC0415
+    r = amihud_read(st, None, now)
+    if not r:
+        return None
+    rows = []
+    for name, x in (("SPY", r["spy"]), ("ES", r["es"])):
+        if x.get("state") != "computed":
+            rows.append([name, x.get("reason"), "—"])
+            continue
+        p3, n3 = x["pct"]["3y"]
+        p1, n1 = x["pct"]["1y"]
+        rows.append([name, f"{fragility._ordp(p3)} (n {n3})",
+                     f"{fragility._ordp(p1)} (n {n1})"])
+    return {"title": AMIHUD_TITLE,
+            "table": {"columns": ["Amihud, 20-session mean", "Three-year percentile",
+                                  "One-year percentile"], "rows": rows},
+            "lines": [r["spread"] + "."], "paragraph_wanted": False,
+            "data": {"amihud": {k: r[k] for k in ("day", "spy", "es")}}}
+
+
 def liquidity_lens(st, day: str, cutoff: str) -> Optional[dict]:
     """Item 52's report-only "liquidity" row, or None when there is no read."""
     from altdata import fragility                               # noqa: PLC0415
@@ -169,3 +218,9 @@ def close_extras(built: dict, st, day: str, cutoff: str, screen: Optional[dict])
     frag = fragility_panel(st, day, cutoff)
     if frag:
         mech.setdefault("subsections", []).append(frag)
+    # A133 (124e): the Amihud line on the tape (SPY and ES, the 3y percentile, the
+    # 1y in brackets).
+    if built.get("tape") is not None:
+        am = amihud_tape_item(st, day, cutoff)
+        if am:
+            built["tape"]["items"].append(am)

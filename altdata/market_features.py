@@ -1165,9 +1165,22 @@ def compute(as_of: Optional[str] = None, first_day: Optional[str] = None,
         except Exception as exc:                                 # noqa: BLE001
             log.warning("trend breadth failed", exc_info=True)
             tbr = {"error": f"{type(exc).__name__}: {exc}"}
+        # BATCH 23 ITEM 124e (A133): the Amihud measure's 1y and 3y percentiles
+        # for SPY and ES (altdata/fragility.py, which reads only; this pass
+        # writes the rows it returns), after trend breadth. Never fatal.
+        try:
+            from . import fragility                              # noqa: PLC0415
+            amr = fragility.feature_rows(db, as_of)
+            if amr["rows"] and not dry_run:
+                db.write_many(amr["rows"])
+            amr = {k: v for k, v in amr.items() if k != "rows"} | {
+                "written": 0 if dry_run else len(amr["rows"]), "n": len(amr["rows"])}
+        except Exception as exc:                                 # noqa: BLE001
+            log.warning("amihud percentiles failed", exc_info=True)
+            amr = {"error": f"{type(exc).__name__}: {exc}"}
         return {"computed": len(rows), "written": written, "by_key": by_key,
                 "dry_run": dry_run, "correlation": corr, "absorption": absr,
-                "funding_currency": fcr, "trend_breadth": tbr}
+                "funding_currency": fcr, "trend_breadth": tbr, "amihud": amr}
     finally:
         if own:
             db.close()

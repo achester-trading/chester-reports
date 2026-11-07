@@ -581,6 +581,80 @@ defaults:
 # double-counting one chain.
 
 metrics:
+  calc.amihud_spy_3y_pct:
+    inputs: [yfinance.mkt_spy, yfinance.mkt_spy_volume]
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124e (A133): the three-year percentile (points, 0-100) of the
+      SPY Amihud measure's 20-session mean (item 71's measure,
+      altdata/fragility.py), over the trailing 756 sessions it has, with n
+      printed beside it; written by the features pass. Report only; barred from
+      the market-state object; 124c(ii) reads it if its test passes.
+  calc.amihud_spy_1y_pct:
+    inputs: [yfinance.mkt_spy, yfinance.mkt_spy_volume]
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124e (A133): the one-year percentile (points, 0-100) of the
+      SPY Amihud measure's 20-session mean (item 71's measure,
+      altdata/fragility.py), over the trailing 252 sessions it has, with n
+      printed beside it; written by the features pass. Report only; barred from
+      the market-state object; 124c(ii) reads it if its test passes.
+  calc.amihud_es_3y_pct:
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124e (A133): the three-year percentile (points, 0-100) of the
+      ES Amihud measure's 20-session mean (item 71's measure,
+      altdata/fragility.py), over the trailing 756 sessions it has, with n
+      printed beside it; written by the features pass. Report only; barred from
+      the market-state object; 124c(ii) reads it if its test passes.
+  calc.amihud_es_1y_pct:
+    source: derived_state
+    mechanism_group: market_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    trigger_eligible: false
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124e (A133): the one-year percentile (points, 0-100) of the
+      ES Amihud measure's 20-session mean (item 71's measure,
+      altdata/fragility.py), over the trailing 252 sessions it has, with n
+      printed beside it; written by the features pass. Report only; barred from
+      the market-state object; 124c(ii) reads it if its test passes.
   calc.baa_less_10y:
     # 6i-3 (A79): its inputs, so it inherits their publication lag.
     inputs: [fred.dbaa, fred.yield_10y]
@@ -19935,6 +20009,10 @@ families:
   calc.vx_front_slope: ratio
   calc.xlre_spy: ratio
   calc.yield_curve_2s10s: ratio
+  calc.amihud_spy_3y_pct: ratio
+  calc.amihud_spy_1y_pct: ratio
+  calc.amihud_es_3y_pct: ratio
+  calc.amihud_es_1y_pct: ratio
   calc.baa_less_10y: spread
   calc.baa_less_10y_m: spread
   calc.yoy_ahe: ratio   # ambiguous: a return series, not a level; alternative: price
@@ -20850,6 +20928,9 @@ market_state_barred:
     rule: "report only: nothing here enters a composite or the market-state object"
     keys: ["rates.oneday_event_*", "gdelt.*", "noaa.*", "ai.model_release*"]
     pending: b59-trigger-sources
+  - order: docs/change-order-signal-triage-batch-23-2026-11-06.md (item 124e, section 0 Q3; A133)
+    rule: "the tape line and an input to 124c(ii) only: nothing enters a composite or the market-state object"
+    keys: ["calc.amihud_*"]
   - order: docs/briefs/learning-loop-v2-brief-2026-10-25.md (section 3; decisions 1 and 11 ruled 25 Oct 2026; B73)
     rule: "report only: the system's own grades are evidence for the sittings, never an input to the object"
     keys: ["brier.decomposition", "grade.counterfactual", "learning.error_corpus", "learning.value_of_information"]

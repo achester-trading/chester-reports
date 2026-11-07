@@ -97,3 +97,20 @@ flag:
   amihud_pct: 90
   forced_flow_pct: 90
   window_years: 5
+
+# BATCH 23 ITEM 124e (A133, 6 Nov 2026; section 0's Q3, D-1 as amended): the
+# illiquidity proxy as a core input -- item 71's Amihud measure extended to ES,
+# each as a one-year and a three-year percentile with n, the three-year carried.
+# ES volume comes from the stored ES bars (altdata.bars, the ES block's source:
+# the 5-minute bars summed per complete session, in contracts); never a new
+# yfinance dependency (yfinance retires 22 Dec 2026 - 8 Jan 2027). With no
+# volume in the bars, ES prints "gap: no keyless volume". Stored by the features
+# pass as calc.amihud_{spy,es}_{3y,1y}_pct, barred from the market-state object.
+# SESSION-SET: the windows in sessions and the ES multiplier ($50 a point).
+amihud:
+  windows: {1y: 252, 3y: 756}
+  es_multiplier: 50.0
+  # SPY's quoted spread: neither the captured chain (options quotes and the
+  # underlying's spot, no underlying bid/ask) nor Massive's tier (SPX and SPCX
+  # options only) carries SPY's own quote.
+  spread_gap: "SPY quoted spread: not tracked (no captured quote carries SPY's own bid and ask)"

@@ -1086,6 +1086,14 @@ def positioning_subsections(st, now: str, then: str, data: dict, lead: list,
         tbs = trend_breadth_block.positioning_subsection(st, now)
         if tbs:
             out.append(tbs)
+    # SIGNAL-TRIAGE BATCH 23, ITEM 124e (A133): the Amihud measure on SPY and ES,
+    # the three-year and one-year percentiles with n -- the close's tape line as a
+    # row here. The Weekly's.
+    if cadence == "weekly":
+        from . import batch14_b1_block                          # noqa: PLC0415
+        ams = batch14_b1_block.amihud_positioning_subsection(st, now)
+        if ams:
+            out.append(ams)
     # BATCH 5 ITEM 27 (ST-R4.27a): Treasury moves split overnight and session,
     # under the CFTC table and SR-36's line -- a co-signal of the Japan
     # slow-money set and of SR-36's unwind watch, never a flag of its own. The
