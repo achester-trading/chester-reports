@@ -71,7 +71,7 @@ ifeq ($(strip $(PY_VALIDATORS)),)
 $(error tools/gate_list.py listed no code gates -- refusing to run a shorter list)
 endif
 
-.PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures mechanism-register
+.PHONY: validate validate-fast data-gates list list-code list-data library-check deploy html figures mechanism-register annual-review
 
 # THE BUILT HTML EDITIONS. docs/html/ is output, not source: every file in it
 # is generated from the .md by tools/build_paper_html.py, figures embedded.
@@ -85,6 +85,15 @@ html:
 # mechanism_watch table; never edited by hand.
 mechanism-register:
 	@$(PYTHON) -m altdata.mechanism_watch render --out docs/mechanism-watch-register.md
+
+# THE ANNUAL REVIEW'S TWO COMPUTED INSTRUMENTS (the library programme's L-5;
+# Audit 2 section 5.1, Instruments 2 and 3): the dated-figure recomputation and
+# the relationship health check, written to docs/reviews/ before the January
+# corpus pass (docs/runbooks/annual-review.md). NOT A GATE: it is in no gate
+# list, reads the store read-only, writes no paper and always exits 0. DB= names
+# the store (default the package's).
+annual-review:
+	@$(PYTHON) -m tools.annual_review all $(if $(DB),--db $(DB),)
 
 # THE CURRENCIES CHARTS, REDRAWN FROM DATA -- INTO build/, NOT INTO docs/.
 #

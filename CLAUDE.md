@@ -245,7 +245,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and sixty-seven code gates (one hundred and sixty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and sixty-eight code gates (one hundred and sixty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -285,6 +285,25 @@ the guide's roster, every path this file names, every link under `docs/`, and
 every figure link a paper carries. It fails on those and warns on a built
 edition older than its `.md`, a stale word total, and a forward reference to a
 paper that now exists.
+
+**The annual review's computed instruments are a target, not a gate (the library
+programme's L-5; A131, 6 Nov 2026).** **`make annual-review`** (or `bash
+scripts/make.sh annual-review`) runs `tools/annual_review.py` `all`, which builds
+Audit 2 section 5.1's two computed instruments:
+- **Instrument 2, the dated-figure recomputation.** Every figure a dated appendix
+  names by its series, by the D7 convention, is recomputed from the point-in-time
+  store as of the appendix's date, `available_at` respected. Each is diffed under
+  its family's tolerance. A figure with no series key or no date is listed as
+  unrecomputable.
+- **Instrument 3, the relationship health check.** Each relationship row in an
+  Assumptions and Falsifiers appendix's part (b) is graded holding, weakening,
+  broken or re-attached, over its stated window and the trailing one. A paper with
+  no such appendix is listed, not failed.
+
+The two files go to the docs reviews folder before the January corpus pass (16 Jan
+2027; `docs/runbooks/annual-review.md`). The settings are `config/annual_review.yaml`.
+The store is opened read-only, no paper is written, and the target always exits 0.
+`tools/validate_annual_review.py` holds it.
 
 **Reports read the market-state object; no report recomputes regime.** `regime.py`
 computes one object per session day from the declared rules in

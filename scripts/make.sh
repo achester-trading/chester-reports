@@ -23,6 +23,10 @@
 #   bash scripts/make.sh data-gates      the data gates ALONE, exiting on them
 #   bash scripts/make.sh html            rebuild docs/html/ from the papers' .md
 #   bash scripts/make.sh library-check   the library's gate on its own
+#   bash scripts/make.sh annual-review [--db PATH]
+#                                        the annual review's Instruments 2 and 3
+#                                        into docs/reviews/ (L-5): not a gate,
+#                                        always exits 0, writes no paper
 #   bash scripts/make.sh list            what would run
 #   bash scripts/make.sh validate-group <gate> <group>
 #                                        one group of a long gate (B97): the
@@ -145,6 +149,14 @@ library-check)
     exec "$PY" tools/check_library.py
     ;;
 
+annual-review)
+    # The library programme's L-5: Instruments 2 and 3, into docs/reviews/. Not a
+    # gate: tools/annual_review.py always exits 0 for `all`. Extra arguments
+    # (--db PATH, --date D) pass through.
+    shift
+    exec "$PY" -m tools.annual_review all "$@"
+    ;;
+
 validate)
     # Runs every gate and THEN reports, like the make target: the question after
     # a change is "what did I break", not "what did I break first".
@@ -226,7 +238,7 @@ validate-group)
 
 *)
     echo "unknown target: $target" >&2
-    echo "one of: validate validate-fast validate-group data-gates html library-check list" >&2
+    echo "one of: validate validate-fast validate-group data-gates html library-check annual-review list" >&2
     exit 2
     ;;
 esac

@@ -1,0 +1,72 @@
+# annual_review.yaml -- the annual-review tooling (the library programme's L-5
+# and R-6, docs/change-order-library-programme-2026-11-06.md; Audit 2 section 5.1,
+# Instruments 2 and 3; The Annual Structural Review's Part II). A131, 6 Nov 2026.
+# Read by tools/annual_review.py; `make annual-review` runs both instruments
+# before XXXII's corpus pass (16 Jan 2027). It is NOT a gate: it never sets an
+# exit code, and it never writes a paper.
+#
+# SESSION-SET: every tolerance and threshold below is this session's proposal
+# for the operator to overrule at the first corpus pass.
+version: annual-review-v1
+updated: 2026-11-06
+papers_glob: "docs/whitepapers/*-whitepaper.md"
+out_dir: docs/reviews
+
+# INSTRUMENT 2: THE DATED-FIGURE RECOMPUTATION
+figures:
+  # A dated appendix is a level-2 heading "## Appendix ..." that says "dated".
+  appendix_heading: '^## Appendix\b.*\b[Dd]ated\b'
+  # A FIGURE is a number a reader would quote: it carries a decimal point, a %,
+  # a bp or a $. Bare integers (years, counts, item numbers) are not figures.
+  # Each figure must name its series in the same sentence, by the D7 convention:
+  # "(FRED DGS10)" or a backticked store key such as `yfinance.mkt_gspc`. A
+  # figure without one is listed as UNRECOMPUTABLE, never guessed.
+  # THE AS-OF. A figure is recomputed from the point-in-time store as of its
+  # appendix's stated date ("as of 21 October 2026" in the heading), end of
+  # that day ET, available_at respected: the value the writer could have known.
+  # An appendix with no stated date reads the figure's own date plus
+  # `grace_days` (a release's publication lag), and says so.
+  grace_days: 7
+  # The observation compared is the one at the figure's own date, exactly; a
+  # series with nothing stored at that date is "not stored at its date".
+  # TOLERANCE by the series' registry family (altdata.derived.family_of); `abs`
+  # is in the series' stored units (percentage points for a rate or a spread
+  # stored in percent), `rel` a fraction of the printed value. A printed "bp"
+  # figure is divided by 100 before it is compared with a series stored in percent.
+  tolerance:
+    rate:       {abs: 0.01}
+    spread:     {abs: 0.02}
+    price:      {rel: 0.005}
+    release:    {rel: 0.002}
+    quantity:   {rel: 0.01}
+    conditions: {rel: 0.01}
+    ratio:      {rel: 0.01}
+    default:    {rel: 0.01}
+
+# INSTRUMENT 3: THE RELATIONSHIP HEALTH CHECK
+relationships:
+  # The Assumptions and Falsifiers appendix, and its part (b): the line that
+  # opens "**(b)" or "**Regularities", to the next bold part heading.
+  appendix_heading: '^## Appendix\b.*Assumptions and Falsifiers'
+  part_b_start: '^\*\*(\(b\)|Regularities)'
+  part_end: '^\*\*(\([c-e]\)|Standing|Dated|Falsifiers|Mechanisms|What could change)'
+  # A RELATIONSHIP ROW names two series (as a figure does), a sign ("positive",
+  # "negative") or a correlation range ("between -0.6 and -0.2"), and a window
+  # ("1990 to 2019", "1990-01 to 2019-12"); optionally "lag N months" (the second
+  # series N months after the first) and "levels" (else month-on-month changes).
+  # A row of (b) that names a claim but not all three is listed as unparsed.
+  frequency: monthly            # both series to month-end, then the statistic
+  statistic: correlation        # of the monthly changes (or levels, if stated)
+  trailing_years: 3             # the trailing window: to the last stored month
+  min_months: 24                # fewer in a window: "insufficient (n=k)"
+  # THE GRADE (the default rule; Audit 2 section 5.1's four words):
+  #   holding      the trailing window agrees with the claim (its sign, or inside
+  #                its range) and |rho| is at least weak_ratio x the stated
+  #                window's |rho| and at least min_abs
+  #   weakening    the sign agrees but the trailing |rho| falls short of either
+  #                (or, for a range, outside it on the same side of zero)
+  #   broken       the trailing window has the opposite sign
+  #   re-attached  holding now, after the window between the stated sample and
+  #                the trailing one had the opposite sign
+  weak_ratio: 0.5
+  min_abs: 0.10
