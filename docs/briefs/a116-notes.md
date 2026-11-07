@@ -97,7 +97,71 @@ Group C of the gate holds the same three behaviours on scratch sources, plus
 | `check_registry` | OK |
 | `validate_audit_3a` | 88 passed, 0 failed (run as well: it reads CLAUDE.md's counts) |
 
+## A124 (3 Nov 2026): the gate scans the whole tree
+
+Base `ad3ecd68`. Paste committed first as `docs/pastes/A124.md`.
+
+**The scanned set** is now every .py file in the repository, less these
+exclusions, each named with its reason in the gate's header:
+
+| Excluded | Why |
+|---|---|
+| `tools/` | the gates and the operator's tools; the gates pin their clocks on purpose (B106's and B110's business) |
+| `tests/` | tests and their fixtures, dated on purpose |
+| `smoke_test.py` | the synthetic-store smoke test, a test |
+| `docs/` | documents |
+| `.git/`, `.venv/`, `venv/`, `.claude/`, `build/`, `node_modules/`, `__pycache__/` | version control, interpreters, the session harness's scratch worktrees, build output, vendored packages |
+| `altdata/session.py` | the one place the clock is read (as before) |
+
+**What the wider scan adds:** `register/` (8 files), `alpha_proposer/` (5),
+`state/` (2), and the root modules `run_eod.py`, `regime.py` and
+`contradictions.py`. In all, 389 files are scanned.
+
+**The new finding, one:**
+
+| Module | Reads | Group (A119's rule) |
+|---|---|---|
+| register/heat.py | 1 (`datetime.datetime.now`, line 151) | IN: the rehearsed merge-week tree leaves it alone |
+
+It joins the allowlist in A116's shape: source "A124 scan", reason "pending
+burn-down", group IN, calls with counts, B106's line, and a burn-down note.
+A119 has already converted it on its own branch, so the entry burns down when
+A119 merges. The `b106_outside_scope` block is gone, because nothing is listed
+apart any more. register/, alpha_proposer/, state/ and the root modules hold no
+other direct read.
+
+**The totals:**
+
+| | A116 | A124 |
+|---|---|---|
+| Files scanned | the seven named packages | 389, the whole tree less the exclusions |
+| Modules with a direct read | 41 | 42 |
+| Direct reads | 57 | 58 |
+| Allowlisted | 57 in 41 | 58 in 42 |
+
+**The proofs** ran on a scratch copy of the scanned tree, as A116's did:
+1. the copy as it stands: 0 new, 0 burned down; the gate passes;
+2. a scratch `register/_a124_scratch.py` calling `time.time()`, outside A116's
+   packages: it fails, `NEW READ  register/_a124_scratch.py:5  time.time`;
+3. register/heat.py's read removed: the gate passes and says "burned down,
+   remove from the allowlist: register/heat.py".
+
+Group A gains three checks:
+- each A124 entry is pending burn-down with its group;
+- nothing is listed apart;
+- tools/ and tests/ are never scanned (207 files).
+
+No module was converted, and no behaviour changed.
+
+| Gate | Result |
+|---|---|
+| validate_clock_reads | 11 passed, 0 failed |
+| validate_gates | 32 passed, 0 failed |
+| check_registry | OK |
+
 ## A119 (2 Nov 2026): the burn-down's first group
+
+*Folded in by A132 (6 Nov 2026) from the copy of this file on `a119-clock-burn-down-1` (at `900add11`), verbatim; that copy is deleted on a119, so the one file is this one.*
 
 **Where this section lives.** This file is a copy of A116's
 `docs/briefs/a116-notes.md` from origin/a116-clock-reads-gate, made because the
