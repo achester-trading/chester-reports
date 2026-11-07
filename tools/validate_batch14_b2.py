@@ -323,7 +323,10 @@ def group_f() -> None:
         "WHERE narrative_id='market_cheap_on_peg'").fetchone()
     check(row == ("proposed", "config_proposal", "emerging"),
           f"seeded PROPOSED through the existing path ({row}); confirming stays the operator's")
-    check(len(cfg["proposals"]) == 7, "the proposals pin is seven")
+    # The committed proposals: seven on main, plus B133's dont_miss_best_days
+    # (the Morningstar framing with the tail study's rebuttal), so eight here.
+    # chain-13's stitch sets the pin to ten (B133 adds one, B136 adds two)
+    check(len(cfg["proposals"]) == 8, "the proposals pin is eight")
 
 
 def months(y0: int, m0: int, n: int) -> list[str]:

@@ -80,3 +80,7 @@ The guide's word total for Base Rates is unchanged: it is L-4's.
 ## CI
 
 Read once after the push.
+
+**B142.** CI run 42324183860 was red on `validate_batch14_b2`: "the proposals
+pin is seven". The pin is now eight (this branch's `dont_miss_best_days`); chain-13's
+stitch sets it to ten.
