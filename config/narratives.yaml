@@ -566,3 +566,47 @@ proposals:
       comparison: up
       quorum: 1
       horizon_days: 182
+
+  # SIGNAL-TRIAGE BATCH 23, ITEM 124a (the order's 106a; B133, 6 Nov 2026): the
+  # popular "don't miss the best days" narrative, seeded PROPOSED with the tail-days
+  # study's rebuttal carried in its direction. The rebuttal's numbers are the Base
+  # Rates paper's dated appendix (tools/calibration/tail_days_base_rates.py): raw,
+  # a top-decile day follows a bottom-decile day within five sessions 62.8% of the
+  # time against 37.6% any day; standardised by the volatility known the day
+  # before, 49.7% against 41.9%, and the clustering falls below its shuffled
+  # baseline. Its evidence rule is the S&P 500 alone, the outcome the store can
+  # answer.
+  dont_miss_best_days:
+    name: Don't miss the best days
+    direction: >-
+      A popular narrative: stay fully invested through a sell-off, because the
+      market's best days come right after its worst, and an investor who steps
+      out misses them and the compounding they carry. Rebuttal, carried with the
+      story (the tail-days study, docs/studies/tail-days-2016-2026-data.md on
+      study/tail-days, and the Base Rates paper's dated appendix): the best days
+      are inseparable from the worst because both are high-volatility sessions,
+      not because a fall forecasts a rise; standardised by the volatility known
+      the day before, a bottom-decile day forecasts no rebound. An investor who
+      steps out of a high-volatility stretch misses both the best and the worst
+      days, which is the documented drawdown trade-off, not a free loss.
+    proposed_by: >-
+      session B, as drafted from the Batch 23 change order item 124a (the order's
+      106a; the Morningstar framing the study checked: 8 of the 10 best days
+      within a week of a worst day), committed 6 Nov 2026 as PROPOSED; confirming
+      or rejecting is the operator's
+    linked_dimensions: {trend: "+", volatility: "+"}
+    linked_instruments: [yfinance.mkt_gspc]
+    prediction_market_contracts: []
+    evidence:
+      # A five-session rise in the S&P 500 at or beyond its 10th percentile counts
+      # FOR; the store answers the index's close.
+      series_moves:
+        yfinance.mkt_gspc: {sign: "+", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        The S&P 500 (^GSPC) is higher at the horizon, twenty sessions on, than when
+        the forecast was emitted.
+      metrics: [yfinance.mkt_gspc]
+      comparison: up
+      quorum: 1
+      horizon_days: 28
