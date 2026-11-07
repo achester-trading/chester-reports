@@ -925,6 +925,16 @@ def _main(argv: list[str]) -> int:
         r = run(tmp, use_model=False, only=a.only)
     else:
         r = run(use_model=not a.no_model, only=a.only)
+        # BATCH 22 ITEM 117 (B135): the policy-restriction ledger's two writers,
+        # after the scan's items are seen -- the news writer over their titles and
+        # the x-triage writer over the digests' policy section. PROPOSED rows only;
+        # never fatal.
+        try:
+            from altdata import policy_restrictions as _pr     # noqa: PLC0415
+            print("policy restrictions:", end=" ", flush=True)
+            _pr._main(["propose"])
+        except Exception as exc:                                # noqa: BLE001
+            print(f"policy restrictions: FAULT {type(exc).__name__}: {exc}")
         r13 = pull_13f()
         print(f"13F: {r13.get('state')} "
               + "; ".join(f"{k}: {v.get('state')}"

@@ -96,6 +96,17 @@ def quarterly_section(st, now: str, end: str) -> Optional[dict]:
     except Exception:                                           # noqa: BLE001
         log.warning("the Themes panels faulted", exc_info=True)
         return None
+    # BATCH 22 ITEM 117 (B135): the policy-restriction ledger's Factor I and
+    # Factor VI input lines, as the Monthly prints them. Unscored.
+    try:
+        from altdata import policy_restrictions as pr           # noqa: PLC0415
+        pol = pr.slow_subsection(st, now)
+        if pol:
+            subs.append({**pol, "item": "themes_policy_restrictions",
+                         "tier": "reference", "data": {"panel": "policy_restrictions",
+                                                       "rows": 0, "gaps": 0}})
+    except Exception:                                           # noqa: BLE001
+        log.warning("the policy-restriction lines faulted", exc_info=True)
     gaps = sum(s["data"]["gaps"] for s in subs)
     n = sum(s["data"]["rows"] for s in subs)
     return {"id": "themes_panels", "title": cfg["title"], "subtitle": cfg.get("subtitle"),

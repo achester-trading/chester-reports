@@ -1043,6 +1043,15 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # (daily_cascade/batch14_b1_block.py; tables and lines only).
         from . import batch14_b1_block                          # noqa: PLC0415
         batch14_b1_block.close_extras(built, st, p["session"], cutoff, screen)
+        # SIGNAL-TRIAGE BATCH 22 ITEM 117 (B135): the AI policy-restriction flag's
+        # line in Narratives, on a day it is ON only (altdata/policy_restrictions.py).
+        try:
+            from altdata import policy_restrictions as _pr     # noqa: PLC0415
+            _pr.close_extras(built, st)
+        except Exception:                                       # noqa: BLE001
+            import logging                                      # noqa: PLC0415
+            logging.getLogger(__name__).warning(
+                "the policy-restriction line faulted", exc_info=True)
         # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58, 23 Oct 2026): the gold event's and
         # the developed-market drawdown's flag lines in the event area, on a
         # fired day only (daily_cascade/batch15_a_block.py; lines only).

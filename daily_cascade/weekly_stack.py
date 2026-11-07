@@ -2232,6 +2232,13 @@ def build(p: dict, book: dict, prior: Optional[dict] = None,
         if tl:
             built["ahead"].setdefault("subsections", []).append(tl)
         b59_block.weekly_narratives(built["narratives"], st, now)
+        # SIGNAL-TRIAGE BATCH 22 ITEM 117 (B135): the policy-restriction flag's
+        # line in Narratives every week, ON or off, with its denominator.
+        try:
+            from altdata import policy_restrictions as _pr     # noqa: PLC0415
+            _pr.weekly_narratives(built["narratives"], st, now)
+        except Exception:                                       # noqa: BLE001
+            log.warning("the policy-restriction line faulted", exc_info=True)
         # THE CRYPTO BASKET (12 Oct 2026): a reference-tier table after the
         # sections, and ONE read-path line in What doesn't fit only when
         # something happened to a basket name -- silence otherwise.

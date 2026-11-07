@@ -1,0 +1,13 @@
+# Signal-triage Batch 22 item 117 (B135, 6 Nov 2026): the AI policy-restriction
+# ledger's Factor I input line and Factor VI (Internal Order) input line, and the
+# rows with their reaction column, in the Monthly's slow layers. An input line
+# and a flag; no composite change. The Weekly prints the flag in Narratives.
+id: monthly-slow-policy-restrictions
+cadence: monthly
+section: slow
+after: monthly-slow-tb-harness
+module: altdata.policy_restrictions
+function: slow_subsection
+args: [st, now]
+requires: [st, now]
+returns: one
