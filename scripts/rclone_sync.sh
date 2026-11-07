@@ -482,18 +482,27 @@ log "  zips: $ZIPS"
 # <folder>/, copied into ~/chester-data/inbox/<folder>/ for its reader:
 #   aaii   aaii-weekly.csv       the chat-side task "AAII weekly read -- Thursday"
 #                                appends a row a week (altdata/sources/aaii.py)
+#   dth1   dth1-manual-ledger.csv  the operator's manual day-trade ledger. Its one
+#                                home is the private Drive folder chester-cards
+#                                (D52, 1 Nov 2026; A92b), a top-level folder named
+#                                by path, never by id, so it is pulled with
+#                                pull_inbox_path; read for aggregates only by
+#                                altdata/dth1_ledger.py
 # Read from the main Drive (CHESTER_RCLONE_INBOX_REMOTE), never the backup remote. `copyto` of one file, never a sync: the inbox
 # only gains or overwrites that file, and copyto carries Drive's modification
 # time over, which the S&P DJI reader takes as the drop time. They run after the
 # trees and the prune and NEVER touch RC -- a missing or failed pull is a log
 # line, not a failed backup.
-pull_inbox_file() {
-    local folder="$1" name="$2" rname="$INBOX_RNAME"
+# pull_inbox_path <Drive folder, by path> <file> <inbox folder> (A92b): the same
+# copy for a file outside chester-vendor-checks; pull_inbox_file is it with the
+# chester-vendor-checks/<folder> prefix, so its callers are unchanged.
+pull_inbox_path() {
+    local dir="$1" name="$2" folder="$3" rname="$INBOX_RNAME"
     [[ -n "$rname" ]] || { log "  $folder inbox: skip -- no inbox remote configured"; return 0; }
-    local src="$rname:chester-vendor-checks/$folder/$name"
+    local src="$rname:$dir/$name"
     local dest="$DATA_DIR/inbox/$folder/$name"
     can_housekeep "$folder inbox" || return 0
-    if ! timeout 2m rclone lsf "$rname:chester-vendor-checks/$folder" --files-only \
+    if ! timeout 2m rclone lsf "$rname:$dir" --files-only \
             --include "/$name" $RCLONE_LIMITS 2>>"$LOG" \
             | grep -qxF "$name"; then
         log "  $folder inbox: skip -- $src is absent (or unlistable)"
@@ -507,7 +516,11 @@ pull_inbox_file() {
     fi
     return 0
 }
+pull_inbox_file() {
+    pull_inbox_path "chester-vendor-checks/$1" "$2" "$1"
+}
 pull_inbox_file aaii aaii-weekly.csv || true
+pull_inbox_path chester-cards dth1-manual-ledger.csv dth1 || true
 # spdji's sp-500-eps-est.xlsx is no longer pulled: S&P DJI withdrew the workbook
 # (item 40's forward leg, ruled 17 Oct 2026; weekly-fixes-7 took it off the roster).
 
@@ -591,10 +604,21 @@ pull_x_pilot() {
     else
         log "  x pilot: skip -- chester-vendor-checks/x-triage is absent (or unlistable)"
     fi
+    # A92b: how many top-level Drive folders are named chester-x-digest. The
+    # sweep lists the folder by name, and a second folder of that name existed
+    # from 29 Oct to 1 Nov 2026; the next duplicate shows here.
+    local ndup
+    ndup=$(timeout 2m rclone lsf "$rname:" --dirs-only --max-depth 1 $RCLONE_LIMITS \
+               2>>"$LOG" | grep -cxF "chester-x-digest/" || true)
+    log "  x pilot: $ndup Drive folder(s) named chester-x-digest at the top level"
     if files=$(timeout 2m rclone lsf "$rname:chester-x-digest" --files-only \
             --max-depth 1 $RCLONE_LIMITS 2>>"$LOG"); then
         while IFS= read -r f; do
-            [[ "$f" =~ ^x-digest-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] || continue
+            # A92b: the A file, the B file (x-digest-eqmacro-) and the evening
+            # file (x-digest-evening-, item 115, written by no automation yet).
+            # Nothing on the box reads the B or evening files: archive only.
+            [[ "$f" =~ ^x-digest-(eqmacro-|evening-)?[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] \
+                || continue
             x_copy "$rname:chester-x-digest/$f" "$DATA_DIR/inbox/x-digest/$f" \
                 && n=$((n + 1))
         done <<< "$files"
@@ -605,6 +629,45 @@ pull_x_pilot() {
     return 0
 }
 pull_x_pilot || true
+
+# --- the archive copies (D54, 1 Nov 2026; A92b) and AAII's weekly folder -----
+# pull_folder <Drive folder, by path> <inbox subfolder> <label>: `rclone copy`
+# of a folder's files (every file type, its top level only), never a sync -- the
+# inbox only gains or overwrites; nothing is deleted on either side. Capped with
+# timeout as the other pulls are, logged by count, skipped with a log line when
+# the folder is absent, and like them NEVER touching RC.
+#   chester-letters/  -> ~/chester-data/inbox/letters/  the Letters' text editions
+#   chester-cards/    -> ~/chester-data/inbox/cards/    the cards, the Sunday map,
+#                                                       the operator's settings and
+#                                                       ledger
+# NOTHING IN THE REPO READS letters/ OR cards/: they are an archive inside the
+# encrypted backup (the inbox is under chester-data, which the trees sweep).
+#   chester-vendor-checks/aaii/weekly/ -> ~/chester-data/inbox/aaii/weekly/
+# the AAII task's one file a week since 24 Oct 2026 (YYYY-MM-DD.csv), which
+# altdata/sources/aaii.py unions with aaii-weekly.csv by week (A92b part 4).
+pull_folder() {
+    local dir="$1" sub="$2" label="$3" rname="$INBOX_RNAME" before after
+    [[ -n "$rname" ]] || { log "  $label: skip -- no inbox remote configured"; return 0; }
+    can_housekeep "$label" || return 0
+    if ! timeout 2m rclone lsf "$rname:$dir" --max-depth 1 $RCLONE_LIMITS \
+            >/dev/null 2>>"$LOG"; then
+        log "  $label: skip -- $dir is absent (or unlistable)"
+        return 0
+    fi
+    mkdir -p "$DATA_DIR/inbox/$sub"
+    before=$(find "$DATA_DIR/inbox/$sub" -maxdepth 1 -type f | wc -l)
+    if timeout --kill-after=60s 10m rclone copy "$rname:$dir" "$DATA_DIR/inbox/$sub" $RCLONE_LIMITS \
+            --max-depth 1 --log-file "$LOG" --log-level INFO; then
+        after=$(find "$DATA_DIR/inbox/$sub" -maxdepth 1 -type f | wc -l)
+        log "  $label: $after file(s) in $DATA_DIR/inbox/$sub ($((after - before)) new)"
+    else
+        log "  $label: FAILED copy (not counted against the sweep)"
+    fi
+    return 0
+}
+pull_folder chester-letters letters "letters archive" || true
+pull_folder chester-cards cards "cards archive" || true
+pull_folder chester-vendor-checks/aaii/weekly aaii/weekly "aaii weekly" || true
 
 # --- the Alpha Lab's inbox and outbox (X-2.11, 14 Oct 2026) -----------------
 # The same pattern as the AAII file, for a folder each way, and like it NEVER

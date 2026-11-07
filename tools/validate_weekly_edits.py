@@ -41,6 +41,8 @@ socket, and no figure here is real:
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import json
 import os
@@ -199,24 +201,33 @@ def main() -> int:
     heads = re.findall(r"<h2[^>]*>(\d+) &middot; ([^<]+?) <span style=\""
                        + re.escape(stack_render.SUBTITLE) + r"\">&mdash; "
                        r"([^<]+)</span>", html)
-    check(len(heads) == 10 and [int(h[0]) for h in heads] == list(range(1, 11)),
+    # Eleven since B75: the gold block (Batch 16 item 88(a)) is the Weekly's own
+    # section, header-only before its first edition.
+    check(len(heads) == 11 and [int(h[0]) for h in heads] == list(range(1, 12))
+          and heads[5][1] == "Gold",
           f"every header is 'number · name — subtitle', styled apart ({len(heads)})")
     check(any(h[2] == "what markets and surveys expect, not how they&#x27;re positioned"
               or h[2] == "what markets and surveys expect, not how they're positioned"
               for h in heads),
           "What's priced: 'what markets and surveys expect, not how they're positioned'")
     # W-1.3b item 3.3 adds the section 10A blocks (TFF and ETF share counts);
-    # ST-R4.27a puts Treasury moves by session under the CFTC table.
+    # ST-R4.27a puts Treasury moves by session under the CFTC table; Batch 15 item
+    # 74 (b56) the hedge-fund positioning line right after the CFTC table; Batch
+    # 16 item 89(b) (B76) the trend-breadth table after it.
     check([ss["title"] for ss in sec["positioning"]["subsections"]] ==
           ["Sector rotation and leadership", "Speculative positioning (CFTC)",
+           "Hedge-fund positioning (CFTC leveraged funds)",
+           "Trend breadth: our own cross-asset signal",
            "Treasury moves by session: overnight against the US session",
            "Futures positioning by trader type (CFTC TFF, % of open interest)",
            "ETF share counts", "Short interest", "Retail sentiment",
            "Foreign flows (TIC)", "Investor allocation: equities, bonds and cash",
            "Crypto flows"],
-          "Positioning in ten sub-sections, each with its table (the eighth, ST-R4.27a's "
-          "Treasury moves by session; the ninth, Batch 6 item 30's allocation block; the "
-          "crypto flows block last, Batch 4 Tranche A)")
+          "Positioning in twelve sub-sections, each with its table (the third, Batch 15 "
+          "item 74's hedge-fund positioning; the fourth, Batch 16 item 89(b)'s trend "
+          "breadth; ST-R4.27a's Treasury moves by session; "
+          "Batch 6 item 30's allocation block; the crypto flows block last, Batch 4 "
+          "Tranche A)")
     # THE EARNINGS BLOCK (T2.3 rulings of 5 Oct): present when the week is in
     # season by the stored dates, absent otherwise -- so the check asks the season
     # first, and the fixture must be in season by its stored dates, not by the
@@ -519,7 +530,8 @@ def main() -> int:
     check("def backfill(" in inspect.getsource(bars_mod) and "--dry-run" in
           inspect.getsource(bars_mod._main),
           "the one-time 60-day 5-minute backfill exists, with its dry run")
-    check(cfg["budget"]["weekly"]["charts"] == 10, "the Weekly's chart cap is 10")
+    check(cfg["budget"]["weekly"]["charts"] == 11,
+          "the Weekly's chart cap is 11 (10 from 4 Oct; 11 from 26 Oct, B75 (b))")
     check("PROSE ONLY" in inspect.getsource(stack_mod.section_words),
           "budgets count prose only, every report")
     mins = (REPO / "docs" / "briefs" / "doctrine-monthly-2026-10-minutes.md").read_text(

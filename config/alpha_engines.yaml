@@ -115,3 +115,16 @@ engines:
     cost_class: etf
     min_size: 0.02
     params: {}
+  # Batch 19 item 100, the premium sleeve (alpha/engines/premium_sleeve.py; B99):
+  # SPX put credit spreads under config/alpha_premium_sleeve.yaml's pre-registered
+  # spec, hashed in the roster's P-1. DISABLED: no loop loads it (engine.active())
+  # until the operator registers P-1 by manifest and sets enabled: true. Paper
+  # only; no live orders before 2027.
+  - id: premium_sleeve
+    class: alpha.engines.premium_sleeve:PremiumSleeveEngine
+    family: KS options
+    horizon: daily
+    cost_class: index_option_spread
+    min_size: 0.05
+    enabled: false
+    params: {}

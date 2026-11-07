@@ -318,7 +318,7 @@ def write(p: dict) -> None:
             break
         j += 1
     add = ["  # 6e (15 Oct 2026): every other individually registered level series,",
-           "  # by tools/assign_families.py; `# ambiguous:` marks one listed for Ari."]
+           "  # by tools/assign_families.py; `# ambiguous:` marks one listed for the operator."]
     for k, (fam, _basis, amb) in sorted(p["metrics"].items()):
         add.append(f"  {k}: {fam}" + (f"   # ambiguous: {amb}" if amb else ""))
     lines[j:j] = add
@@ -341,7 +341,7 @@ def report(p: dict, path: Path) -> None:
            f"{p['resolved']} resolved registry keys: "
            + ", ".join(f"{f} {fams[f]}" for f in VOCAB)
            + f"; {sum(1 for r in rows if not r[1])} not level series (no family).", "",
-           f"## The ambiguous assignments, {len(amb)}, for Ari", "",
+           f"## The ambiguous assignments, {len(amb)}, for the operator", "",
            "| Series | Family | Basis | Why ambiguous, and the alternative |", "|---|---|---|---|"]
     out += [f"| `{k}` | {f} | {b} | {a} |" for k, f, b, a in sorted(amb)]
     out += ["", "## Not level series (no family)", "",

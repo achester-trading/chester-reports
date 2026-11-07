@@ -1,0 +1,71 @@
+# gold_13f.yaml -- signal-triage Batch 15 item 72 (ST-R6.72a; ruled 20 Oct 2026,
+# filed 23 Oct 2026 with filing amendments G1-G6; a58-batch15-1, session A).
+# Read by altdata/gold_13f.py. Report only (the order's "Rights. Report only").
+#
+# THE INSTITUTIONAL GOLD-ETF OWNERSHIP LINE under Factor V: the count and value of
+# 13F holders of GLD and IAU per calendar quarter, with the change from the prior
+# quarter, from SEC EDGAR's quarterly Form 13F data sets (keyless; source check 1,
+# docs/briefs/a58-batch15-1-notes.md). Item 51's 13F pipeline is not built in this
+# repo, so this is the minimal reader of the same data sets the order says it
+# shares; when item 51's is built, it reads these files the same way.
+version: gold-13f-v1
+updated: 2026-10-23
+
+# THE FUNDS, by CUSIP (the INFOTABLE's CUSIP column). IAU's is the issuer's
+# product page's (464285204). 464285105 is IAU's CUSIP as 13F aggregators show it
+# for filings before the trust's May 2021 share consolidation; it is listed so a
+# quarter before then counts the same fund, and a filer reporting either is one
+# holder. Neither fund is a Brookfield instrument (register/instruments.py is
+# checked by the gate).
+funds:
+  - {symbol: GLD, label: "SPDR Gold Shares (GLD)", cusips: ["78463V107"]}
+  - {symbol: IAU, label: "iShares Gold Trust (IAU)", cusips: ["464285204", "464285105"]}
+
+# THE DATA SETS. The page lists every zip; the reader takes the files it is given
+# and checks each one's headers before it reads a row.
+data_sets_page: "https://www.sec.gov/data-research/sec-markets-data/form-13f-data-sets"
+robots_url: "https://www.sec.gov/robots.txt"
+# Where `fetch` saves the zips on the box: outside the checkout, beside the inboxes.
+inbox: "~/chester-data/inbox/sec13f"
+# SEC's fair-access policy: at most ten requests a second. One file at a time,
+# with this pause between files (session-set: a large file every few seconds is far
+# inside it).
+pause_seconds: 2
+
+# THE FILINGS COUNTED. Original reports and their amendments; a 13F-NT holds no
+# positions. An amendment marked RESTATEMENT replaces the filer's report for the
+# quarter (the latest one filed wins); NEW HOLDINGS adds rows to it.
+submission_types: ["13F-HR", "13F-HR/A"]
+# Only share positions: options (PUTCALL set) and principal amounts are not
+# ownership of the fund's shares.
+share_type: SH
+# THE VALUE UNIT. VALUE is in dollars for filings made on or after 3 Jan 2023 and
+# in thousands of dollars before (the 13F rounding change); the filing date
+# decides, not the period.
+dollars_from_filing_date: "2023-01-03"
+
+# A QUARTER IS PRINTED ONLY WHEN IT IS COMPLETE IN THE FILES READ: the files must
+# cover filings from the day after the quarter's end through its 13F deadline, 45
+# days after. A quarter the files cover in part is not written (late filers and
+# amendments for it are in the next file, which restates the quarter as a new
+# vintage when it is loaded with the others).
+deadline_days: 45
+
+# THE STORE KEYS (one row per quarter end and fund; instrument GLD, IAU or BOTH --
+# BOTH counts a filer holding either fund once).
+keys:
+  holders: sec13f.gold_etf_holders
+  value: sec13f.gold_etf_value_usd
+
+# THE GAPS (source check 1 and G5): WGC's gold-ETF flows by region and its
+# central-bank purchase files are behind a login (each file marked private;
+# HTTP 403 without one, 23 Oct 2026) and its terms allow personal, non-commercial
+# use only. A listed gap; nothing is scraped around it.
+wgc_flows_gap: >-
+  Gold-ETF flows by region (World Gold Council): NOT TRACKED -- WGC's files are
+  behind a login and its terms allow personal, non-commercial use only (item 72,
+  source check 1; a listed gap)
+caveat: >-
+  A 13F covers US-listed long equity and ETF positions of managers with $100m or
+  more of such assets, filed 45 days after the quarter: it leaves out physical
+  gold, non-US holders and retail accounts, and it is a quarter old when it lands.

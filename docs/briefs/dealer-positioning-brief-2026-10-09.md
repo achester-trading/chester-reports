@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | **v2, after the adversarial audit of the same day** (`docs/briefs/dealer-positioning-audit-2026-10-09.md`); replaces v1, which is withdrawn. Placed by Audit #4 under Part V; builds inside **6b** as the dealer block, with the scorecard beside EL-12's engine registration. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Source of every figure | The engine's exposure JSON per capture per symbol (`tools/exposure_compute.py`, `dealers-hand-v1`). Every table and chart is a view of it; nothing recomputes. |
 | Captures | 16:10 settled today (DTE 0 excluded by rule); 09:45 and 12:30 with 6b, plus the 5–15-minute SPY recompute. Open interest is the **prior close's vintage in every capture** (OCC publishes once a day): an intraday capture carries today's IV and spot on yesterday's OI. |
 | Charts | `tools/dealer_charts.py` (committed with this brief; release panel is magnitude-only per audit F3). `daily_cascade/charts.py` imports its `draw_*` functions when the block lands. |

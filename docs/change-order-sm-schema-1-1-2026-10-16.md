@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | **Proposed by chester-meme on 16 Oct 2026** in its T5d session report (`docs/sessions/t5d-report.md` in that repository, "Proposed: security_master.schema.json 1.1"). Ari passed it to session A on 16 Oct. It is adopted on branch `sm-schema-1-1` and takes effect when that branch merges. |
+| Status | **Proposed by chester-meme on 16 Oct 2026** in its T5d session report (`docs/sessions/t5d-report.md` in that repository, "Proposed: security_master.schema.json 1.1"). The operator passed it to session A on 16 Oct. It is adopted on branch `sm-schema-1-1` and takes effect when that branch merges. |
 | Amends | `docs/interface/security_master.schema.json` (1.0 to 1.1), `altdata/sm_export.py`, `altdata/ticker_history.py` (the new-listing ruling, section 4), CLAUDE.md |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Binding on | Both sessions in this repository, and chester-meme's import |
 | Precedence | Below Part 26 and the AUD-3b order. This order amends the interface contract only. |
 
@@ -46,5 +46,5 @@ On consecutive trading days the only difference is the weekend's calendar days, 
 
 ## 5. Not in this order
 
-- **Tracking views** (chester-meme's point 4) are recorded in `docs/briefs/sm-schema-1-1-notes.md` as a recommendation for Ari; nothing is built for them.
+- **Tracking views** (chester-meme's point 4) are recorded in `docs/briefs/sm-schema-1-1-notes.md` as a recommendation for the operator; nothing is built for them.
 - **chester-meme's file bump** belongs to its own session.

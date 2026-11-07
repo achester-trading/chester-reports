@@ -1,0 +1,722 @@
+{
+ "binding_pass": [
+  {
+   "case": "theme:liquidity_plumbing: the appositive's subject",
+   "text": "Net liquidity, the Fed balance sheet less reverse repo and Treasury cash, closed September at $5.78tn, essentially flat on the month at +0.06%, but that stability nets out two offsetting currents worth separating.",
+   "block": {
+    "series": [
+     {
+      "series": "Net liquidity (Fed balance sheet less reverse repo and Treasury cash)",
+      "latest_level_display": "$5.78tn",
+      "change_pct": 0.06,
+      "level_percentile_5y": 16
+     },
+     {
+      "series": "Fed balance sheet",
+      "latest_level_display": "$6.74tn",
+      "change_display": "+$12.12bn",
+      "level_percentile_5y": 31
+     },
+     {
+      "series": "Bank reserves at the Fed",
+      "latest_level_display": "$2.95tn",
+      "change_display": "+$23.15bn",
+      "level_percentile_5y": 11
+     }
+    ]
+   }
+  },
+  {
+   "case": "summary:slow: one series printed in two tables",
+   "text": "PRL fees rose +272.0% on the prior 30 days, a protocol-layer gain that stands in isolation this month.",
+   "block": {
+    "tables": [
+     {
+      "rows": [
+       {
+        "label": "PRL fees, 30 days",
+        "change_pct": 272.0
+       },
+       {
+        "label": "ZEC fees, 30 days",
+        "change_pct": -44.3
+       }
+      ]
+     },
+     {
+      "rows": [
+       {
+        "label": "PRL fees, 30 days",
+        "change_pct": 272.0
+       },
+       {
+        "label": "PRL",
+        "level": 0.42
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:fed_path: the 10-year breakeven",
+   "text": "The move is real, not inflation-driven alone: the 10-year real yield (TIPS) climbed +49 bp to 2.93% (98th percentile), while the 10-year breakeven rose a much smaller +5 bp (72nd percentile).",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year real yield (TIPS)",
+      "latest_pct": 2.93,
+      "change_bps": 49,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 72
+     },
+     {
+      "series": "5-year, 5-year-forward breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 53
+     },
+     {
+      "series": "Core PCE price index",
+      "latest_level": 130.9,
+      "change_pct": 0.32,
+      "level_percentile_5y": 100
+     }
+    ],
+    "our_reads": [
+     {
+      "name": "level",
+      "value": 3.0
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:fed_path: 'an index level of' is no row",
+   "text": "Payrolls held, and the core PCE price index rose +0.32% to an index level of 130.9 (100th percentile).",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year real yield (TIPS)",
+      "latest_pct": 2.93,
+      "change_bps": 49,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 72
+     },
+     {
+      "series": "5-year, 5-year-forward breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 53
+     },
+     {
+      "series": "Core PCE price index",
+      "latest_level": 130.9,
+      "change_pct": 0.32,
+      "level_percentile_5y": 100
+     }
+    ],
+    "our_reads": [
+     {
+      "name": "level",
+      "value": 3.0
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:equity_positioning: the equal-weight measure",
+   "text": "That combination — narrow leadership losing some of its narrowness even as small caps and the equal-weight-versus-cap-weight ratio for cyclicals against defensives, down −0.02 to 1.35, and the equal-weight measure itself, down to a level of 0.27, just the 7th percentile, both weakened — argues for caution.",
+   "block": {
+    "series": [
+     {
+      "series": "Equal-weight against cap-weight S&P 500",
+      "latest_level": 0.27,
+      "change": -0.01,
+      "level_percentile_5y": 7
+     },
+     {
+      "series": "Cyclicals against defensives",
+      "latest_level": 1.35,
+      "change": -0.02,
+      "level_percentile_5y": 67
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:2: the 30-year Treasury",
+   "text": "The 30-year mortgage rate climbed +37 bp to 7.03%, now at the 97th percentile of its five-year range, while the 10-year Treasury yield rose +54 bp to 5.29% (98th percentile), the 2-year rose +54 bp to 4.88% (83rd percentile), and the 30-year Treasury rose +39 bp to 5.64% (98th percentile) — a near-uniform back-up across the curve.",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "New home sales, single-family",
+      "latest_level_display": "676 thousand",
+      "change_display": "−4,000 homes",
+      "level_percentile_5y": 58
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:2: 'a 7.03% mortgage rate'",
+   "text": "Taken together, the resilience in existing and new home sales levels is worth watching for signs of whether demand can absorb a 7.03% mortgage rate.",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "New home sales, single-family",
+      "latest_level_display": "676 thousand",
+      "change_display": "−4,000 homes",
+      "level_percentile_5y": 58
+     }
+    ]
+   }
+  },
+  {
+   "case": "summary:mechanics: a comma inside a name",
+   "text": "The dispersion complex closed the month with the S&P 500 Dispersion Index (Cboe DSPX) at 37.81 against Implied correlation, 1 month (Cboe COR1M) at 8.73 and Implied correlation, 3 months (Cboe COR3M) at 12.85.",
+   "block": {
+    "rows": [
+     {
+      "label": "S&P 500 Dispersion Index (Cboe DSPX)",
+      "level": 37.81
+     },
+     {
+      "label": "Implied correlation, 1 month (Cboe COR1M)",
+      "level": 8.73
+     },
+     {
+      "label": "Implied correlation, 3 months (Cboe COR3M)",
+      "level": 12.85
+     }
+    ]
+   }
+  },
+  {
+   "case": "pillar:4 (28 Oct): WTI's figures after Brent crude's",
+   "text": "Energy did the loudest work underneath all of this: Brent crude surged +29.15% to 115.91, now at the 97th percentile of its five-year range, WTI rose +11.66% to 97.18 at the 92nd percentile.",
+   "block": {
+    "series": [
+     {
+      "series": "Brent crude oil",
+      "latest_level": 115.91,
+      "change_pct": 29.15,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "WTI crude oil",
+      "latest_level": 97.18,
+      "change_pct": 11.66,
+      "level_percentile_5y": 92
+     },
+     {
+      "series": "Core CPI index",
+      "latest_level": 331.2,
+      "change_pct": 0.33,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core PCE price index",
+      "latest_level": 130.9,
+      "change_pct": 0.32,
+      "level_percentile_5y": 100
+     }
+    ]
+   }
+  },
+  {
+   "case": "theme:fiscal_dollar: core PCE's figure after core CPI's",
+   "text": "The Fed's broad index rose, even as core CPI climbed +0.33% to a reading at the 100th percentile and core PCE rose +0.32%, also at the 100th percentile.",
+   "block": {
+    "series": [
+     {
+      "series": "Brent crude oil",
+      "latest_level": 115.91,
+      "change_pct": 29.15,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "WTI crude oil",
+      "latest_level": 97.18,
+      "change_pct": 11.66,
+      "level_percentile_5y": 92
+     },
+     {
+      "series": "Core CPI index",
+      "latest_level": 331.2,
+      "change_pct": 0.33,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core PCE price index",
+      "latest_level": 130.9,
+      "change_pct": 0.32,
+      "level_percentile_5y": 100
+     }
+    ]
+   }
+  },
+  {
+   "case": "summary:mechanics: a bracket that holds only a name",
+   "text": "The dispersion complex closed the month with the S&P 500 Dispersion Index (Cboe DSPX) at 37.81 against one-month implied correlation (Cboe COR1M) at 8.73 and three-month implied correlation (Cboe COR3M) at 12.85.",
+   "block": {
+    "rows": [
+     {
+      "label": "S&P 500 Dispersion Index (Cboe DSPX)",
+      "level": 37.81
+     },
+     {
+      "label": "Implied correlation, 1 month (Cboe COR1M)",
+      "level": 8.73
+     },
+     {
+      "label": "Implied correlation, 3 months (Cboe COR3M)",
+      "level": 12.85
+     }
+    ]
+   }
+  }
+ ],
+ "binding_fail": [
+  {
+   "case": "the appositive's subject given reserves' level",
+   "text": "Net liquidity, the Fed balance sheet less reverse repo and Treasury cash, closed September at $2.95tn.",
+   "block": {
+    "series": [
+     {
+      "series": "Net liquidity (Fed balance sheet less reverse repo and Treasury cash)",
+      "latest_level_display": "$5.78tn",
+      "change_pct": 0.06,
+      "level_percentile_5y": 16
+     },
+     {
+      "series": "Fed balance sheet",
+      "latest_level_display": "$6.74tn",
+      "change_display": "+$12.12bn",
+      "level_percentile_5y": 31
+     },
+     {
+      "series": "Bank reserves at the Fed",
+      "latest_level_display": "$2.95tn",
+      "change_display": "+$23.15bn",
+      "level_percentile_5y": 11
+     }
+    ]
+   }
+  },
+  {
+   "case": "PRL fees given ZEC's change",
+   "text": "PRL fees fell −44.3% on the prior 30 days.",
+   "block": {
+    "tables": [
+     {
+      "rows": [
+       {
+        "label": "PRL fees, 30 days",
+        "change_pct": 272.0
+       },
+       {
+        "label": "ZEC fees, 30 days",
+        "change_pct": -44.3
+       }
+      ]
+     },
+     {
+      "rows": [
+       {
+        "label": "PRL fees, 30 days",
+        "change_pct": 272.0
+       },
+       {
+        "label": "PRL",
+        "level": 0.42
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "case": "the 10-year breakeven given TIPS's move",
+   "text": "The 10-year breakeven rose +49 bp.",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year real yield (TIPS)",
+      "latest_pct": 2.93,
+      "change_bps": 49,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "10-year breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 72
+     },
+     {
+      "series": "5-year, 5-year-forward breakeven inflation",
+      "latest_pct": 2.36,
+      "change_bps": 5,
+      "level_percentile_5y": 53
+     },
+     {
+      "series": "Core PCE price index",
+      "latest_level": 130.9,
+      "change_pct": 0.32,
+      "level_percentile_5y": 100
+     }
+    ],
+    "our_reads": [
+     {
+      "name": "level",
+      "value": 3.0
+     }
+    ]
+   }
+  },
+  {
+   "case": "the equal-weight measure given cyclicals' level",
+   "text": "The equal-weight measure itself, down to a level of 1.35.",
+   "block": {
+    "series": [
+     {
+      "series": "Equal-weight against cap-weight S&P 500",
+      "latest_level": 0.27,
+      "change": -0.01,
+      "level_percentile_5y": 7
+     },
+     {
+      "series": "Cyclicals against defensives",
+      "latest_level": 1.35,
+      "change": -0.02,
+      "level_percentile_5y": 67
+     }
+    ]
+   }
+  },
+  {
+   "case": "the 30-year Treasury given the 2-year's level",
+   "text": "The 30-year Treasury rose +54 bp to 4.88%.",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "New home sales, single-family",
+      "latest_level_display": "676 thousand",
+      "change_display": "−4,000 homes",
+      "level_percentile_5y": 58
+     }
+    ]
+   }
+  },
+  {
+   "case": "'a 5.29% mortgage rate'",
+   "text": "Demand must absorb a 5.29% mortgage rate.",
+   "block": {
+    "series": [
+     {
+      "series": "2-year Treasury yield",
+      "latest_pct": 4.88,
+      "change_bps": 54,
+      "level_percentile_5y": 83
+     },
+     {
+      "series": "10-year Treasury yield",
+      "latest_pct": 5.29,
+      "change_bps": 54,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year Treasury yield",
+      "latest_pct": 5.64,
+      "change_bps": 39,
+      "level_percentile_5y": 98
+     },
+     {
+      "series": "30-year mortgage rate",
+      "latest_pct": 7.03,
+      "change_bps": 37,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "Existing home sales",
+      "latest_level_display": "3.99 million",
+      "change_display": "+60,000 homes",
+      "level_percentile_5y": 17
+     },
+     {
+      "series": "New home sales, single-family",
+      "latest_level_display": "676 thousand",
+      "change_display": "−4,000 homes",
+      "level_percentile_5y": 58
+     }
+    ]
+   }
+  },
+  {
+   "case": "Brent crude given WTI's figure, nothing between",
+   "text": "Brent crude surged +11.66% to 97.18.",
+   "block": {
+    "series": [
+     {
+      "series": "Brent crude oil",
+      "latest_level": 115.91,
+      "change_pct": 29.15,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "WTI crude oil",
+      "latest_level": 97.18,
+      "change_pct": 11.66,
+      "level_percentile_5y": 92
+     },
+     {
+      "series": "Core CPI index",
+      "latest_level": 331.2,
+      "change_pct": 0.33,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core PCE price index",
+      "latest_level": 130.9,
+      "change_pct": 0.32,
+      "level_percentile_5y": 100
+     }
+    ]
+   }
+  },
+  {
+   "case": "core CPI given core PCE's change, nothing between",
+   "text": "Core CPI climbed +0.32%.",
+   "block": {
+    "series": [
+     {
+      "series": "Brent crude oil",
+      "latest_level": 115.91,
+      "change_pct": 29.15,
+      "level_percentile_5y": 97
+     },
+     {
+      "series": "WTI crude oil",
+      "latest_level": 97.18,
+      "change_pct": 11.66,
+      "level_percentile_5y": 92
+     },
+     {
+      "series": "Core CPI index",
+      "latest_level": 331.2,
+      "change_pct": 0.33,
+      "level_percentile_5y": 100
+     },
+     {
+      "series": "Core PCE price index",
+      "latest_level": 130.9,
+      "change_pct": 0.32,
+      "level_percentile_5y": 100
+     }
+    ]
+   }
+  },
+  {
+   "case": "the 1-month name with the 3-month figure",
+   "text": "Implied correlation, 1 month (Cboe COR1M) at 12.85.",
+   "block": {
+    "rows": [
+     {
+      "label": "S&P 500 Dispersion Index (Cboe DSPX)",
+      "level": 37.81
+     },
+     {
+      "label": "Implied correlation, 1 month (Cboe COR1M)",
+      "level": 8.73
+     },
+     {
+      "label": "Implied correlation, 3 months (Cboe COR3M)",
+      "level": 12.85
+     }
+    ]
+   }
+  },
+  {
+   "case": "the lone tag with another row's figure",
+   "text": "One-month implied correlation (Cboe COR1M) at 12.85.",
+   "block": {
+    "rows": [
+     {
+      "label": "S&P 500 Dispersion Index (Cboe DSPX)",
+      "level": 37.81
+     },
+     {
+      "label": "Implied correlation, 1 month (Cboe COR1M)",
+      "level": 8.73
+     },
+     {
+      "label": "Implied correlation, 3 months (Cboe COR3M)",
+      "level": 12.85
+     }
+    ]
+   }
+  }
+ ],
+ "tape": {
+  "text": "Gold's front future closed the month at 4,554.56, IWM at 277.22, and the dollar index (DXY) at 99.35.",
+  "block": {
+   "rows": [
+    {
+     "label": "DXY",
+     "close": 101.45,
+     "ma_40w": 99.35
+    },
+    {
+     "label": "Dollar index (FRED broad index)",
+     "level": 120.97
+    },
+    {
+     "label": "Gold (front future)",
+     "close": 4640.1,
+     "ma_40w": 4554.56
+    },
+    {
+     "label": "IWM",
+     "close": 268.4,
+     "ma_40w": 277.22
+    }
+   ]
+  }
+ }
+}

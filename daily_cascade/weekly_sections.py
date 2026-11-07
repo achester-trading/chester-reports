@@ -309,6 +309,14 @@ def tape_table(book: dict, edition_day: Optional[str] = None) -> dict:
                      fmt(lv["gamma_flip"]) if lv.get("gamma_flip") is not None else "—"])
         ids.append((i["id"], f.get("as_of")))
     ret = {"columns": cols[:6], "rows": [r[:6] for r in rows]}
+    # A SERIES CHANGE (A96): a tape key whose price family has switched sources
+    # carries its label beneath the table that prints its first figure. None
+    # while every family is on yfinance, so the table is as it was.
+    from altdata import price_sources                           # noqa: PLC0415
+    labels = price_sources.labels_for([t.get("daily") for t in bars_mod.tape()
+                                       if t.get("daily")])
+    if labels:
+        ret["break_labels"] = labels
     lev = {"columns": [cols[0]] + cols[6:], "rows": [[r[0]] + r[6:] for r in rows]}
     # Each row's instrument and bar date, for the consistency gate (W-1.1 1.1).
     return {"table": ret, "levels_table": lev, "not_tracked": gaps, "row_ids": ids}
@@ -677,8 +685,28 @@ def gap_window_words() -> str:
     return f"{in_words(years)}-year window" if years >= 1 else f"{days}-day window"
 
 
+def period_direction(h: list, then: Optional[str],
+                     z_now: Optional[float] = None) -> Optional[tuple[str, float]]:
+    """(rising | falling, the |z| at the period's start): a gap's direction over
+    the edition's period -- its |z| now against its |z| on or before `then`.
+    `z_now` is the z the table prints, where given; else the history's last.
+    The Monthly's month_direction (T3.6 M5) reads this; A103 gives it to the
+    Weekly too."""
+    pts = [(str(d)[:10], v) for d, v in h or [] if v is not None]
+    if not pts or not then:
+        return None
+    start = [v for d, v in pts if d <= then[:10]]
+    if not start:
+        return None
+    a = abs(float(start[-1]))
+    b = abs(float(z_now if isinstance(z_now, (int, float)) else pts[-1][1]))
+    if a == b:
+        return None
+    return ("rising" if b > a else "falling"), float(start[-1])
+
+
 def gap_table(opened: list[dict], history: dict[str, list],
-              dates: Optional[dict] = None) -> dict:
+              dates: Optional[dict] = None, then: Optional[str] = None) -> dict:
     from altdata import labels                                  # noqa: PLC0415
     rows, data = [], []
     dates = dates or {}
@@ -686,10 +714,18 @@ def gap_table(opened: list[dict], history: dict[str, list],
         cid = c.get("id")
         plain = labels.contradiction_plain(cid)
         h = history.get(cid) or []
-        trend = "—"
-        if len(h) >= 2 and None not in (h[-1][1], h[-2][1]):
-            trend = "rising" if abs(h[-1][1]) > abs(h[-2][1]) else "falling"
         z = c.get("magnitude")
+        trend = "—"
+        if then:
+            # A103 (W4, the Weekly Letter of w/e 30 Oct): THE DIRECTION IS THE
+            # WEEK'S, OF THE Z THE TABLE PRINTS. It compared the history's last
+            # two sessions, so a gap whose printed z had risen over the week could
+            # read "falling" on one soft session. Now: the printed z against the
+            # z on or before the week's start (the Monthly's rule, over the week).
+            pd_ = period_direction(h, then, z)
+            trend = pd_[0] if pd_ else "—"
+        elif len(h) >= 2 and None not in (h[-1][1], h[-2][1]):
+            trend = "rising" if abs(h[-1][1]) > abs(h[-2][1]) else "falling"
         dd = dates.get(cid) or {"gap_since": c.get("since"),
                                 "sessions": c.get("persistence_days")}
         rows.append([labels.contradiction(cid).capitalize(), plain.get("legs") or "—",
@@ -764,12 +800,14 @@ def calendar_week(st, ending: str, now: str, pmb: Optional[dict] = None,
     sat = mon + dt.timedelta(days=5)
     rows: list[dict] = []
     routine: list[dict] = []
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _ec, _ep = _ps.events_clause()        # A102: the earnings rows' source switch
     with events.EventStore(str(st.path)) as ev:
         recs = ev.conn.execute(
             "SELECT type, source, observed_at, title, payload FROM events WHERE "
             "type IN ('scheduled', 'session_event', 'earnings') AND observed_at >= ? "
-            "AND observed_at < ? AND available_at <= ? ORDER BY observed_at",
-            (mon.isoformat(), sat.isoformat(), now)).fetchall()
+            "AND observed_at < ? AND available_at <= ?" + _ec + " ORDER BY observed_at",
+            (mon.isoformat(), sat.isoformat(), now, *_ep)).fetchall()
     for typ, src, obs, title, payload in recs:
         p = json.loads(payload or "{}")
         d = str(obs)[:10]
@@ -1686,18 +1724,21 @@ def earnings_season(st, ending: str, now: str) -> dict:
     lo = (d - dt.timedelta(days=SEASON_DAYS)).isoformat()
     hi = (d + dt.timedelta(days=SEASON_DAYS)).isoformat() + "T23:59:59"
     try:
+        from altdata import price_sources as _ps                # noqa: PLC0415
+        _ec, _ep = _ps.events_clause()    # A102: the earnings rows' source switch
         with events.EventStore(str(st.path)) as ev:
             stored = ev.conn.execute(
                 "SELECT COUNT(*) FROM events WHERE available_at <= ? AND "
                 "(type = 'earnings' OR (type = 'scheduled' AND "
-                "json_extract(payload, '$.kind') = 'earnings'))", (now,)).fetchone()[0]
+                "json_extract(payload, '$.kind') = 'earnings'))" + _ec,
+                (now, *_ep)).fetchone()[0]
             near = ev.conn.execute(
                 "SELECT DISTINCT json_extract(payload, '$.symbol') FROM events "
                 "WHERE available_at <= ? AND observed_at >= ? AND observed_at <= ? "
                 "AND (type = 'earnings' OR (type = 'scheduled' AND "
                 "json_extract(payload, '$.kind') = 'earnings' AND "
-                "json_extract(payload, '$.date_confirmed') = 1))",
-                (now, lo, hi)).fetchall()
+                "json_extract(payload, '$.date_confirmed') = 1))" + _ec,
+                (now, lo, hi, *_ep)).fetchall()
     except Exception:                                           # noqa: BLE001
         stored, near = 0, []
     if not stored:
@@ -1722,12 +1763,14 @@ def earnings_block(st, ending: str, now: str, then: str,
     elif not earnings_season(st, ending, now)["in_season"]:
         return None
     from altdata import events                                  # noqa: PLC0415
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _ec, _ep = _ps.events_clause()        # A102: the earnings rows' source switch
     rows, data = [], []
     with events.EventStore(str(st.path)) as ev:
         recs = ev.conn.execute(
             "SELECT observed_at, payload FROM events WHERE type = 'earnings' AND "
-            "observed_at > ? AND observed_at <= ? AND available_at <= ?",
-            (then, now, now)).fetchall()
+            "observed_at > ? AND observed_at <= ? AND available_at <= ?" + _ec,
+            (then, now, now, *_ep)).fetchall()
     for obs, payload in recs:
         pl = json.loads(payload or "{}")
         if pl.get("reported_eps") is None:
@@ -1819,3 +1862,11 @@ def watch_sessions(c: dict, dates: Optional[dict]) -> Optional[int]:
     d = (dates or {}).get(c.get("id")) or {}
     return d.get("sessions") or c.get("persistence_days")
 
+
+
+def dth1_subsection(ending: Optional[str], path: Optional[str] = None) -> dict:
+    """THE BOOK SECTION'S DTH-1 LINES (D41; A92): the manual day-trade ledger's
+    aggregates -- counts and R-multiples only, never a currency or a single
+    trade's row -- read from the box's inbox by altdata/dth1_ledger.py."""
+    from altdata import dth1_ledger                             # noqa: PLC0415
+    return dth1_ledger.weekly_subsection(ending, path)

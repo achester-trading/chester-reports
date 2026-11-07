@@ -4,7 +4,7 @@ Branch `writer-fixes-1` from the tip of `weekly-fixes-7`, so it carries Part 0 a
 **merges on Monday after it**. It touches only the writers named and their
 fixtures and gate. Nothing here ran on the box.
 
-Ari's `feeds pull --skip loggers` on 17 Oct at 20:31 UTC was the first pull for
+The operator's `feeds pull --skip loggers` on 17 Oct at 20:31 UTC was the first pull for
 every writer Friday's merges added. 30 official writers ran: 562,928 rows
 written, four STALE. 15 external writers ran: 11,940 rows, none STALE. All four
 STALE lines are read below. **Three were broken parsers or queries, and so was
@@ -149,7 +149,7 @@ api.spdrgoldshares.com's robots.txt disallows it.
 the Sponsor's fee, paid in gold, which the writer already accrues forward from
 the anchor (`ounces_per_share`). So **one** archive, downloaded once in a browser,
 anchors the series for good. That is reference data, allowed under the 17 Oct
-ruling on calendars: one download by Ari. A newer drop only re-anchors (the
+ruling on calendars: one download by the operator. A newer drop only re-anchors (the
 writer handles it), and none is ever required. Rule 30 is not engaged, so
 nothing goes on the by-hand audit's automation list.
 
@@ -175,7 +175,7 @@ holds it.
 
 No gate fetches: every fixture is a file.
 
-## Box command, for Ari (after Monday's merge, inside a window; printed, not run)
+## Box command, for the operator (after Monday's merge, inside a window; printed, not run)
 
 The re-pull of the official writers, which picks up all four fixes. The auction
 backfill is 2009 to date, about 18 requests:

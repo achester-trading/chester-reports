@@ -32,6 +32,8 @@ store, fetches or calls a model; every network read is a fake.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import json
 import math
@@ -439,7 +441,7 @@ def group_g() -> None:
     check(not bad, f"the derived layer imports no network or model library ({sorted(mods)})")
     check("anthropic" not in sys.modules, "no model client was built")
     claude = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
-    check("validate_st_t5_prl" in (REPO / "Makefile").read_text(encoding="utf-8")
+    check("validate_st_t5_prl" in __import__("gate_list").makefile_text(REPO)
           and "crypto.watch" in claude, "the Makefile runs this gate; CLAUDE.md names the class")
 
 

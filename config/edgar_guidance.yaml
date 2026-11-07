@@ -1,0 +1,79 @@
+# The hyperscalers' capex GUIDANCE, read from their own 10-Q and 10-K filings
+# (A66; signal-triage items 26 and 63). altdata/sources/edgar_guidance.py reads
+# it. Rule 30: no by-hand data line -- a figure enters only beside the filing's
+# own sentence, quoted, with its URL, accession number and filing date. No press
+# report, transcript or analyst note is a source; an earnings call is not a filing.
+#
+# Every value below is SESSION-SET (A66, 24 Oct 2026), listed for the operator
+# with its reason.
+
+version: edgar-guidance-v1
+
+# The five hyperscalers. CIKs are config/ai_buckets.yaml's `bridge` filers' (the
+# EDGAR XBRL writer's), cached here so the reader needs no company lookup.
+# fy_end_month: the month a fiscal year ends, from each filer's own 10-K cover
+# (Microsoft June, Oracle May, the rest December) -- it decides whether a fiscal
+# year a sentence names is still ahead of the filing date. `terms`: the filer's
+# own words for capex where they differ from the common term.
+filers:
+  - {ticker: AMZN,  cik: 1018724, fy_end_month: 12, terms: ["cash capital expenditures"]}
+  - {ticker: GOOGL, cik: 1652044, fy_end_month: 12, terms: []}
+  - {ticker: META,  cik: 1326801, fy_end_month: 12,
+     terms: ["capital expenditures, including principal payments on finance leases"]}
+  - {ticker: MSFT,  cik: 789019,  fy_end_month: 6,  terms: ["property and equipment"]}
+  - {ticker: ORCL,  cik: 1341439, fy_end_month: 5,  terms: []}
+
+forms: ["10-Q", "10-K"]
+
+# The common term (case-insensitive), and the forward-looking markers. A
+# sentence is kept when it holds a capex term AND a marker; a fiscal year named
+# and still ahead of the filing date counts as a marker too.
+capex_terms: ["capital expenditures", "capital expenditure"]
+forward_markers: ["expect", "anticipate", "plan", "intend"]
+
+# The sentence is stored verbatim up to this many characters; a longer one is
+# stored as the window of this length around the capex term, marked truncated.
+max_chars: 400
+
+# The pause between requests (seconds). EDGAR's fair-access ceiling is 10 a
+# second; one a second is a tenth of it.
+pause_seconds: 1.0
+
+# THE EXTRACTION RULES, tried in this order on each sentence. Each names the
+# figure it yields and its label. Figures are US dollars in billions.
+#   range        "$X to $Y billion", "$X billion to $Y billion",
+#                "between $X and $Y billion", "in the range of $X-$Y billion":
+#                the midpoint, labelled "midpoint of range"
+#   approximate  "approximately / about / roughly / around $X billion"
+#   stated       any other "$X billion"
+# A figure in millions ("$X million") is not a guidance figure for these filers
+# and is not read. CONFIDENCE: high when the sentence yields exactly one figure
+# and names exactly one fiscal year; low otherwise (the first figure and the
+# first year ahead are kept, and the label says low).
+rules:
+  - id: range
+    label: "midpoint of range"
+    pattern: '\$\s?(\d+(?:\.\d+)?)\s*(?:billion\s*)?(?:to|-|–|—|and)\s*\$?\s?(\d+(?:\.\d+)?)\s*billion'
+  - id: approximate
+    label: "approximately"
+    pattern: '(?:approximately|about|roughly|around)\s+\$\s?(\d+(?:\.\d+)?)\s*billion'
+  - id: stated
+    label: "stated"
+    pattern: '\$\s?(\d+(?:\.\d+)?)\s*billion'
+
+# The years a sentence names: "fiscal 2027", "fiscal year 2027", "full year
+# 2026", "2026" -- the four digits after any of those words.
+year_pattern: '(?:fiscal\s+(?:year\s+)?|full[- ]year\s+|calendar\s+(?:year\s+)?)?\b(20\d\d)\b'
+# Only a year in a fiscal-year phrase is a forward marker: a bare year in a date
+# ("September 30, 2026") is the period a past figure describes, not guidance.
+fy_marker_pattern: '(?:fiscal\s+(?:year\s+)?|full[- ]year\s+|calendar\s+year\s+)(20\d\d)\b'
+
+# The MD&A section: the span from an "Item 2." (10-Q) or "Item 7." (10-K)
+# "Management's Discussion and Analysis" heading to the next "Item 3." / "Item
+# 7A." "Quantitative and Qualitative" heading; of several matches (the table of
+# contents repeats the headings) the longest span is the section. Not located,
+# the whole document is read and the record says so.
+mdna_start: 'item\s*[27]\s*\.?\s*management[’''`]?s\s+discussion\s+and\s+analysis'
+mdna_end: 'item\s*(?:3|7a)\s*\.?\s*quantitative\s+and\s+qualitative'
+
+no_figure_text: "guidance quoted, figure not extracted"

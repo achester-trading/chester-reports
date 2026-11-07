@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | Drafted 9 Oct 2026 for the sitting; amended the same evening for the fifth order (signal-triage round 4, Part 2, filed 9 Oct). Items 1–2 were placed here by earlier rulings; everything else is what the five ruled-but-unplaced orders, the Enterprise Layer's §4 and the Reader's Guide's Appendix D put on this sitting's business. Rulings are taken in chat, one item at a time, and recorded in `docs/briefs/audit-4-minutes.md`. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Shape | Two sittings of at most two hours (Wed 14, Thu 15 Oct); the week's review sitting under the attention budget. Freeze Tue 13 Oct 23:30 ET; the box runs on 8fa972e; code on branches continues. |
 | What a "yes" costs | Shown per item in session hours, and in Part VII against the calendar at the 2× pace (40–50 session-hours a week, two sessions in parallel). |
 
@@ -16,7 +16,7 @@
 | # | Item | What is needed at the sitting | Recommendation |
 |---|---|---|---|
 | I.1 | **§1 of the Enterprise Layer order updated to the repository at 14 Oct** (the table of what the two specs asked for, what exists, what the order adds) | A read-only session produces it as §1 of `docs/chester-reports-audit-4.md` before the freeze (~1 h, Tue 13 Oct, docs commit) | Paste follows this agenda; the sitting reads it, does not write it |
-| I.2 | **The simplification question, verbatim:** *if we rebuilt today, what would we remove, combine, automate, simplify or add?* | Ari's answer, recorded; 15 minutes | Three candidates to put against it: the Alternative Asset report layer (`altdata/report/`, seven of thirteen modules do not import — fold or delete at the redesign); the Monthly v2 fallback renderer once the stacked edition has run three times clean; the Saturday crypto scan once Thread D's Weekly block prints (MW-9) |
+| I.2 | **The simplification question, verbatim:** *if we rebuilt today, what would we remove, combine, automate, simplify or add?* | the operator's answer, recorded; 15 minutes | Three candidates to put against it: the Alternative Asset report layer (`altdata/report/`, seven of thirteen modules do not import — fold or delete at the redesign); the Monthly v2 fallback renderer once the stacked edition has run three times clean; the Saturday crypto scan once Thread D's Weekly block prints (MW-9) |
 | I.3 | **System-metrics block, first reading.** EL-6 is not built (after 6b), so the first reading is by hand from the heartbeat, the incidents file and the deploy log | Numbers compiled before the sitting (I bring them): days up since the 7 Oct reboot; feeds current / declared (the 9 Oct line: official 96/96, external 52/5x, one stale — AAII, operator drop); incidents INC-1…INC-9 with the one open; sessions-hours this fortnight; model cost | Record as the baseline row EL-6 will reproduce |
 | I.4 | **DTH-1 scope re-examined "with 6b's first captures in hand"** | 6b builds the week of 20 Oct; there are no captures yet | **Defer to Doctrine #2 (7–8 Nov)** with 6b's first week stored; the first engine stays the dealer-positioning / 0DTE engine as ruled on 2 Oct (Doctrine item 5) |
 | I.5 | **Amendment number confirmed; the architecture Part written** | Enterprise Layer = **Post-Freeze Amendment #5** (confirm); a library session writes the Part (EL-7, 1 h) after the sitting | Confirm |
@@ -25,9 +25,9 @@
 
 ## Part II — Rulings carried to this sitting
 
-1. **Re-engagement of Book A into the Overheat band (Doctrine item 1c).** The macro dial changed expansion → overheating on 1 Oct; the 10th session is 14 Oct. Under the crossing rule Book A is in Transition (60–70%, hedged, cross-book net-beta cap 85%) until this sitting rules. *Needed:* the 13 Oct close's dial line (Ari pastes it Tuesday evening). *Rule:* if the dial still reads overheating, re-engage into the Overheat band (net-beta cap 75%, the Doctrine's Overheat rules); if it has reverted or reads mixed, nothing to rule and Transition stands. Applied by the D-2-style config session (`regime_mapping`, 15 min).
+1. **Re-engagement of Book A into the Overheat band (Doctrine item 1c).** The macro dial changed expansion → overheating on 1 Oct; the 10th session is 14 Oct. Under the crossing rule Book A is in Transition (60–70%, hedged, cross-book net-beta cap 85%) until this sitting rules. *Needed:* the 13 Oct close's dial line (the operator pastes it Tuesday evening). *Rule:* if the dial still reads overheating, re-engage into the Overheat band (net-beta cap 75%, the Doctrine's Overheat rules); if it has reverted or reads mixed, nothing to rule and Transition stands. Applied by the D-2-style config session (`regime_mapping`, 15 min).
 
-2. **Scenario set #1** — the first scenario register (five scenarios, weights, signposts), ruled before the 23 Oct dry run; the Monthly's scenario block and the prediction-market disagreement (20 points) have nothing to compare against until it exists. *Needed:* a draft of the five, which I bring Monday 12 Oct from the regime object, the tail register and the narrative register. *Sitting:* ≤ 30 minutes, weights summing to 100, one signpost per scenario with its series. Applied as the first `monthly_macro` rows in the probability ledger (session, 1 h; a register write under Ari's own line).
+2. **Scenario set #1** — the first scenario register (five scenarios, weights, signposts), ruled before the 23 Oct dry run; the Monthly's scenario block and the prediction-market disagreement (20 points) have nothing to compare against until it exists. *Needed:* a draft of the five, which I bring Monday 12 Oct from the regime object, the tail register and the narrative register. *Sitting:* ≤ 30 minutes, weights summing to 100, one signpost per scenario with its series. Applied as the first `monthly_macro` rows in the probability ledger (session, 1 h; a register write under the operator's own line).
 
 3. **Book B's setups and the Friday-close scanner.** `config/setups.yaml` holds thirteen families (A 2, B 3, C 3, D 5) plus `unclassified`, each with its Doctrine passage. The Weekly prints "0 drafts" because nothing writes them. *Rule (a):* ratify the thirteen as the list (or name the family that is missing). *Rule (b):* commission the scanner — reads Friday's close, writes Book B candidates to the register as drafts with level, invalidation, time stop, falsifiers and the gate's pre-check (~10 h). *Placement:* week of 20 Oct beside 6b and 6e, so the 25 Oct Weekly is the first with candidates. The seven-a-week budget counts approvals, not drafts.
 
@@ -103,7 +103,7 @@ Ruled-but-unplaced work: GTM 24 h, batch 3 51 h, crypto 25 h, round 4 Part 1 ≈
 ### Category 3 — LOG rows and by-hand items (zero build hours; each row carries its reopen condition so the next circulating chart is diffed against it)
 
 - **LOG as proposed:** GTM-5, 16, 17, 18, 19, 20, 22, 23 (sourced figures through the scans ingest); batch 4's "seen, no entry" items 8 and 14, Market Vane, pattern annotations; crypto DS-5, 10, 25, 27, 31, 36.
-- **By hand, adopt (cheap, once):** the §4.4 intake rule (a level claim carries its percentile among comparable dates); the EM calendar seed; the SR-44 and 1994 base-rate rows; the OAT > BTP marker; the Book C intervention-bounce rule; batch 3's base-rate rows and voices entries; crypto's unlock schedules and the two `.env` keys. ≈ 8 h of Ari's time in all, spread over a month.
+- **By hand, adopt (cheap, once):** the §4.4 intake rule (a level claim carries its percentile among comparable dates); the EM calendar seed; the SR-44 and 1994 base-rate rows; the OAT > BTP marker; the Book C intervention-bounce rule; batch 3's base-rate rows and voices entries; crypto's unlock schedules and the two `.env` keys. ≈ 8 h of the operator's time in all, spread over a month.
 - **Drop:** SR-47, the private AI-financing ledger (batch-4 decision 6) — a by-hand register with a quarterly entry forever, for a modifier that needs four quarters before it has rights. The Factor I revenue-leg log (§4.5, one line a quarter) covers the question.
 - **Round 4 Part 2, by hand (≈ 6 h once, then ≈ 3 h a quarter):** the tail and narrative entries (16a), the expansion-age base-rate line (22a), the 5.25% appendix line and Book A rule-table edit (24), the XVII brief amendment (25), the disagreement pair (26), the 190 bp close (28). Adopt as written, with one change: the **sovereign fragility scorecard (21) refreshes with the IMF Fiscal Monitor, April and October — twice a year, not quarterly**, since its inputs do not move in between. The reading-shelf additions (AQR, BlackRock Investment Institute) go through the reading-shelf mechanism as RS-2 (0.5 h, with the voices entries).
 
@@ -131,7 +131,7 @@ Ruled-but-unplaced work: GTM 24 h, batch 3 51 h, crypto 25 h, round 4 Part 1 ≈
 | Item | Hours | Recommendation |
 |---|---|---|
 | **FlashAlpha cross-check rewire** (ledger of 9 Oct): compare their GEX with `dollar_gamma_per_1pct` and their DEX with a raw-signed DEX the engine does not yet print; VEX keeps its flag | 1 | Yes, in 6b |
-| **Box-side vendor writer**: the box calls FlashAlpha's REST at 16:25 with a key in `.env`, stores `dealer.vendor_*` beside ours, a data gate flags divergence; retires the two chat-side scheduled tasks | 3 | Yes, in 6b; the key is Ari's to create and place |
+| **Box-side vendor writer**: the box calls FlashAlpha's REST at 16:25 with a key in `.env`, stores `dealer.vendor_*` beside ours, a data gate flags divergence; retires the two chat-side scheduled tasks | 3 | Yes, in 6b; the key is the operator's to create and place |
 | **Dealer charts as a tool** (`tools/dealer_charts.py`: per-strike, gamma profile, buckets and release, DEX horizon) feeding the Monthly's dealer retrospective | 2 | Yes, in 6b |
 | **The "other" expiry bucket**: later-week Fridays and month-ends sit in "other" (29% of SPY |GEX| on 8 Oct) because the engine buckets by DTE window | 1 | LOG; rename or split when the retrospective's first month shows it matters |
 | **Workplan v4** (the 2× calendar ruled 6 Oct) exists only in chat | 1 | File it at the post-audit filing session with the dates this sitting confirms |
@@ -171,6 +171,6 @@ If a week runs short, the Category 1 block slips, never the two anchors (1 Nov M
 
 | Who | What | By |
 |---|---|---|
-| Ari | Sunday's Weekly read → T2.8 notes; the Monthly dry-run notes → T3.1; Saturday's AAII drop; Tuesday evening, paste the 13 Oct close's dial line | Tue 13 Oct |
+| The operator | Sunday's Weekly read → T2.8 notes; the Monthly dry-run notes → T3.1; Saturday's AAII drop; Tuesday evening, paste the 13 Oct close's dial line | Tue 13 Oct |
 | Claude (chat) | Scenario set #1 draft (Part II.2); the system-metrics numbers (I.3); the §1-table paste for a read-only session (I.1) | Mon 12 – Tue 13 Oct |
 | Session A or B | Commit the §1 table as `docs/chester-reports-audit-4.md` §1, docs only, before the 23:30 freeze | Tue 13 Oct |

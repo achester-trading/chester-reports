@@ -3,7 +3,7 @@
 Branch `weekly-fixes-7` from `origin/main` at `de0c027` (post-friday-fixes merged).
 It merges on **Monday, after docs-batch-9**, and the Tuesday stitch carries it
 into the second chain. `writer-fixes-1` branches from its tip and merges after it.
-Nothing here is a box write; every box step is printed below for Ari.
+Nothing here is a box write; every box step is printed below for the operator.
 
 **Additions only against Monday's chain.** I ran a trial merge (`git merge-tree`,
 which writes nothing) against `docs-batch-9`, `aud-3a-catalogue`,
@@ -296,7 +296,7 @@ Gate M14.
 
 No gate reads the live store, fetches or calls a model.
 
-## Box commands, for Ari (after Monday's merge; printed, not run)
+## Box commands, for the operator (after Monday's merge; printed, not run)
 
 The self-deploy enables `chester-prices-saturday.timer` at its next tick after
 the merge, because it is in `DEPLOY_TIMERS`. To confirm, inside a window:
