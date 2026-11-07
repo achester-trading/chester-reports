@@ -536,6 +536,8 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `bank-stress-preregistration-2026-10.md` | diagnostic | n — | The bank-stress base rate — pre-registration (ST-R6.59c, Batch 12 item 59) |
 | `dealer-scorecard-preregistration-2026-10-h6.md` | diagnostic | n — | Dealer scorecard — pre-registration H6, level clusters (Batch 11 item 55) |
 | `dealer-scorecard-preregistration-2026-10.md` | diagnostic | n — | Dealer scorecard — pre-registration (6b, October 2026) |
+| `close-flow-ledger-2026-11-06.md` | diagnostic (accruing, n 0 of 20) | n 0 | Item 116's close-flow ledger -- the levered-ETF close flow's top decile against the last 30 minutes, the next open, +1 and +5 (accruing; report only) |
+| `close-flow-preregistration-2026-11.md` | diagnostic | n — | Item 116's close-flow ledger — pre-registration (98.2) |
 | `d15-ledger-2026-10-24.md` | INSUFFICIENT | n 67 | D15 ledger -- the 10-year one-day trigger's attribution against the next 5 sessions (rulings of 24 Oct 2026; report only) |
 | `false-bottom-audit-2026.md` | FAIL | n 16 | SR-8 ledger -- the false-bottom audit: the bottom side, rally by rally |
 | `fed-cycles-ledger-2026-10-19.md` | NO GATE | n 21 | FED-CYCLES ledger -- the hiking-cycle table, computed by rule |
@@ -543,6 +545,8 @@ Read from `docs/ledgers/`. "Diagnostic" is a file with no verdict: a pre-registr
 | `gex-scale-flashalpha-2026-10-09.md` | diagnostic | n — | GEX / DEX definitions against FlashAlpha — 9 Oct 2026 SPY, per-strike (read-only diagnostic) |
 | `gold-exhaustion-ledger-2026-10-26.md` | INSUFFICIENT | n 0 | The gold exhaustion checklist's ledger, first edition -- does a ticked tell mark a low (Batch 16 item 88(a); report only) |
 | `gold-exhaustion-preregistration-2026-10.md` | diagnostic | n — | The gold exhaustion checklist's ledger — pre-registration (Batch 16 item 88(a)) |
+| `hb-lv-divergence-ledger-2026-11-06.md` | NO GATE | n 9 | Item 118's high-beta / low-vol divergence against the S&P 500's next 1, 5 and 20 sessions (report only) |
+| `hb-lv-divergence-preregistration-2026-11.md` | diagnostic | n — | Item 118's high-beta / low-vol divergence — pre-registration |
 | `midterm-base-rate-2026-10-26.md` | NO GATE | n 19 | Midterm base-rate ledger -- the midterm-year table, computed from the store |
 | `midterm-base-rate-2026-10-28.md` | NO GATE | n 19 | Midterm base-rate ledger -- the midterm-year table, computed from the store |
 | `oneday-10y-preregistration-2026-10.md` | diagnostic | n — | The one-day 10-year trigger's attribution against what followed — pre-registration (D15) |
