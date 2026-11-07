@@ -96,6 +96,16 @@ def quarterly_section(st, now: str, end: str) -> Optional[dict]:
     except Exception:                                           # noqa: BLE001
         log.warning("the Themes panels faulted", exc_info=True)
         return None
+    # BATCH 22 ITEM 123 (B136): the cash-cycle scorecard, the Factor I sub-panel,
+    # as the Monthly prints it. Its treadmill flag prints with it; unscored.
+    try:
+        from altdata import cash_cycle                          # noqa: PLC0415
+        cc = cash_cycle.slow_subsection(st, now)
+        if cc:
+            subs.append({**cc, "item": "themes_cash_cycle", "tier": "reference",
+                         "data": {"panel": "cash_cycle", "rows": 0, "gaps": 0}})
+    except Exception:                                           # noqa: BLE001
+        log.warning("the cash-cycle sub-panel faulted", exc_info=True)
     gaps = sum(s["data"]["gaps"] for s in subs)
     n = sum(s["data"]["rows"] for s in subs)
     return {"id": "themes_panels", "title": cfg["title"], "subtitle": cfg.get("subtitle"),

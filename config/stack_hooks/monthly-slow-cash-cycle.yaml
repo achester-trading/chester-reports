@@ -1,0 +1,13 @@
+# Signal-triage Batch 22 item 123 (B136, 6 Nov 2026): the AI infrastructure
+# cash-cycle scorecard, Factor I's sub-panel, in the Monthly's slow layers right
+# after the AI capex chain (item 63). Eight rows and the treadmill flag; Factor I
+# input lines and a flag, no composite change. The Weekly never runs it.
+id: monthly-slow-cash-cycle
+cadence: monthly
+section: slow
+after: monthly-slow-capex-chain
+module: altdata.cash_cycle
+function: slow_subsection
+args: [st, now]
+requires: [st, now]
+returns: one

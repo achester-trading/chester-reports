@@ -259,6 +259,15 @@ def ai_lab_lines() -> list[str]:
         return [ai_lab_ledger.unit_economics_line([]), ai_lab_ledger.sr16_line([])]
 
 
+def _private_credit_line() -> str:
+    try:
+        from altdata import cash_cycle                          # noqa: PLC0415
+        return cash_cycle.private_credit_line()
+    except Exception:                                           # noqa: BLE001
+        log.warning("the private-credit window line faulted", exc_info=True)
+        return "Private-credit window (item 123 row 6): FAULT"
+
+
 def factor_lines(st, now: str) -> list[str]:
     return [
         "Factor I (funding):",
@@ -270,6 +279,9 @@ def factor_lines(st, now: str) -> list[str]:
         f"  {nt('AI share of long IG issuance', 'calc.ai_long_share')}",
         f"  {NEOCLOUD_LINE}",
         f"  {AI_CREDIT_LINE}",
+        # Batch 22 item 123 row 6 (B136; V-105c): the private-credit window,
+        # folded into SR-16's lines here and printed in the cash-cycle panel too.
+        f"  {_private_credit_line()}",
         *[f"  {x}" for x in ai_lab_lines()],
         "  " + line(st, now, "Memory line: Micron inventory days", "calc.mu_inv_days",
                     lambda v: f"{v:.0f} days", "EDGAR company concepts"),
