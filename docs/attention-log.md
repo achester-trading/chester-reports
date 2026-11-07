@@ -33,3 +33,4 @@ The Weekly reads this file for its sitting hours (out of 2) and its count of rul
 | 2026-11-06 | ruling | — | Rulings of 6 Nov, D60 (the tail-days order filed as Batch 23, item 124, SR-81 to SR-85 provisional, SR-86 reserved; D-1 to D-4), taken in chat; filed verbatim (docs/briefs/rulings-2026-11-06.md) |
 | 2026-11-06 | ruling | — | Rulings of 6 Nov, D61 (the triage chat's close-out filed as Batch 24, items 125-127, SR-87 provisional), taken in chat; filed verbatim (docs/briefs/rulings-2026-11-06.md) |
 | 2026-11-06 | ruling | — | Rulings of 6 Nov, D62 (the round-8 continuation filed as Batch 25, items 128-132, no register numbers; O-108a and O-111a at their defaults), taken in chat; filed verbatim (docs/briefs/rulings-2026-11-06.md) |
+| 2026-11-06 | ruling | — | Rulings of 6 Nov, D63 (the DTH-1 day-trading rules order filed as Addendum A to Amendment #5; D1 to D7 as recommended, D8 and D9), taken in chat; filed verbatim (docs/briefs/rulings-2026-11-06.md) |
