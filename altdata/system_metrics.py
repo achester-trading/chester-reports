@@ -118,9 +118,12 @@ def model_cost(rows: Optional[list], first_call: Optional[str]) -> dict:
             "output": sum(v[2] for v in by.values())}
 
 
-def withheld(lines: Optional[list[str]], first: str, last: str) -> dict:
+def withheld(lines: Optional[list[str]], first: str, last: str,
+             kind: str = "whole") -> dict:
     """Distinct withheld drafts (report, edition, section) in the window, from
-    the log's JSON lines. None lines (no log) is not recorded."""
+    the log's JSON lines. None lines (no log) is not recorded. A partial
+    publication (W10-1, kind "partial") is not a withheld draft: it is counted
+    only when `kind` asks for it (partials())."""
     if lines is None:
         return {"recorded": False}
     a, b = _d(first), _d(last)
@@ -134,9 +137,14 @@ def withheld(lines: Optional[list[str]], first: str, last: str) -> dict:
         if not at:
             continue
         start = at if start is None or at < start else start
-        if a <= _d(at) <= b:
+        if a <= _d(at) <= b and (r.get("kind") or "whole") == kind:
             seen.add((r.get("report"), r.get("edition"), r.get("section")))
     return {"recorded": True, "count": len(seen), "first": start}
+
+
+def partials(lines: Optional[list[str]], first: str, last: str) -> dict:
+    """Distinct sections published with sentences withheld (W10-1) in the window."""
+    return withheld(lines, first, last, kind="partial")
 
 
 # ---------------------------------------------------------------------------

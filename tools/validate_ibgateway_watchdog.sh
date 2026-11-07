@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# GATE_KIND: shell   (S1: tools/gate_list.py reads it)
 #
 # Validation gate for scripts/ibgateway_watchdog.sh.
 #

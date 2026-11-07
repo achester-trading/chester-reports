@@ -14,6 +14,10 @@ WHAT A LINE HOLDS: the instant, the report, the edition's archive name, the
 section (and sub-section) id and the audit's reason, cut to 200 characters. No
 draft text: the rejected draft stays where it always was, in the run log.
 
+ITS KIND (W10-1, D46, 31 Oct 2026): "whole", a section withheld whole, or
+"partial", a section published with k sentences withheld by the figure audit.
+A line written before W10-1 has no kind and is a whole one.
+
 WHERE. `withheld_drafts.jsonl` in the archive directory beside the editions
 (daily_cascade/deliver.archive_path). A write that fails is logged and never
 fails the run that archived the edition.
@@ -56,16 +60,38 @@ def withheld_in(ed: dict) -> list[tuple[str, str]]:
     return out
 
 
+def partial_in(ed: dict) -> list[tuple[str, str, str]]:
+    """(section id, status, "partial") for every section or sub-section the
+    edition published with sentences withheld (W10-1)."""
+    out = []
+    for s in ed.get("sections") or []:
+        if s.get("partial_withheld"):
+            out.append((str(s.get("id")), _status(s["partial_withheld"]), "partial"))
+        for ss in s.get("subsections") or []:
+            if isinstance(ss, dict) and ss.get("partial_withheld"):
+                out.append((f"{s.get('id')}/{ss.get('id') or ss.get('title')}",
+                            _status(ss["partial_withheld"]), "partial"))
+    return out
+
+
+def _status(k) -> str:
+    k = int(k)
+    return (f"published, {k} sentence{'' if k == 1 else 's'} withheld "
+            f"(figure audit)")
+
+
 def record_edition(report: str, edition: str, ed: dict,
                    archive_dir: Optional[str] = None, now: Optional[str] = None) -> int:
-    """Append one line per withheld paragraph; the number written. Never raises."""
-    return record(report, edition, withheld_in(ed), archive_dir, now)
+    """Append one line per withheld paragraph, and one per partial publication
+    (W10-1); the number written. Never raises."""
+    return record(report, edition, withheld_in(ed) + partial_in(ed), archive_dir, now)
 
 
 def record(report: str, edition: str, rows: list,
            archive_dir: Optional[str] = None, now: Optional[str] = None) -> int:
-    """Append one line per (section, reason) pair, for an edition that is not a
-    stacked edition (the anchor, the 12:30 alert). Never raises."""
+    """Append one line per (section, reason) pair -- or (section, reason, kind)
+    -- for an edition that is not a stacked edition (the anchor, the 12:30
+    alert). Never raises."""
     if not rows:
         return 0
     try:
@@ -74,10 +100,12 @@ def record(report: str, edition: str, rows: list,
         p = path(archive_dir)
         p.parent.mkdir(parents=True, exist_ok=True)
         with p.open("a", encoding="utf-8") as fh:
-            for sec, why in rows:
+            for row in rows:
+                sec, why = row[0], row[1]
+                kind = row[2] if len(row) > 2 else "whole"
                 fh.write(json.dumps({"at": at, "report": report, "edition": edition,
-                                     "section": sec, "reason": why[:200]},
-                                    sort_keys=True) + "\n")
+                                     "section": sec, "reason": why[:200],
+                                     "kind": kind}, sort_keys=True) + "\n")
         return len(rows)
     except Exception as exc:                                    # noqa: BLE001
         log.warning("withheld-drafts log not written: %s", exc)

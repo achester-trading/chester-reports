@@ -33,6 +33,8 @@ gate. It never reads the live store, fetches or calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import json
 import re
@@ -457,7 +459,7 @@ def group_e() -> None:
     md = mw.render(rows, as_of="2026-10-31")
     check(md.startswith("# Mechanism-watch register") and "| MW-0001 | Fixture Chain |" in md
           and "Never edited by hand" in md, "the rendered view (make mechanism-register)")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("mechanism-register:" in mk and "altdata.mechanism_watch render" in mk,
           "make mechanism-register renders it")
     try:
@@ -509,7 +511,22 @@ def group_f() -> None:
           "the group sits beside `queries` (G-28), every feed with its robots line")
 
 
+# THE GATE'S CLOCK (B101, 1 Nov 2026; A88's pattern). The fixture is dated NOW
+# (31 Oct 2026) and the scan is run with now=NOW, but the register stamps a draft
+# with its own wall clock (mechanism_watch._now; in production `run` is never
+# given a `now`, so the two are one instant). From 1 Nov the drafts fell outside
+# the part's (THEN, NOW] month and group D's candidate table was empty. Both
+# clocks are pinned to NOW for the gate's run only; the code keeps its rule.
+def pin_clock() -> None:
+    import datetime as dt
+    from altdata import mechanism_watch, session
+    session.utc_now = lambda: dt.datetime.fromisoformat(NOW)
+    mechanism_watch._now = lambda: NOW
+
+
 def main() -> int:
+    pin_clock()
+    print(f"the gate's clock is pinned to {NOW}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f):
         g()
     print(f"\n{PASS} passed, {FAIL} failed")

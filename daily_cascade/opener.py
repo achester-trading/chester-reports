@@ -93,16 +93,19 @@ def _figures(text: str) -> list[str]:
 
 def faults(text: Optional[str], cad: dict, depth: Optional[str],
            what: str = "the commentary") -> list[str]:
-    """The opener's shape: in band, exactly one Takeaway, last, with no
-    figure. [] off a cadence with an opener."""
+    """The opener's shape: at least the band's floor, exactly one Takeaway, last,
+    with no figure. [] off a cadence with an opener. The band's top is a TARGET
+    since D19/D20 (24 Oct 2026): a commentary over it prints in full, never
+    withheld for length; one under the floor is still sent back (too thin to
+    carry its Takeaway is a shape fault, not a length cut)."""
     b = band(cad, depth) if depth != "precis" else precis_band(cad)
     if not b:
         return []
     out = []
     n = words(text)
-    if not b[0] <= n <= b[1]:
+    if n < b[0]:
         out.append(f"{what} runs {n} words; its band is {b[0]} to {b[1]} -- "
-                   f"write {'more' if n < b[0] else 'less'}, in one paragraph")
+                   f"write more, in one paragraph")
     ss = sentences(text)
     tk = [s for s in ss if is_takeaway(s)]
     if not tk:

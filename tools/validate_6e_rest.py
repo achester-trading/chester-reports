@@ -23,6 +23,8 @@ store, fetches or calls a model. No figure here is real.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import math
 import re
@@ -273,13 +275,15 @@ def group_d(rows: list[dict]) -> None:
     head("D. THE INFLATION BLOCK: ITS PANELS, BATCH 7'S FILLED, GROUP B'S SLOT")
     from daily_cascade import inflation_block as ib
     names = [n for n, _ in ib.PANELS]
-    check(names == ["lead", "gap", "decomposition", "cpi_lenses", "ppi"]
+    # Batch 14 item 65 (a57, 23 Oct 2026) adds the AI-bottleneck PPI line, sixth
+    # and Monthly-only (tools/validate_batch14_b1.py holds it).
+    check(names == ["lead", "gap", "decomposition", "cpi_lenses", "ppi", "ai_ppi"]
           and dict(ib.PANELS)["decomposition"] is not None
           and dict(ib.PANELS)["ppi"] is ib.ppi_panel,
-          "five panels in order: item 46's decomposition and item 48's CPI lenses "
+          "six panels in order: item 46's decomposition and item 48's CPI lenses "
           "filled (6e-releases); Group B's PPI slot filled (lenses-group-b), "
-          "printing nothing while no PPI series is stored; the labour lenses left "
-          "for their own section")
+          "printing nothing while no PPI series is stored; item 65's AI-bottleneck "
+          "line; the labour lenses left for their own section")
     feat = rows + [row("calc.core_cpi_pce_gap", m, 0.3 - 0.1 * i)
                    for i, m in enumerate(months(dt.date(2026, 1, 1), 9))]
     with store("infl", feat) as st:
@@ -348,7 +352,7 @@ def group_f() -> None:
           and "lens_cells.lens_table(" in ws and 'out["completeness"]' in pl,
           "the hooks: the features pass, the Weekly's Plumbing, the Monthly v2 appendix")
     cat = (REPO / "config" / "catalogue_commands.yaml").read_text(encoding="utf-8")
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("altdata.macro_6e:" in cat and "tools/validate_6e_rest.py" in mk,
           "the catalogue names the command; the Makefile the gate")
     src = "".join((REPO / p).read_text(encoding="utf-8") for p in (

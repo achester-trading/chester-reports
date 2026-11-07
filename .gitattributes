@@ -24,3 +24,13 @@ docs/interface/*  text eol=lf
 # is pinned in the change order's step 0), so no checkout may rewrite its line
 # endings: -text keeps the committed LF bytes on a Windows checkout too.
 tests/fixtures/alpha/inbox/**   -text
+
+# FILES WHOSE SHA-256 A GATE OR A RECORD PINS (D42.6, ruled 28 Oct 2026; B85).
+# A pin is a hash of the committed LF bytes; a Windows checkout under
+# core.autocrlf=true rewrote them with CRLF, so a gate that hashes the file as it
+# stands (validate_batch15_1 on the Batch 15 order, B83) failed on the laptop
+# alone. Every change order and every ledger is LF on every machine, and so are
+# the two pinned files outside those folders.
+docs/change-order-*.md          text eol=lf
+docs/ledgers/**                 text eol=lf
+config/alpha_constitution.yaml  text eol=lf

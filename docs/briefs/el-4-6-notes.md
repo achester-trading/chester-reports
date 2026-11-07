@@ -54,7 +54,7 @@ That fix is the operator's to choose (needs-you 1):
 
 One related finding, older than this line: CLAUDE.md says the voices scan identifies itself "with the EDGAR contact", which `altdata/sources/edgar.py` says is used for sec.gov only. On the box, that contact reaches every voices source. That is needs-you 2.
 
-**The notes no longer name the operator.** The four notes files (`6b-dealer-1`, `-2`, `-3`, `vol-event-52`) said "Ari" in nine places; they now say "the operator" (`4cd0e9f`). This file names no person.
+**The notes no longer name the operator.** The four notes files (`6b-dealer-1`, `-2`, `-3`, `vol-event-52`) said "the operator" in nine places; they now say "the operator" (`4cd0e9f`). This file names no person.
 
 ## The rulings of 17 Oct, applied
 

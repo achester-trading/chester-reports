@@ -5,7 +5,7 @@
 #
 # Every value below is the ORDER'S where the order gives one, and SESSION-SET
 # (16 Oct 2026, session B, branch st-r4-tranche-1b) where it does not, with its
-# reason beside it. The session-set ones are listed for Ari in
+# reason beside it. The session-set ones are listed for the operator in
 # docs/briefs/st-r4-tranche-1b-notes.md.
 version: 1
 
@@ -62,7 +62,7 @@ vol_divergence:
   move: yfinance.mkt_move
   vix: yfinance.mkt_vix
   # THE ORDER'S: z over a one-year rolling window (verify item 3: as ruled, not
-  # re-read from Dashiell's post), percentile ranks beside z.
+  # re-read from the Schwab post), percentile ranks beside z.
   window_sessions: 252
   # The window must be at least this full to compute (session-set: 90% of it).
   min_sessions: 227

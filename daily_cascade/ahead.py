@@ -544,6 +544,12 @@ def build(cal: Optional[dict], p: dict, pos: Optional[dict], now: str,
     if absent:
         notes.append("Hand-seeded calendars not present on this branch: "
                      + ", ".join(absent) + ".")
+    # A102: once earnings_dates is switched to EDGAR no forward date is stored
+    # (no keyless source); the table says so once. Unswitched, None: no line.
+    from altdata import price_sources as _ps                    # noqa: PLC0415
+    _gap = _ps.gap("earnings_dates", "next_date")
+    if _gap:
+        notes.append(f"Earnings: {_gap}.")
     return {"table": table, "rows": rows, "top": top, "playbook": playbook,
             "reference": reference, "collapsed": lines, "notes": notes,
             "routine_count": len(routine)}

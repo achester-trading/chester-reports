@@ -46,6 +46,8 @@ A CODE GATE: it reads the repo only, never the store or the box.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import re
 import shlex
 import sys

@@ -75,7 +75,7 @@ from altdata import derived, observations, session
 REPO = Path(__file__).resolve().parent
 CONFIG_PATH = REPO / "config" / "market_state.yaml"
 
-SCHEMA_VERSION = "market-state-v1"
+SCHEMA_VERSION = "market-state-v2"
 STORE_KEY = "market_state"
 
 # ---------------------------------------------------------------------------
@@ -99,7 +99,22 @@ STORE_KEY = "market_state"
 # under. So the modules that decide the object's content are hashed, the hash is
 # pinned here, and validate_regime.py FAILS when the two disagree. The message it
 # prints is the whole mechanism: bump the version, update the hash, re-backfill.
-METHOD_VERSION = "market-state-method-8"
+METHOD_VERSION = "market-state-method-11"
+#
+# method-11 (24 Oct 2026, 6f tranches 1, 3 and 5; ruled D27; config v2.0): THE
+# OBJECT v2. Five new dimensions banded on one primary each, with three new ways a
+# dimension may be declared -- a member TRANSFORM (change_12m_pct: positioning's
+# margin debt, ranked as its change on a year earlier), a FULL-HISTORY window with
+# the five-year read beside it (valuation, ruling 4a), and ABSOLUTE bands on the
+# primary's level where the series has a natural zero (funding_stress, policy;
+# ruling 3a), members then judged on their own percentiles -- and two declared
+# NOT BUILDABLE with their reasons (earnings, geopolitical). Three new report-only
+# blocks: `horizons` (the trend dimension's members at the three book horizons,
+# persistence 2), `tail_families` (the Twenty-Five's seven, never summed,
+# probability none) and `debt_cycle_branch` (state none, observables read-only).
+# The contradiction table closes a row on two failing sessions, as it opens on
+# two (the symmetric close ruled for v1.13). schema_version is market-state-v2.
+# method-9 and method-10 stay retired: this is the next number after 8.
 #
 # method-8 (26 Sep 2026): AN ABSENCE CITES DATA; A FAULT IS A FAULT. Pair 4's
 # probability-ledger read had never run -- it asked for a class the ledger does not
@@ -139,7 +154,7 @@ METHOD_SOURCE_FILES = ("regime.py", "contradictions.py")
 
 # Updated in the same commit as the version above. Recompute with:
 #   python -m regime method --update
-METHOD_SOURCE_SHA = "9a9404d42ced31c6"
+METHOD_SOURCE_SHA = "1664e465a940aadc"
 
 # Fields that are PROVENANCE, not content. An exact replay compares everything
 # else: the compute instant and the code revision necessarily differ between the
@@ -235,12 +250,63 @@ def band_state(pct: Optional[float], bands: list[dict]) -> Optional[str]:
     return None
 
 
+# A FULL-HISTORY WINDOW, in calendar days (ruling 4a): every stored observation.
+FULL_WINDOW_DAYS = 365 * 200
+CHANGE_12M_TOLERANCE_DAYS = 45      # how far from 365 days "a year earlier" may sit
+
+
+def change_12m(points: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """Each observation's change on the observation nearest a year earlier (within
+    CHANGE_12M_TOLERANCE_DAYS), in percent. Oldest first, as given."""
+    import bisect
+    days = [dt.date.fromisoformat(str(d)[:10]) for d, _ in points]
+    out = []
+    for i, (d, v) in enumerate(points):
+        target = days[i] - dt.timedelta(days=365)
+        j = bisect.bisect_left(days, target)
+        cands = [k for k in (j - 1, j) if 0 <= k < i]
+        if not cands:
+            continue
+        k = min(cands, key=lambda c: abs((days[c] - target).days))
+        if abs((days[k] - target).days) > CHANGE_12M_TOLERANCE_DAYS or not points[k][1]:
+            continue
+        out.append((str(d)[:10], round((v / points[k][1] - 1.0) * 100.0, 6)))
+    return out
+
+
+def _transformed(spec: dict, d: dict, as_of: str, window: int,
+                 store: observations.ObservationStore) -> dict:
+    """A member read through its declared transform: the level, percentile and
+    rate of change are the transformed series'; staleness, confidence and the
+    observation date stay the stored series' own."""
+    metric, inst = str(spec.get("metric")), spec.get("instrument")
+    pts = derived.series_as_of(metric, as_of, window=window + 400, store=store,
+                               instrument=inst)
+    ser = change_12m(pts)
+    if not ser:
+        return dict(d, level=None, percentile=None, rate_of_change=None,
+                    delta_unit="pp", absent_reason=(
+                        f"{metric}: no observation a year before another to take a "
+                        f"twelve-month change from"))
+    first = (dt.date.fromisoformat(ser[-1][0]) - dt.timedelta(days=window)).isoformat()
+    vals = [v for day, v in ser if day > first]
+    pct = derived.percentile_of(vals, ser[-1][1])
+    roc = None if len(ser) < 2 else round(ser[-1][1] - ser[-2][1], 6)
+    return dict(d, level=ser[-1][1], percentile=pct, rate_of_change=roc,
+                delta_unit="pp", n=len(vals), transform="change_12m_pct")
+
+
 def score_member(spec: dict, as_of: str, window: int,
                  store: observations.ObservationStore) -> dict:
     metric = str(spec.get("metric"))
     polarity = int(spec.get("polarity", 1))
-    d = derived.derived_forms(metric, as_of, window=window, store=store)
+    d = derived.derived_forms(metric, as_of, window=window, store=store,
+                              instrument=spec.get("instrument"))
+    if spec.get("transform") == "change_12m_pct" and d.get("level") is not None:
+        d = _transformed(spec, d, as_of, window, store)
     return {
+        "instrument": spec.get("instrument"),
+        "transform": spec.get("transform"),
         "metric": metric,
         "polarity": polarity,
         "because": spec.get("because"),
@@ -267,10 +333,22 @@ def score_member(spec: dict, as_of: str, window: int,
 # ---------------------------------------------------------------------------
 # One dimension
 # ---------------------------------------------------------------------------
+def band_state_value(value: Optional[float], bands: list[dict]) -> Optional[str]:
+    """First declared ABSOLUTE band whose min_value the level reaches (ruling 3a)."""
+    if value is None:
+        return None
+    for b in bands:
+        if value >= float(b.get("min_value", float("-inf"))):
+            return str(b.get("state"))
+    return None
+
+
 def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
                       store: observations.ObservationStore) -> dict:
-    window = int(spec.get("window_days") or defaults.get("window_days")
-                 or derived.DEFAULT_WINDOW_DAYS)
+    full = spec.get("window_days") == "full"
+    window = (FULL_WINDOW_DAYS if full else
+              int(spec.get("window_days") or defaults.get("window_days")
+                  or derived.DEFAULT_WINDOW_DAYS))
     multiple = float(spec.get("staleness_multiple")
                      or defaults.get("staleness_multiple") or 3)
     persistence = int(spec.get("persistence_sessions")
@@ -291,6 +369,17 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
         "supporting": [], "contradicting": NONE_FOUND,
         "members": [],
     }
+    if full:
+        out["window_days"] = "full"
+    absolute = spec.get("band_mode") == "absolute"
+    if absolute:
+        out["band_mode"] = "absolute"
+    # NOT BUILDABLE (rulings 1a, 5a): declared, absent, and saying what it waits for.
+    if spec.get("buildable") is False:
+        out["not_buildable"] = True
+        out["absent_reason"] = " ".join(str(spec.get("not_buildable_reason")
+                                            or "not buildable yet").split())
+        return out
     if not members or not bands:
         out["absent_reason"] = (
             f"{name} declares no {'members' if not members else 'bands'} in "
@@ -335,9 +424,22 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
         out["stalest_observation"] = primary["observed_at"]
         return out
 
-    raw_state = band_state(primary["percentile"], bands)
+    raw_state = (band_state_value(primary["level"], bands) if absolute
+                 else band_state(primary["percentile"], bands))
     out["raw_state"] = raw_state
     out["percentile"] = primary["percentile"]
+    if absolute:
+        out["level"] = primary["level"]
+        out["band_basis"] = (f"absolute bands on {primary['metric']}'s level "
+                             f"({primary['level']})")
+    # THE FIVE-YEAR READ BESIDE A FULL-HISTORY ONE (ruling 4a).
+    if spec.get("also_window_days"):
+        aw = int(spec["also_window_days"])
+        m5 = score_member(members[0], as_of, aw, store)
+        out["percentile_5y"] = m5["percentile"]
+        out["percentile_window_note"] = (
+            f"the state is banded on the full stored history (n={primary['n']}); "
+            f"the {aw}-day read is {m5['percentile']}")
     out["rate_of_change"] = primary["rate_of_change"]
     roc = primary["rate_of_change"]
     if roc is None:
@@ -356,10 +458,11 @@ def compute_dimension(name: str, spec: dict, as_of: str, defaults: dict,
     # RULE 2. Supporting and contradicting are metric ids, and contradicting is
     # never empty by omission.
     supporting, contradicting = [], []
+    mbands = spec.get("member_bands") or bands
     for m in scored[1:]:
         if m["percentile"] is None:
             continue
-        their = band_state(m["percentile"], bands)
+        their = band_state(m["percentile"], mbands)
         (supporting if their == raw_state else contradicting).append(m["metric"])
     out["supporting"] = supporting
     out["contradicting"] = contradicting if contradicting else NONE_FOUND
@@ -807,6 +910,92 @@ def dial_gamma(cfg: dict, session_date: str,
 # ---------------------------------------------------------------------------
 # The object
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# v2.0: the per-horizon reads, the tail families, the debt-cycle branch
+# ---------------------------------------------------------------------------
+def compute_horizons(cfg: dict, as_of: str, day: str, defaults: dict,
+                     history: list[dict],
+                     store: observations.ObservationStore) -> dict:
+    """The trend dimension's members at the three book horizons (the spec's
+    section 6), banded 66/33, persistence as a dimension's. Report only."""
+    bands = cfg.get("horizon_bands") or []
+    window = int(defaults.get("window_days") or derived.DEFAULT_WINDOW_DAYS)
+    multiple = float(defaults.get("staleness_multiple") or 3)
+    past = [{"dimensions": o.get("horizons") or {}} for o in history]
+    out: dict[str, dict] = {}
+    for h, spec in (cfg.get("horizons") or {}).items():
+        m = score_member({"metric": spec.get("metric"), "polarity": 1}, as_of,
+                         window, store)
+        d: dict[str, Any] = {"horizon": h, "metric": spec.get("metric"),
+                             "book": spec.get("book"),
+                             "sessions": spec.get("sessions"),
+                             "persistence_sessions": int(
+                                 defaults.get("persistence_sessions") or 2),
+                             "percentile": m["percentile"], "state": None,
+                             "as_of_session": day}
+        own = m["staleness_allowance_sessions"]
+        limit = None if own is None else int(round(own * multiple))
+        if m["percentile"] is None:
+            d["absent_reason"] = f"no observation for {spec.get('metric')} knowable at {as_of}"
+        elif (m["staleness_sessions"] is not None and limit is not None
+              and m["staleness_sessions"] > limit):
+            d["absent_reason"] = (f"{spec.get('metric')} was last observed "
+                                  f"{m['observed_at']}, past its allowance of {limit}")
+        else:
+            d["raw_state"] = band_state(m["percentile"], bands)
+        apply_persistence(d, h, past)
+        out[h] = d
+    return out
+
+
+def tail_families(cfg: dict, as_of: str,
+                  store: observations.ObservationStore) -> list[dict]:
+    """The Twenty-Five's mechanism families, one row each, never summed (ruling
+    10a). State from the first movers' extreme flags; probability none."""
+    tc = cfg.get("tail_families") or {}
+    rows = []
+    for f in tc.get("families") or []:
+        reads = []
+        for metric in f.get("first_movers") or []:
+            d = derived.derived_forms(metric, as_of, store=store)
+            reads.append({"metric": metric, "percentile": d.get("percentile"),
+                          "extreme": d.get("extreme"),
+                          "observed_at": d.get("observed_at")})
+        read = [x for x in reads if x["percentile"] is not None]
+        state = ("not read" if not read else
+                 "watch" if any(x["extreme"] for x in read) else "quiet")
+        rows.append({
+            "family": f.get("id"), "name": f.get("name"),
+            "scenarios": f.get("scenarios"), "state": state,
+            "state_rule": " ".join(str(tc.get("state_rule") or "").split()),
+            "first_movers": reads,
+            "unread": [x["metric"] for x in reads if x["percentile"] is None],
+            "probability": None,
+            "probability_reason": " ".join(str(tc.get("probability_reason")
+                                               or "none").split()),
+            "brier_to_date": None,
+            "brier_reason": "none: no probability emitted",
+            "rights": "report_only"})
+    return rows
+
+
+def debt_cycle_branch(cfg: dict, as_of: str,
+                      store: observations.ObservationStore) -> dict:
+    """state none (ruling 11a): the observables, read-only, each a level with its
+    five-year percentile. The rule that decides is Paper XXVII's."""
+    dc = cfg.get("debt_cycle_branch") or {}
+    obs = []
+    for o in dc.get("observables") or []:
+        d = derived.derived_forms(o.get("metric"), as_of, store=store)
+        obs.append({"metric": o.get("metric"), "label": o.get("label"),
+                    "level": d.get("level"), "percentile_5y": d.get("percentile"),
+                    "observed_at": d.get("observed_at")})
+    return {"state": None, "confidence": None,
+            "reason": " ".join(str(dc.get("reason") or "none").split()),
+            "branches": dc.get("branches") or [], "observables": obs,
+            "rights": "report_only"}
+
+
 def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
             store: Optional[observations.ObservationStore] = None,
             cfg: Optional[dict] = None,
@@ -890,6 +1079,13 @@ def compute(as_of: Optional[str] = None, session_day: Optional[str] = None,
         obj["contradictions"] = contradictions_mod.evaluate(
             cfg, dims, obj["dials"], cutoff, day, history, st)
         obj["exceptions"] = exceptions_of(obj)
+        # v2.0, REPORT ONLY (the spec's sections 4 to 6): no dial, band, packet or
+        # engine reads these three.
+        obj["horizons"] = compute_horizons(cfg, cutoff, day, defaults, history, st)
+        obj["tail_families"] = tail_families(cfg, cutoff, st)
+        obj["debt_cycle_branch"] = debt_cycle_branch(cfg, cutoff, st)
+        obj["not_buildable_dimensions"] = sorted(
+            n for n, d in dims.items() if d.get("not_buildable"))
         obj["absent_dimensions"] = sorted(
             n for n, d in dims.items() if d.get("state") is None)
         obj["open_contradictions"] = sorted(

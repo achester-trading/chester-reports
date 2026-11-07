@@ -33,6 +33,8 @@ WHAT IT ENFORCES, and why each one is the thing that would otherwise rot:
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import re
 import sys
@@ -117,6 +119,7 @@ def group_b(reg: dict) -> None:
             problems.append((cid, f"review_date {r} is not after date {d}"))
     check(not problems, "every date parses and every review date follows its claim"
                         + (f" -- {problems}" if problems else ""))
+    # THE GATE'S CLOCK (B106): reads today on purpose -- the real claims register against today (no claim dated in the future). Next attention: none.
     future = [cid for cid, c in reg["claims"].items()
               if (claims._as_date(c.get("date")) or dt.date(1900, 1, 1))  # noqa: SLF001
               > dt.date.today()]

@@ -312,3 +312,8 @@ For the record, and because the paper's examples should be reproducible:
 - **Expected** — fills at Tuesday's open on any flat tape (limit above Friday's close); commission $1.00 (Fixed minimum); Portfolio Truth catches the position on its first Tuesday sync. **Expected first grades:** thesis pending; expression *poor* (entry above the level the thesis wanted to buy toward); size *under tier* (100 vs a computed 219); cost model *verified or corrected* on the first fill.
 
 That is one decision. The paper's claim is that it is graded from birth, that its inputs can be replayed, that its rule compliance is counted, and that the next one will be measured against it. Everything else in the book is the machinery that makes that claim true at scale.
+
+## References
+
+- Jansen, S. *Machine Learning for Algorithmic Trading*, 3rd edition; code at github.com/stefan-jansen/machine-learning-for-trading. The core reference for validating a systematic book (Batch 16 item 91(e)).
+- Kakushadze, Z. and Serur, J. A. (2018). *151 Trading Strategies*. Palgrave Macmillan, Cham; free on SSRN, 3247865. The Alpha Lab's family taxonomy: every hypothesis's `family_ref` names one of its sections (Batch 19 item 99(c); `config/alpha_families.yaml`).

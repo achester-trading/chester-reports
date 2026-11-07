@@ -45,6 +45,9 @@ lines drift). The gate:
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it (A132: main's
+                     # Makefile no longer lists gates, so the declaration keeps this one in)
+
 import ast
 import sys
 from collections import Counter

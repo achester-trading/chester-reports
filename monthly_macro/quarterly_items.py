@@ -63,9 +63,11 @@ AQ7 = "not yet — the quarterly scan (AQ-7)"
 
 
 def load_config(path: Optional[Path] = None) -> dict:
+    """The chapters' config, its "price:" references resolved (A96)."""
     import yaml  # noqa: PLC0415
+    from altdata import price_sources  # noqa: PLC0415
     with Path(path or CONFIG_PATH).open(encoding="utf-8") as fp:
-        return yaml.safe_load(fp) or {}
+        return price_sources.resolve_tree(yaml.safe_load(fp) or {})
 
 
 def family_config(fam_id: str, cfg: Optional[dict] = None) -> Optional[dict]:
@@ -488,6 +490,14 @@ def structure_chart(st, spec: dict, cid: str, ctx: dict) -> dict:
         ax.plot(x0, [v for _, v in p0], color=colours[0], linewidth=0.9,
                 label=s0["label"])
         ax.set_ylabel(s0["label"], fontsize=7, color=colours[0])
+        # A96: a leg whose price family has switched sources ends at the switch;
+        # the change is marked, never spliced (altdata/price_sources.py).
+        from altdata import price_sources as ps  # noqa: PLC0415
+        for s, _ in legs:
+            on = ps.switch_date_of(str(s.get("key") or ""))
+            if on:
+                ax.axvline(dt.date.fromisoformat(on), color="#898781", linewidth=0.8,
+                           linestyle="--")
         if len(legs) > 1:
             s1, p1 = legs[1]
             tgt = ax.twinx() if spec.get("kind") == "twin" else ax
@@ -693,6 +703,15 @@ def structure_rows(st, specs: list[dict], ctx: dict) -> tuple[list, list, dict]:
         s, why = resolve_hook(raw)
         if s is None:
             nt.append(f"{raw['label']}: {why}")
+            continue
+        if s.get("harness_overlay"):
+            # 6i-4: the T&B harness's overlay at the quarter's end (report-only).
+            from daily_cascade import tb_harness_block              # noqa: PLC0415
+            txt, asof, why = tb_harness_block.quarterly_row(st, s["harness_overlay"], ctx)
+            if txt is None:
+                nt.append(f"{s['label']}: {why}")
+            else:
+                rws.append([s["label"], f"{txt} ({asof})", "—", "—", five])
             continue
         if s.get("rel_return") or s.get("corr"):
             txt, asof, why = computed_value(st, s, ctx)
@@ -1041,7 +1060,7 @@ def _quarter_ends(end: str, n: int) -> list[str]:
 def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
     end = ctx["end"]
     if kind == "quarters_negative":
-        pts = rows(st, p["series"], ctx["now"], None, end)
+        pts = rows(st, p["series"], ctx["now"], p.get("instrument"), end)
         ends = _quarter_ends(end, int(p["quarters"]))
         lv = [level_on(pts, e) for e in ends]
         if any(x is None for x in lv):
@@ -1065,7 +1084,8 @@ def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
                 "evidence": f"{p['series']} annualised {pace:,.0f} against "
                             f"{p['below']:,}"}
     if kind == "change_below":
-        m = quarter_move(st, {"key": p["series"], "label": p["series"]}, ctx)
+        m = quarter_move(st, {"key": p["series"], "label": p["series"],
+                              "instrument": p.get("instrument")}, ctx)
         if not m or m.get("change") is None:
             return {"met": None, "missing": f"{p['series']}: no change over the quarter"}
         return {"met": m["change"] < float(p["below"]), "strained": False,
@@ -1104,7 +1124,8 @@ def _leaf(st, kind: str, p: dict, ctx: dict) -> dict:
                 "strained": r <= float(p.get("strained_at_most", p["at_most"])),
                 "evidence": f"{w}-session correlation {r:+.2f}"}
     if kind == "change_above":
-        m = quarter_move(st, {"key": p["series"], "label": p["series"]}, ctx)
+        m = quarter_move(st, {"key": p["series"], "label": p["series"],
+                              "instrument": p.get("instrument")}, ctx)
         if not m or m.get("change") is None:
             return {"met": None, "missing": f"{p['series']}: no change over the quarter"}
         tag = f" ({p['label']})" if p.get("label") else ""
@@ -1669,8 +1690,8 @@ def _cases(case_key: Optional[str]) -> Optional[dict]:
     return (cp.CASES_AND_POSITIONING.get(case_key) or {}).get("cases")
 
 
-def _latest(st, key: str, ctx: dict) -> Optional[dict]:
-    got = [r for r in st.as_of(key, ctx["now"], None)
+def _latest(st, key: str, ctx: dict, inst: Optional[str] = None) -> Optional[dict]:
+    got = [r for r in st.as_of(key, ctx["now"], inst)
            if r.get("value_num") is not None
            and str(r["observed_at"])[:10] <= ctx["end"]]
     return max(got, key=lambda r: str(r["observed_at"])) if got else None
@@ -1704,8 +1725,11 @@ def coin_page(st, coin: dict, fam: dict, ctx: dict, states: dict) -> dict:
             txt = "; ".join(used) or "no stored series on this page"
         elif spec.get("keys"):
             vals = []
+            # `instruments` maps a key to its instrument (a coin, a chain), so
+            # `keys` stays a list of registry keys (6i-1)
+            inst = spec.get("instruments") or {}
             for k in spec["keys"]:
-                r = _latest(st, k, ctx)
+                r = _latest(st, k, ctx, inst.get(k))
                 if r is None:
                     vals.append(f"{k}: nothing stored")
                     continue
