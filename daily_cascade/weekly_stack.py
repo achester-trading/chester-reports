@@ -293,6 +293,10 @@ def mechanics_week(st, sessions: list[str], cutoff: str, wis: dict,
         subs.append(tl)
     # 6f TRANCHE 2 (a63): the dials' transition table.
     subs += state_v2_block.calibration_subsection(st, cutoff)
+    # SIGNAL-TRIAGE BATCH 23 ITEM 124c(i) (B134): the week's vol-state deciles,
+    # one row (daily_cascade/vol_state_block.py).
+    from . import vol_state_block                               # noqa: PLC0415
+    subs += vol_state_block.weekly_subsection(st, cutoff, sessions)
     # 6b PART 3: T3, T2 per horizon, the registered hypotheses, the vendor line
     # and the four sentences' facts -- when the payload names the profiles.
     dealer_add = {}

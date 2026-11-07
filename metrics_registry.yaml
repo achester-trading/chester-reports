@@ -557,6 +557,9 @@ vocabularies:
     # Trend breadth (Batch 16 item 89(b), B76): one mechanism, however many
     # markets and lookbacks -- sixty-four signs are one reading of the closes.
     - trend_breadth
+    # The vol-state read (Batch 23 item 124c(i), B134): five volatility inputs'
+    # percentiles and their declared decile -- one reading, however many keys.
+    - vol_state
     # Batch 4 Tranche A part 1 (17 Oct 2026): crypto perp leverage (funding,
     # open interest, long/short across the venues) and Bitcoin's and Ethereum's
     # network state (hashrate, fees, gas).
@@ -17744,6 +17747,102 @@ metrics:
       the market's last five sessions), percent. Its calibration ledger is
       docs/ledgers/trend-breadth-2026-10-26.md, pre-registered; no rights until it
       is read. Barred from the market-state object.
+  calc.vol_state.decile:
+    source: calc
+    mechanism_group: vol_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    family: quantity
+    trigger_eligible: false
+    long_window: full
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124c(i) (B134; altdata/vol_state.py): the vol-state decile, 1 to 10, the bin of the unweighted mean of the available input percentiles (config/vol_state.yaml, session-set; no weight fitted). Calibrated from 1990 in docs/ledgers/vol-state-calibration-2026-11.md. A daily line and the sizing input to item 124g through vol_state_k; barred from the market-state object.
+  calc.vol_state.vix_pct:
+    source: calc
+    mechanism_group: vol_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    family: ratio
+    trigger_eligible: false
+    long_window: full
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124c(i) (B134; altdata/vol_state.py): VIX (FRED VIXCLS, Yahoo's ^VIX on the close's own day), as a percentile over its own history to the day (expanding, point in time; 252 values needed). One of the vol state's five inputs; barred from the market-state object.
+  calc.vol_state.rv20_pct:
+    source: calc
+    mechanism_group: vol_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    family: ratio
+    trigger_eligible: false
+    long_window: full
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124c(i) (B134; altdata/vol_state.py): the S&P 500's 20-day realised vol, annualised, as a percentile over its own history to the day (expanding, point in time; 252 values needed). One of the vol state's five inputs; barred from the market-state object.
+  calc.vol_state.term_pct:
+    source: calc
+    mechanism_group: vol_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    family: ratio
+    trigger_eligible: false
+    long_window: full
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124c(i) (B134; altdata/vol_state.py): VIX over VIX3M, from 2007, as a percentile over its own history to the day (expanding, point in time; 252 values needed). One of the vol state's five inputs; barred from the market-state object.
+  calc.vol_state.vvix_pct:
+    source: calc
+    mechanism_group: vol_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    family: ratio
+    trigger_eligible: false
+    long_window: full
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124c(i) (B134; altdata/vol_state.py): VVIX, from 2012, as a percentile over its own history to the day (expanding, point in time; 252 values needed). One of the vol state's five inputs; barred from the market-state object.
+  calc.vol_state.bigmove_pct:
+    source: calc
+    mechanism_group: vol_state
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: percentile
+    family: ratio
+    trigger_eligible: false
+    long_window: full
+    added_date: "2026-11-06"
+    description: >-
+      Batch 23 item 124c(i) (B134; altdata/vol_state.py): the count of |return| >= 2% sessions among the last 20, as a percentile over its own history to the day (expanding, point in time; 252 values needed). One of the vol state's five inputs; barred from the market-state object.
 
 bulk_imports:
 
@@ -20859,6 +20958,9 @@ market_state_barred:
   - order: docs/change-order-signal-triage-round-7-2026-10-26.md (Batch 16 item 89(b), written as 82(b); B76)
     rule: "trend breadth is a report; it enters the Top & Bottom intake queue only after its calibration ledger is read"
     keys: ["trend.*"]
+  - order: docs/change-order-signal-triage-batch-23-2026-11-06.md (item 124c(i), the order's 106c(i); B134)
+    rule: "the vol state is a daily line and the sizing input to item 124g; no regime, no dial, no composite"
+    keys: ["calc.vol_state.*"]
   - order: the 6i brief's decision 6 (25 Oct 2026; 6i-3, A79)
     rule: "the T&B harness's long credit proxy: report only; nothing enters a composite, the market-state object, a dial, a band or a packet"
     keys: ["fred.dbaa", "fred.baa", "calc.baa_less_10y", "calc.baa_less_10y_m"]

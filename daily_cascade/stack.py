@@ -1043,6 +1043,11 @@ def build(p: dict, book: dict, outlook_rows: list[dict],
         # (daily_cascade/batch14_b1_block.py; tables and lines only).
         from . import batch14_b1_block                          # noqa: PLC0415
         batch14_b1_block.close_extras(built, st, p["session"], cutoff, screen)
+        # SIGNAL-TRIAGE BATCH 23 ITEM 124c(i) (B134): the vol-state read, one
+        # block after item 52's (and item 65's), every session; the sizing input
+        # to item 124g (daily_cascade/vol_state_block.py; lines and a table).
+        from . import vol_state_block                           # noqa: PLC0415
+        vol_state_block.close_extras(built, st, cutoff)
         # SIGNAL-TRIAGE BATCH 15 ITEM 73 (a58, 23 Oct 2026): the gold event's and
         # the developed-market drawdown's flag lines in the event area, on a
         # fired day only (daily_cascade/batch15_a_block.py; lines only).
