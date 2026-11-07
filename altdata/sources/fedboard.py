@@ -40,6 +40,7 @@ import io
 import logging
 from typing import Optional
 
+from .. import observations
 from . import _publication as pub
 from ._base import http_get_response
 
@@ -136,9 +137,22 @@ def pull(run_id: Optional[str] = None, db=None) -> dict:
 #   tic.fima_repo_weekavg  week average         decision 4, 6 Oct 2026)
 SOURCE_H41 = "frb_h41"
 H41_LASTOBS = 520
-URL_H41 = ("https://www.federalreserve.gov/datadownload/Output.aspx?rel=H41&"
-           f"series=f52e72511be65e16f71d4f5858951312&lastobs={H41_LASTOBS}&from=&to=&"
-           "filetype=csv&label=include&layout=seriescolumn&type=package")
+# INCREMENTAL ONCE HELD (A71, the audit's leftovers; audit-leftovers-1's one-line
+# follow-up): with the FIMA keys already stored, the package is asked for its
+# last H41_HELD_LASTOBS Wednesdays -- the newest week and seven before it, the
+# stated overlap, which covers the releases' own restatements of recent weeks.
+# The full ten years only when nothing is held. SESSION-SET.
+H41_HELD_LASTOBS = 8
+URL_H41_FMT = ("https://www.federalreserve.gov/datadownload/Output.aspx?rel=H41&"
+               "series=f52e72511be65e16f71d4f5858951312&lastobs={lastobs}&from=&to=&"
+               "filetype=csv&label=include&layout=seriescolumn&type=package")
+URL_H41 = URL_H41_FMT.format(lastobs=H41_LASTOBS)
+
+
+def h41_url(held: bool) -> str:
+    """The package's URL: the stated overlap once the keys are held, else the full
+    window."""
+    return URL_H41_FMT.format(lastobs=H41_HELD_LASTOBS if held else H41_LASTOBS)
 H41_COLUMNS = {"H41/H41/RESPPALGTRF_N.WW": "tic.fima_repo",
                "H41/H41/RESPPALGTRF_XAW_N.WW": "tic.fima_repo_weekavg"}
 KEYS_H41 = ["tic.fima_repo", "tic.fima_repo_weekavg"]
@@ -192,15 +206,30 @@ def h41_rows_from_csv(text: str, available_at: str, kind: str,
     return out
 
 
-def _produce_h41(absent: Optional[dict] = None) -> list[dict]:
-    data, headers = http_get_response(URL_H41, timeout=90)
+def _h41_held(db=None) -> bool:
+    """Whether every FIMA key already has a stored row."""
+    own = db is None
+    try:
+        store = db or observations.open_writer(__name__)
+    except Exception:                                           # noqa: BLE001
+        return False
+    try:
+        newest = pub.newest_observed(store, KEYS_H41)
+        return all(newest.get(k) for k in KEYS_H41)
+    finally:
+        if own:
+            store.close()
+
+
+def _produce_h41(absent: Optional[dict] = None, db=None) -> list[dict]:
+    data, headers = http_get_response(h41_url(_h41_held(db)), timeout=90)
     return h41_rows_from_csv(data.decode("utf-8", errors="replace"),
                              *pub.availability(headers), absent=absent)
 
 
 def pull_h41(run_id: Optional[str] = None, db=None) -> dict:
     absent: dict = {}
-    out = pub.run(SOURCE_H41, KEYS_H41, lambda: _produce_h41(absent),
+    out = pub.run(SOURCE_H41, KEYS_H41, lambda: _produce_h41(absent, db),
                   run_id=run_id, db=db)
     if absent:
         out["absent"] = absent

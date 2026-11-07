@@ -615,15 +615,15 @@ is rclone crypt under a separate account).
 
 ### Where it goes, and how it is encrypted
 
-Three settings, **all in `.env` on the box** (Ari's write; their values never
+Three settings, **all in `.env` on the box** (the operator's write; their values never
 appear in this repo, in `rclone.conf`, or in a transcript):
 
 | Variable | What it is |
 |---|---|
 | `CHESTER_RCLONE_BACKUP_REMOTE` | the Drive remote on the **separate backup account**, and its folder, e.g. `chesterbak:chester-backups` |
-| `CHESTER_RCLONE_CRYPT_PASSWORD` | the crypt password (also in Ari's password manager, off the box) |
+| `CHESTER_RCLONE_CRYPT_PASSWORD` | the crypt password (also in the operator's password manager, off the box) |
 | `CHESTER_RCLONE_CRYPT_SALT` | the crypt salt, rclone's "password2" (likewise) |
-| `CHESTER_RCLONE_INBOX_REMOTE` | the remote the inbound files are read from: Ari's **main** Drive, through a **read-only** token |
+| `CHESTER_RCLONE_INBOX_REMOTE` | the remote the inbound files are read from: the operator's **main** Drive, through a **read-only** token |
 
 `scripts/rclone_crypt_env.sh` builds the crypt remote, `chestercrypt:`, from
 those settings. It uses rclone's `RCLONE_CONFIG_<NAME>_<KEY>` environment
@@ -1037,7 +1037,7 @@ runaway report.
 
 **The OOM order (ruled 14 Oct 2026).** If memory runs out anyway, the kernel kills
 the highest `oom_score_adj` first. A report can be rendered again; a day's chains
-cannot be fetched again; the Gateway needs Ari's supervised login. So:
+cannot be fetched again; the Gateway needs the operator's supervised login. So:
 
 | Unit | OOMScoreAdjust |
 |---|---|
@@ -1397,10 +1397,10 @@ then its note (`python -m daily_cascade.open_note|evening_note`, which reads it)
 Before `live_from` in config/reporting_stack.yaml `secondary_notes` every run is a
 dry run, archived under `dryrun/` and mailed with "[DRY RUN]" in the subject.
 
-**Neither timer is in `DEPLOY_TIMERS`.** Ari enables both by hand after the merge,
+**Neither timer is in `DEPLOY_TIMERS`.** The operator enables both by hand after the merge,
 with the state drop-in each is declared for in `box-config.allow`. **A note is
 secondary:** its wrapper exits 0 after a soft failure, and the heartbeat warns on
 a stale `open_note_heartbeat` or `evening_note_heartbeat` (100 hours, which spans
 a weekend and a holiday) without changing the verdict. The meme ingest moved from
 21:45 to 21:15 in the same order so the evening note can show tonight's Book D
-drafts; the move takes effect when Ari reloads and restarts its timer.
+drafts; the move takes effect when the operator reloads and restarts its timer.

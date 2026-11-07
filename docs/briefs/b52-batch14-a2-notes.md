@@ -52,7 +52,7 @@ Section 5 lists no check for items 63 or 66, so in F7's spirit:
 - **The basket:** 115 → 123 (`yfinance_source.SYMBOLS`); volume units 95 → 103; the volume-shares block 85 → 93. The registry's `market_closes` and `market_actions` blocks, `validate_prices` (101/0), `validate_audit_3a`'s `NEW_BLOCK_MEMBERS`, CLAUDE.md and the architecture document carry the new counts.
 - **The Security Master:** `SM00205`–`SM00212`, `next_id` 213. `SM00204` is left to chain-4's KRE so the two cannot collide. Name, currency, exchange and multiplier are null and listed unverified until a listings file confirms them.
 - **The single names** (MU, AMD, ANET, VRT, ASML) are equities but not earnings names. They are a declared set, `CAPEX_CHAIN_SYMBOLS`, and `validate_security_master` now holds the basket's equities to `EARNINGS_SYMBOLS | CAPEX_CHAIN_SYMBOLS`, the two sets apart (102/0).
-- **The Book B scanner's universe** is every basket instrument with bars, so the eight join it once backfilled, as KRE did (a53). Listed for Ari (needs-you 4).
+- **The Book B scanner's universe** is every basket instrument with bars, so the eight join it once backfilled, as KRE did (a53). Listed for the operator (needs-you 4).
 
 **The relative line** (`altdata/capex_chain.py` `relative`; the Monthly's what's priced):
 - each bucket's equal-weight basket over three months, against SPY, in pp;
@@ -94,7 +94,7 @@ Report only: the weights are printed as BNP's and never used to score a bucket.
    - against real PCE growth over the next twelve months.
 3. **The pass rule:** Spearman ρ ≥ 0.20 with n ≥ 40, positive in each half, and the top tercile's median outcome above the bottom's.
 4. **The laptop first edition**, `docs/ledgers/st-r6.66c-ledger-2026-10-21.md`, with its episodes CSV: **FAIL, n 65.** ρ is +0.06 against the rule's 0.20. Both halves are positive (+0.13 and +0.12), and the top tercile's median real-consumption growth (3.74%) beats the bottom's (3.29%). The rule fails on the whole-sample ρ.
-5. **Rights:** report only, as ruled. The verdict grants nothing, and any later right is Ari's ruling. It reaches the register only as a rule-31 draft.
+5. **Rights:** report only, as ruled. The verdict grants nothing, and any later right is the operator's ruling. It reaches the register only as a rule-31 draft.
 
 **The voices entry (F4).** JDI Research's own blog, through its RSS feed (`config/voices_sources.yaml` `jdi_research`), tier 2 in `config/source_tiers.yaml`.
 - **Its kind:** the vocabulary has no "research seller with positions", so the kind is `independent`, and the ruled tag rides in its note.

@@ -207,7 +207,7 @@ The code made every meaning clear, so **no description is "description pending"*
 - A last trade outside its venue's range is dropped and logged on the live parse (both venues) and in the backfill. A market left with no price is skipped, as before.
 - The mid's own check is unchanged.
 
-## Box commands, for Ari (none run here)
+## Box commands, for the operator (none run here)
 
 After this branch reaches main, inside a window (weekdays 09:05–15:40 or 17:20–23:30 ET; never 16:00–17:20):
 
@@ -350,7 +350,7 @@ Every other gate is left to CI, as the paste asked, given the laptop's memory wi
 
 ## 15 Oct
 
-Ari's rulings on the needs-you list above, built on this branch (session A). As before: branch-only, nothing merged, deployed or run on the box. aud-1's files and session B's branches (alpha-lab-2; no aud-3b-security-master branch on origin yet) are untouched.
+The operator's rulings on the needs-you list above, built on this branch (session A). As before: branch-only, nothing merged, deployed or run on the box. aud-1's files and session B's branches (alpha-lab-2; no aud-3b-security-master branch on origin yet) are untouched.
 
 ### The rulings, and what each changed
 
@@ -459,7 +459,7 @@ Every other gate is left to CI. That includes `validate_weekly_edits` and `valid
 - **#415** (`af92a2c`) **failed one gate, `validate_config_refs`:** "source_registry.yaml: 5 metric id(s), all registered -- UNRESOLVED: ['ibkr.auction_', 'ibkr.borrow_']". That gate reads any registry-shaped string in a config file as a metric id, and the two family prefixes looked like misspelled ones. Fixed in the next commit: a family is written with a trailing `*` (`ibkr.auction_*`, `ibkr.borrow_*`), a shape that gate already skips, and `source_ids` strips it. Locally after the fix: validate_config_refs 50/0, validate_audit_3a 81/0. Every other gate in #415 passed, including validate_move_screen, validate_derived, check_registry, validate_weekly_edits, validate_events, validate_weekly_complete and validate_basis_proxy.
 - **#417** (`ad10a3e`, the fix): **green, every check.**
 
-### 15 Oct, second paste: Part 1 (Ari's answers to the two questions)
+### 15 Oct, second paste: Part 1 (the operator's answers to the two questions)
 
 **1. The naive expectation and the surprise follow their FRED series.** `naive_expectations` and `naive_surprises` (`calc.naive_expectation.*`, `calc.surprise_vs_naive.*`) get the same `member_units` as `fred_macro` for the twelve FRED shares and rates of change. U-3's surprise now moves in pp, as U-3 does. CRE delinquency is not in the Monthly's list, so neither block has it: 12 + 12 = 24. Their levels keep FRED's `"%"` word (`level_as`), so no level's print moves. The gate's `CHANGED_RULES` is now exactly 65 (25 + 16 + 24), and a new check holds the count. Group B reads "65 moved; undeclared: none".
 

@@ -77,7 +77,8 @@ def aliases() -> dict[str, list[str]]:
             for kk, vv in v.items():
                 if isinstance(vv, str):
                     out.setdefault(str(kk), []).append(vv)
-    for t in (_yaml("config/reporting_stack.yaml").get("tape") or []):
+    from . import price_sources                                 # noqa: PLC0415
+    for t in price_sources.resolve_tree(_yaml("config/reporting_stack.yaml").get("tape") or []):
         if isinstance(t, dict) and t.get("daily"):
             out.setdefault(str(t["daily"]), []).extend(
                 [str(t.get("label") or "")] + [str(a) for a in t.get("aliases") or []])

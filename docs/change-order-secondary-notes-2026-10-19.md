@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | File | `docs/change-order-secondary-notes-2026-10-19.md` |
-| Status | **RULED 19 Oct 2026, 14:14 ET.** Ari: "Accept all", plus one addition for the Sunday edition (D7). Written up the same afternoon against chain-2 and a48-batch11. Section 8 lists four corrections to the 14:08 proposal that the code required. |
+| Status | **RULED 19 Oct 2026, 14:14 ET.** The operator: "Accept all", plus one addition for the Sunday edition (D7). Written up the same afternoon against chain-2 and a48-batch11. Section 8 lists four corrections to the 14:08 proposal that the code required. |
 | What it changes | It adds two short, optional notes to the weekday cadence. The 07:00 anchor, the 12:30 alert and the 16:45 close remain the reports of record. |
 | Why | Audit #3 (6 Sep 2026) and the Daily Cascade paper both specify conditional slots at 09:15 and 21:45, plus Sunday 21:45, and no unit schedules any of them. The Operating Doctrine gives a "1000 report" veto and confirmation rights over the 07:00 list. The Reader's Guide records that as open: "Book C still cites a 10:00 report, which no ruling addresses". This order builds two of those slots at new times, and the open note takes the 1000 report's role. |
 | Built by | Session A (paste A49, branch `a49-secondary-notes`) on the third chain. Dry runs come before the first live editions in the week of 26 Oct. |
@@ -123,7 +123,7 @@
 
   Each item says whether the futures open is consistent with it, as a description and never a cause ("attributions, not causes").
 
-  Session A measures whether any feed's window rolls before Sunday evening. If one does, the notes propose a Saturday news pull, for Ari's yes.
+  Session A measures whether any feed's window rolls before Sunday evening. If one does, the notes propose a Saturday news pull, for the operator's yes.
 
 **Reading target.** One minute on weekdays, three on Sundays.
 
@@ -135,7 +135,7 @@
   - an Asia index beyond 1.5% from its prior close;
   - a yen or devaluation hook reading as tripped.
 
-  These thresholds are starting values. They are session-set in config with their reasons and listed for Ari, not measured. Otherwise there is no prose.
+  These thresholds are starting values. They are session-set in config with their reasons and listed for the operator, not measured. Otherwise there is no prose.
 - **Sundays:** the gate is always open, because the weekend is a long window. At most 400 words.
 - **Charts:** at most one. On Sundays, ES since the 18:00 reopen; on weekdays, ES since 16:00 when the gate is open.
 
@@ -190,7 +190,7 @@ Both are pre-registered before any scoring code is written. Both are report-only
 chester-reports' own notes say that chester-meme's 19:30 evening scan finishes by about 19:45, and that the contract reads after 20:15 (`scripts/run_meme_ingest.sh`, `altdata/meme_ingest.py`).
 
 - **The move:** the ingest moves from 21:45 to 21:15, after the contract's time and still inside the window, so the evening note can show tonight's Book D drafts.
-- **Taking effect:** the timer is printed and never enabled by a deploy, so the change takes effect when Ari reloads and restarts it.
+- **Taking effect:** the timer is printed and never enabled by a deploy, so the change takes effect when the operator reloads and restarts it.
 - **If it is not safe:** if session A finds a reason in chester-reports' code that makes the move unsafe, the ingest stays at 21:45, and the note says "Book D drafts arrive at 21:45".
 
 Session A does not open chester-meme's repository.
@@ -202,13 +202,13 @@ Session A does not open chester-meme's repository.
 - **Session A, paste A49:** branch `a49-secondary-notes`, from a48-batch11's final tip, on the third chain.
 - **Timers:** `chester-open-note.timer` (Mon–Fri) and `chester-evening-note.timer` (Sun–Thu).
   - Neither is in `DEPLOY_TIMERS`.
-  - Ari enables both by hand after the merge, like every new daily line.
+  - The operator enables both by hand after the merge, like every new daily line.
   - The units follow AUD-2's conventions (memory caps as shares of the 4 GB box, the OOM order, a start timeout) and the state-directory rule chain-2 set.
-- **Dry runs:** `live_from: 2026-10-26` in config. Before that date every run is a dry run: archived under `dryrun/` and mailed with "[DRY RUN]" in the subject so Ari can read it.
+- **Dry runs:** `live_from: 2026-10-26` in config. Before that date every run is a dry run: archived under `dryrun/` and mailed with "[DRY RUN]" in the subject so the operator can read it.
   - If the third chain merges after Thursday 22 Oct, the merge sheet moves `live_from` later. At least two weekday dry runs of each note and one Sunday dry run must come first.
 - **The Master Guide** (session B's `master-guide` branch) shows both notes as secondary, "ruled, not built", until this branch merges. Its list of Doctrine gaps drops the 1000 report as unruled. Whichever branch merges second carries the rows the Guide's gate needs.
 - **Doctrine #2 (7–8 Nov):**
-  - the Doctrine's 1000 report becomes the open note's text, by Ari's ruling;
+  - the Doctrine's 1000 report becomes the open note's text, by the operator's ruling;
   - the mandatory-touch question in section 3;
   - the Doctrine also names the 1000 report as a Book D touch. The open note carries no Book D block, so this is listed for that ruling.
 
@@ -224,7 +224,7 @@ Session A does not open chester-meme's repository.
 - **D4:** the two pre-registered ledgers in section 4.
 - **D5:** the meme ingest moves earlier where the export time allows (section 5: 21:15).
 - **D6:** session A builds both after A48, with dry runs before the first live editions in the week of 26 Oct. The Master Guide shows them as secondary notes.
-- **D7 (Ari's addition):** the Sunday edition studies the Sunday futures open and its first movement against Friday's close. It adds a summary of the weekend's market-moving news, with what is new since the 05:00 Weekly first and separate.
+- **D7 (the operator's addition):** the Sunday edition studies the Sunday futures open and its first movement against Friday's close. It adds a summary of the weekend's market-moving news, with what is new since the 05:00 Weekly first and separate.
 
 ---
 

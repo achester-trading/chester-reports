@@ -227,7 +227,7 @@ threshold, with its reason), `config/nber_expansions.yaml` (the NBER fixture),
 - **Group F's checks:** on an empty store all five sub-sections print, with no
   internal id and no ISO date outside a table.
 
-## The session-set thresholds, for Ari
+## The session-set thresholds, for the operator
 
 All are in `config/batch5_tranche_1b.yaml`, each with its reason.
 
@@ -245,7 +245,7 @@ All are in `config/batch5_tranche_1b.yaml`, each with its reason.
 The order's own: 19's tiers (+0.5, +1.0, +0.4), its one-year window and its
 12-month conditioner; 22's 12-month hazard horizon; 27's 20 sessions.
 
-## The by-hand drafts, for Ari
+## The by-hand drafts, for the operator
 
 1. **XXVII dated appendix, base-rate note (item 18):**
    > *Dated 9 Oct 2026.* arvy (Thierry, Macro Cycles; a product pitch) charts 200
@@ -268,12 +268,12 @@ The order's own: 19's tiers (+0.5, +1.0, +0.4), its one-year window and its
    > unwind watch. Two days is noise; "manipulation" is the narrative's word,
    > never the report's. Intensity: low.
 
-Ari also enters the FlashAlpha figures each Wednesday (18b), from Claude's
+The operator also enters the FlashAlpha figures each Wednesday (18b), from Claude's
 chat-side vendor pull:
 `python tools/manual_input.py manual.flashalpha_implied_corr 0.42 2026-10-21 "FlashAlpha SPX vs <basket>, <weights>, 20d"`
 (0.42 is a placeholder), and the same for `manual.flashalpha_realized_corr`.
 
-## Box commands, for Ari (inside a window; nothing here was run on the box)
+## Box commands, for the operator (inside a window; nothing here was run on the box)
 
 No unit file changed, so there is nothing to deploy or restart. The new symbols
 and the two FRED series arrive at the next scheduled pulls after the merge, but
@@ -420,7 +420,7 @@ decade more than Yahoo's 2024 start.
   the basket.
 - **Gate:** new group G in `validate_st_r4_t1b`, 61 of 61.
 
-### Drafts committed, for Ari's accept-all
+### Drafts committed, for the operator's accept-all
 
 Ruling (c). Every one is committed as drafted, with its file and line:
 

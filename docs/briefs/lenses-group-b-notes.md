@@ -6,7 +6,7 @@ Tranche A, the leftovers and the lab. It merges after `alpha-lab-3` in the
 second stitched chain.**
 
 Branch only: pushed, not merged, not deployed, nothing run on the box. Every box
-step is printed below for Ari, and no unit was enabled, started or reconfigured.
+step is printed below for the operator, and no unit was enabled, started or reconfigured.
 
 What it does:
 - **Part 0:** reads `alpha-lab-3`'s CI and applies the 18 Oct rulings on its
@@ -322,7 +322,7 @@ enabling on the box. If that falls in 2026 Q4, the first whole quarter is
 No gate reads the live store, fetches or calls a model. The FRED id checks above
 were reads of FRED's public pages, made while building, never by a gate.
 
-## Box commands, for Ari (inside a window, after this branch merges; nothing here was run)
+## Box commands, for the operator (inside a window, after this branch merges; nothing here was run)
 
 No unit file changed and no timer is added. The 29 series and the surprise rows
 arrive at the next scheduled pull and the next `altdata.surprise` step.
@@ -459,7 +459,7 @@ was left failing. The table above has the numbers.
    - The rows ride `altdata.surprise compute`, as the rest do. No writer is added.
 2. **The NY Fed nowcast stays a gap.** No endpoint was traced. The page is
    https://www.newyorkfed.org/research/policy/nowcast, the one the 18 Oct check
-   read; it was not fetched again here. Ari looks once in a browser for a
+   read; it was not fetched again here. The operator looks once in a browser for a
    published file.
 3. **The standardisation stands** (not demeaned, the latest 40, at least 8). The
    release-day clause now prints the z after the percentile. The edition's first
@@ -494,7 +494,7 @@ was left failing. The table above has the numbers.
 Everything else is left to CI. The CI run on this commit is read in the second
 paste's closing report and in `weekly-fixes-8`'s notes.
 
-**Box commands, for Ari (after the merge, inside a window; nothing here was run).**
+**Box commands, for the operator (after the merge, inside a window; nothing here was run).**
 
 1. The PPI keys at full history, from their first publication. Dry run first:
    `ssh vps 'cd ~/chester-reports && .venv/bin/python -m altdata.fred_history backfill --series ppi_final_demand,ppi_intermediate,ppi_unprocessed,ppi_truck_freight,ppi_fd_core_ex_trade,ppi_trade_services,ppi_stage1,ppi_stage2,ppi_stage3,ppi_stage4,ppi_portfolio_mgmt,ppi_airline_passenger,ppi_hospitals,ppi_physicians --dry-run | tail -40'`
@@ -534,7 +534,7 @@ parent commit `eb17d0d`, which was green at 09:24Z this morning and fails now.
 fixture clock from 17 Oct (`alpha.ledger.utc_now` patched and restored). Locally
 `validate_alpha` is 257 passed, 0 failed; the fix is the commit after `821fcf2`.
 
-**For Ari: the same pinned check is on `alpha-lab-3`, `gtm-core-2` and session
+**For the operator: the same pinned check is on `alpha-lab-3`, `gtm-core-2` and session
 A's `st-t3-calib`**, so their CI fails it from now on too. I did not touch those
 branches. The fix reaches chain #2 with this branch at the stitch: take this
 branch's `group_q` wrapper.

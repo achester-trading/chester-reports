@@ -1,0 +1,27 @@
+# oneday_10y.yaml -- the one-day 10-year trigger (rulings of 24 Oct 2026, D15;
+# b59-trigger-sources): a one-day 10-year move beyond its five-year 97.5th
+# percentile of absolute one-day moves, either sign, runs the attribution the
+# speed flag's (altdata/speed_attribution.py) reads, over one session, with its
+# own event ledger. Read by altdata/oneday_10y.py. A report: nothing enters a
+# composite or the market-state object.
+version: oneday-10y-v1
+updated: 2026-10-24
+
+# The yield (FRED DGS10, the speed flag's own key). The term-structure models are
+# speed_attribution.yaml's (KW and ACM), read the same way (F5: a model is read
+# only with an observation on the day; "awaiting" otherwise).
+yield_key: fred.yield_10y
+
+trigger:
+  # The ruling's numbers: the 97.5th percentile of the absolute one-day changes
+  # over five years, two-sided, with at least 1,000 prior changes.
+  percentile: 97.5
+  window_years: 5
+  min_changes: 1000
+
+# THE LEDGER (docs/ledgers/oneday-10y-preregistration-2026-10.md): the 10-year's
+# change over these sessions after the trigger, in basis points. The rule reads
+# the first (the continuation horizon); the second prints beside it.
+forward_sessions: [5, 20]
+# An episode: a trigger day with no trigger day in this many sessions before it.
+episode_gap_sessions: 5

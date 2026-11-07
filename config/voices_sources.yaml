@@ -265,6 +265,49 @@ sources:
     default_kind: independent
     note: "tag (ruled 20 Oct 2026, Batch 14 item 66): research seller with open positions -- a view here may be a position's case"
 
+  # --- Added 23 Oct 2026 (signal-triage Batch 14, item 65 -- written as 58 -- and
+  # F4; a57-batch14-b1): Carson Group's own public blog, read through the site's
+  # RSS feed. robots.txt (www.carsongroup.com, read 23 Oct 2026) disallows nothing
+  # for any agent and asks a crawl delay of 10 seconds, which `pause_seconds`
+  # honours; the feed served dated items without a login to the project's generic
+  # User-Agent. Its terms of use allow personal, non-commercial use: the scan stores
+  # the URL, the dates and a one-line paraphrase, never the text. The ruled tag is
+  # "credible"; LinkedIn is not read (F4). The firm is the default voice; the
+  # model names the author when the post does (no person is named here).
+  - id: carson_group
+    group: desk
+    name: "Carson Group: blog"
+    outlet: "Carson Group"
+    method: rss
+    url: "https://www.carsongroup.com/feed/"
+    default_voice: "Carson Group"
+    default_kind: buy_side
+    pause_seconds: 10
+    note: "tag (ruled 20 Oct 2026, Batch 14 item 65): credible; a wealth manager's market commentary"
+
+  # --- Added 24 Oct 2026 (ruling D5 of 24 Oct, standing: an entry names the
+  # outlet, never the person; Batch 14 item 70 and F4; a61-rulings-1024): FXEmpire,
+  # the outlet that publishes the newsletter writer item 70 cites, read through its
+  # public forecasts feed. robots.txt (www.fxempire.com, read 24 Oct 2026)
+  # disallows only /m/, /mobile/ and /members/ for every agent, so the feed's
+  # /api/v1/en/articles/rss/ path is allowed; the feed served 20 dated items without
+  # a login to the project's generic User-Agent. Its terms of use (Last Revised
+  # 16 Mar 2026) carry no clause on automated access and forbid reproducing the
+  # content without approval: the scan stores the URL, the dates and a one-line
+  # paraphrase, never the text. The ruled tag is "newsletter": the vocabulary has
+  # no such kind, so the kind is `independent` and the tag rides in the note. A
+  # general outlet, so a candidate is extracted only on the require_any words.
+  - id: fxempire_forecasts
+    group: news
+    name: "FXEmpire: forecasts"
+    outlet: "FXEmpire"
+    method: rss
+    url: "https://www.fxempire.com/api/v1/en/articles/rss/forecasts"
+    require_any: [strategist, strategists, analyst, analysts, economist, chief,
+                  "Wall Street", forecast, outlook, "price target", sees, says, warns]
+    default_kind: independent
+    note: "tag (ruled 24 Oct 2026, D5; Batch 14 item 70): newsletter; tier 3 in source_tiers.yaml: stored and shown, never counted toward attention or a consensus"
+
   # --- Added 4 Oct 2026 (Phase B ruling 5): the regional Feds, Treasury, the ECB
   # and the Bank of England, and Yahoo Finance. Each robots.txt read and the path
   # allowed on 4 Oct; what was asked for and not allowed is under `not_used`.
@@ -352,7 +395,7 @@ sources:
 not_used:
   - {name: "Reuters", reason: "no public feed: reuters.com answers automated requests with 401 and its robots.txt disallows them; the Google News route is disallowed by news.google.com's robots.txt"}
   - {name: "Google News search (the story queries' feed)", reason: "news.google.com/robots.txt disallows /rss/search for every user agent (retired from the story queries, 4 Oct 2026)"}
-  - {name: "Apollo Academy (Torsten Slok)", reason: "robots.txt disallows / for every user agent"}
+  - {name: "Apollo Academy (Apollo Global Management)", reason: "robots.txt disallows / for every user agent"}
   - {name: "Oaktree memos", reason: "the listing page renders its links client-side; nothing to follow without a browser"}
   - {name: "Yardeni QuickTakes", reason: "certificate verification failed on the feed"}
   - {name: "LPL Research", reason: "403 to the project's User-Agent"}

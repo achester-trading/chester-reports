@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | **Adopted 2026-10-08 in chat** (Ari: "build me a change order with these additions"); D1–D3 ruled 2026-10-05 09:08–09:10 ET. Apply to `main` (the T2.2 merge is complete). Strike any item below before applying if Ari says so. |
+| Status | **Adopted 2026-10-08 in chat** (the operator: "build me a change order with these additions"); D1–D3 ruled 2026-10-05 09:08–09:10 ET. Apply to `main` (the T2.2 merge is complete). Strike any item below before applying if the operator says so. |
 | Amends | `docs/briefs/reading-shelf-brief-2026-10-05.md` (the controlling brief for the Publication watch and the Monthly's Reading chapter), `docs/reading/watchlist.json`, `docs/attention-log.md` |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Binding on | The Claude Code session applying this order; the T3 session building the Reading chapter (week of 19 Oct) |
 | Precedence | Below Part 26, the change orders, Amendments #3–#5, the reporting-stack brief, the metric-lenses brief and `docs/change-order-jpm-gtm-2026-10-03.md`; equal to and amending the reading-shelf brief. The shelf has no decision rights. |
 | Scheduled task | "Publication watch — reading shelf" (12th and 27th, 06:58 ET): its fallback shelf copy was updated 8 Oct 2026 to match §3 below, so this order needs no task change. |

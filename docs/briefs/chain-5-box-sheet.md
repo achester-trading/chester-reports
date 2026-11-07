@@ -1,4 +1,4 @@
-# The box sheet for the fifth chain (for Ari)
+# The box sheet for the fifth chain (for the operator)
 
 **What this is.** Every box step the fifth chain asks for, in order, for the evening `chain-5` merges to main and the weekend after it. `chain-5` carries chain-4 whole, so this sheet carries **chain-4's sheet in full** first (Part I, T1 the evening note's timer first), and then what each of the five later branches' notes asks for (Part II). Each step names its source:
 - `docs/briefs/chain-4-box-sheet.md` (chain-4's sheet: T1, A, B, D, E), unchanged except where a later branch moves an expected count, each such change marked **chain-5**;
@@ -72,7 +72,7 @@ git pull --ff-only && git log -1 --oneline
 
 Run them one at a time, after A1, on the merge evening or the next one. **Before each one that reads a key, check `.env` through `altdata.secrets`**, which prints `set` or `missing` beside each name and never a value.
 
-**B1. A50's dealer-capture backfill** (a50-dealer-store, A50, "The backfill: Ari's box command, dry run first"; its needs-you 1). It stores the computed profiles already on disk.
+**B1. A50's dealer-capture backfill** (a50-dealer-store, A50, "The backfill: the operator's box command, dry run first"; its needs-you 1). It stores the computed profiles already on disk.
 ```
 .venv/bin/python -m altdata.dealer_store backfill --dry-run
 .venv/bin/python -m altdata.dealer_store backfill
@@ -121,7 +121,7 @@ Run them one at a time, after A1, on the merge evening or the next one. **Before
 ```
 - **Expect** the panel's rows with their dual percentiles, both flags (funding stress, deposit flight) and the classifier, which prints only when KRE is down more than 10% over 20 sessions. "not tracked" for the CDS/AT1 arm.
 
-**B4. The superseding hypotheses batch's registration** (b48-scoreboard, B49 "Box command (Ari's; inside a window)"; B49 Part 1(d)). **No dry run exists**: the manifest is the record, written first.
+**B4. The superseding hypotheses batch's registration** (b48-scoreboard, B49 "Box command (the operator's; inside a window)"; B49 Part 1(d)). **No dry run exists**: the manifest is the record, written first.
 ```
 .venv/bin/python -m alpha.manifest register alpha/research/hypotheses-2026-10-20-supersedes-2026-10-14.yaml
 ```

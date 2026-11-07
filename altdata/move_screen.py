@@ -780,9 +780,11 @@ def report_lines(res: dict, cadence: str = "daily", cfg: Optional[dict] = None) 
     lines = [flag_line(f) for f in flags[:k]]
     comp = res.get("companion_10y") or {}
     if comp.get("printed"):
+        from . import price_sources                             # noqa: PLC0415
+        ten = tuple(dict.fromkeys(("fred.yield_10y",
+                                   price_sources.key("us_yields", "y10"))))
         at = next((i for i, f in enumerate(flags[:k])
-                   if str(f.get("series")).startswith(("fred.yield_10y",
-                                                       "yfinance.mkt_tnx"))), None)
+                   if str(f.get("series")).startswith(ten)), None)
         lines.insert(len(lines) if at is None else at + 1, comp["line"] + ".")
     more = max(0, len(flags) - k)
     ref = {"columns": ["Series", "1-day", "5-day", "False flag", "Observations"],

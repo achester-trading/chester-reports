@@ -11,7 +11,7 @@ and merges after both, in the second stitched chain.** The merge order is:
 4. this branch.
 
 Branch only: pushed, not merged, not deployed, nothing run on the box. Every box
-step is printed below for Ari.
+step is printed below for the operator.
 
 Spec: the filed Batch 7 order (`docs/change-order-signal-triage-batch-7-2026-10-16.md`
 on `docs-batch-7`): items 46 and 48 in full, section 3, verify items 2 and 4, filing
@@ -264,7 +264,7 @@ example, (1180 − 1000) − (1200 − 1000) = −20.
 
 ## The readers added, and the sources that stayed gaps
 
-The rule that decided each: **Ari's standing rule of 16 Oct (b)**. Prefer public,
+The rule that decided each: **the operator's standing rule of 16 Oct (b)**. Prefer public,
 easy sources. Pursue no registration, phone check or portal that will not load;
 the answer is a keyless alternative or a listed gap. Beside it stand **ruling
 (a)5** (build a keyless path where one reads within robots) and **the repo's
@@ -333,11 +333,11 @@ three months, the 12-month shelter lead, and the three-month ladder.
   1983). The Atlanta Fed sticky CPI was already pulled, and so was the flexible
   CPI (`flex_cpi`, FLEXCPIM157SFRBATL), which the order expected to add.
 
-## Drafts committed, for Ari's accept-all
+## Drafts committed, for the operator's accept-all
 
 Judgment drafts under ruling (c), committed as drafted. Neither touches the
 narrative register or the decision register; the register's confirm step stays
-Ari's.
+The operator's.
 
 | Draft | File and line |
 |---|---|
@@ -355,7 +355,7 @@ Ari's.
   in a matching shape (header, status, one entry), as the paste says, and the
   file says so.
 
-## Box commands, for Ari (inside a window; nothing here was run on the box)
+## Box commands, for the operator (inside a window; nothing here was run on the box)
 
 These run after this branch merges, which is after the chain, `6e-metric-lenses`
 and `6e-rest`. No unit file changed. The 45 FRED series and both readers run at

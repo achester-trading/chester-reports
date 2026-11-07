@@ -58,10 +58,10 @@
     <text x="184" y="320" font-size="12">computed once a session, read by every report</text>
 
     <text x="184" y="376" font-weight="600">4  The reports</text>
-    <text x="184" y="396" font-size="12">The ten-section stack at each cadence. Code puts</text>
-    <text x="184" y="412" font-size="12">every figure on the page; the model writes around</text>
-    <text x="184" y="428" font-size="12">them, and the audits withhold any paragraph whose</text>
-    <text x="184" y="444" font-size="12">figure is not in the payload</text>
+    <text x="184" y="396" font-size="12">The stack at each cadence, and the day's touches</text>
+    <text x="184" y="412" font-size="12">(right). Code puts every figure on the page; the</text>
+    <text x="184" y="428" font-size="12">model writes around them, and the audits withhold</text>
+    <text x="184" y="444" font-size="12">any paragraph whose figure is not in the payload</text>
 
     <text x="184" y="500" font-weight="600">5  The register</text>
     <text x="184" y="520" font-size="12">Decision Packets, written by the operator and</text>
@@ -135,5 +135,20 @@
   </g>
   <text x="918" y="420" font-size="11" fill="#7a5c2e" transform="rotate(-90 918 420)" text-anchor="middle">lab evidence: the operator may table it</text>
 
-  <text x="20" y="990" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5. The side layers (right) read and draft; neither decides.</text>
+  <!-- stage 4's weekday touches (Draft 4): the two secondary notes and the close's event area -->
+  <rect x="652" y="604" width="232" height="172" rx="6" fill="#f5f0f8" stroke="#8a5fb0" stroke-width="1"/>
+  <g fill="#1a1a1a">
+    <text x="666" y="628" font-weight="600">The day's touches (stage 4)</text>
+    <text x="666" y="648" font-size="12">07:00  the anchor</text>
+    <text x="666" y="664" font-size="12">09:50  the open note</text>
+    <text x="666" y="680" font-size="12">12:30  the alert slot, on a gate</text>
+    <text x="666" y="696" font-size="12">16:45  the close, with its</text>
+    <text x="666" y="712" font-size="12">event area: volatility, the</text>
+    <text x="666" y="728" font-size="12">10-year, gold, DM indices</text>
+    <text x="666" y="744" font-size="12">21:30  the evening note, Sun–Thu</text>
+    <text x="666" y="764" font-size="11" fill="#8a5fb0">No touch adds a right</text>
+  </g>
+
+  <text x="20" y="984" fill="#5b5b5b" font-size="11">Conceptual diagram; no figures in it are data. The scans enter at stage 8 as proposals, never at stage 5. The side layers (right) read and draft; neither decides.</text>
+  <text x="20" y="1000" fill="#5b5b5b" font-size="11">The touches box lists stage 4's weekday runs; the two notes check in between the anchor and the close and hold no right those reports do not give them.</text>
 </svg>

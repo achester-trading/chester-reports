@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | File | `docs/change-order-signal-triage-batch-11-2026-10-19.md` |
-| Status | **RULED 19 Oct 2026, 13:05 ET.** Ari: "Accept all" (decisions D1–D7, section 3). |
+| Status | **RULED 19 Oct 2026, 13:05 ET.** The operator: "Accept all" (decisions D1–D7, section 3). |
 | Encoding | Batch 11 of Amendment #4. Items 53–58 keep their numbers as IDs. They amend the opening setup (OS-2 to OS-11: decision D-3 of 18 Oct 2026, built on `a44-opening-setup` and `a45-opening-setup-2`) and the 6b dealer scorecard (pre-registered 17 Oct 2026, `docs/ledgers/dealer-scorecard-preregistration-2026-10.md`). One new item, the level clusters, enters as the scorecard's next registration (H6). |
 | Source | A third-party premarket report of 19 Oct 2026 (SpotGamma's Opening Setup), read in a separate chat. This edition was reviewed against chain-2 on 19 Oct 2026. Under D2 it carries no figure from that report and no vendor figure. |
-| Estimate | About 20 hours of sessions on session A's line (paste A48), plus about 4 if D4's backfill proves feasible. By hand: the flat-files key in `.env` if D4 proceeds, and a review of the first two weeks of cluster output with Ari. |
+| Estimate | About 20 hours of sessions on session A's line (paste A48), plus about 4 if D4's backfill proves feasible. By hand: the flat-files key in `.env` if D4 proceeds, and a review of the first two weeks of cluster output with the operator. |
 | Binding on | Claude Code sessions building on the third chain. |
 
 ---
@@ -34,7 +34,7 @@ The draft asked for this check first. Most of the draft restates elements that t
 - **The sign convention.** dealers-hand-v1 is a convention, not observed positioning. Every printed read that depends on it says so once per section.
 - **The one-regime rule.** Nothing outside the market-state object computes a regime. Regime words come only from the engine.
 - **No vendor value** in any flag, tell, dial, decision or engine. The opening-setup modules never read the vendor, and a gate greps them for it. Vendor values appear only in the Weekly's vendor line and the divergence gate.
-- **Report-only.** No composite and no weights until a passing ledger and Ari's ruling. Every rank prints its window and n.
+- **Report-only.** No composite and no weights until a passing ledger and the operator's ruling. Every rank prints its window and n.
 - **Placement** is inside the existing anchors (07:00, 16:45, the Sunday Weekly, the Monthly). Every addition says what it displaces.
 
 ---
@@ -47,7 +47,7 @@ The draft asked for this check first. Most of the draft restates elements that t
    - **Inputs:** the OS-3 lenses (VIX less RV20 with its percentiles, VIX9D/VIX, VIX3M/VIX and VIX6M/VIX), VVIX, SKEW, and OS-4's put-volume share.
    - **Outcomes:** forward 5- and 10-session SPX returns, maximum drawdown and realised volatility.
    - **First edition:** from public sources for the VIX family (2007 on), labelled "laptop run, public sources". The put-volume component joins in the box edition, once its history allows (or from D4's backfill).
-   - **Rules:** the pass rule is pre-registered in the first edition, and its rights are stated while granting nothing. No composite number prints before a passing ledger and Ari's ruling.
+   - **Rules:** the pass rule is pre-registered in the first edition, and its rights are stated while granting nothing. No composite number prints before a passing ledger and the operator's ruling.
 2. **The VIX premium, split.** OS-3's realised lens gains one line: VIX less RV20 = (SPY 30-day ATM IV less RV20) + (VIX less SPY 30-day ATM IV). The first part is the at-the-money premium and the second is the wings. The line is labelled "SPY's ATM IV as SPX's proxy", and it displaces nothing.
 3. **Dropped:** the [−1,+1] VIX regime sub-index, which would be a second volatility regime.
 
@@ -122,7 +122,7 @@ The draft asked for this check first. Most of the draft restates elements that t
   - Instead, one probe: whether Massive Starter's flat files carry two years of per-contract daily bars.
   - If they do, a resumable backfill writes, for the 17 names, puts' share of volume, and IV, skew and risk reversal from the day bars' closes. The closes are labelled "from last-trade closes, not mids", under a distinct source.
   - A rank uses that history only where its overlap with the captured history agrees within a pre-registered tolerance.
-  - The flat-files key is Ari's, in `.env`, by name.
+  - The flat-files key is the operator's, in `.env`, by name.
   - The December FlashAlpha choice between Growth and Alpha stays for November, and gamma history is the only reason left for Alpha.
 - **D5, thresholds:** the session-set thresholds already built stay (OS-9's deciles, OS-11's 20% band). They are reviewed at the 25 Oct dry run and then by the ledgers. SpotGamma's numbers are not imported.
 - **D6, OS-9's floor:** 2,000 contracts for SPY, QQQ and IWM, and 500 for single names, provisional. The OI-to-volume share is printed as a column instead of a 70% filter.

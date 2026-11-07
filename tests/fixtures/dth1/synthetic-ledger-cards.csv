@@ -1,0 +1,7 @@
+date,time_et,instrument,side,entry,stop,target,contracts,risk_usd,exit,result_r,result_usd,status,rule_broken,notes
+2026-10-27,09:52,ESZ6,long,5123.25,5110.50,5148.75,2,637.50,5141.00,1.4,892.50,closed,no,synthetic row: never a real trade
+2026-10-28,10:14,ESZ6,short,5177.75,5189.00,5155.25,1,562.50,5189.00,-1.0,-562.50,closed,yes,synthetic row: never a real trade
+2026-10-29,13:31,ESZ6,long,5099.50,5088.25,5121.75,2,1125.00,5121.75,2.0,2250.00,closed,no,synthetic row: never a real trade
+2026-10-30,10:02,ESZ6,long,5133.00,5121.00,5157.00,1,600.00,,,,open,no,synthetic row: never a real trade
+2026-10-30,14:40,ESZ6,short,5160.25,5172.50,5135.75,1,612.50,5150.00,FILL FROM STATEMENT,,closed,no,synthetic row: never a real trade
+2026-10-31,11:05,ESZ6,long,5144.50,5133.25,5167.00,1,562.50,5155.75,1.0,,verify,no,synthetic row: never a real trade

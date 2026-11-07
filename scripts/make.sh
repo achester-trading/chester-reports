@@ -10,11 +10,12 @@
 # and every gate run went back to a prompt. An allowlist that does not reach the
 # real command is decoration.
 #
-# IT DOES NOT KEEP ITS OWN LIST OF VALIDATORS. It parses PY_VALIDATORS, EXTRA,
-# SH_VALIDATORS and DATA_GATES out of the Makefile, because the entire reason the
-# Makefile exists is that the list of gates once lived in two places and four of
-# them had drifted out of CI while still passing locally. A shim with its own copy
-# would be the third place. Adding a gate is still one line in the Makefile.
+# IT DOES NOT KEEP ITS OWN LIST OF VALIDATORS. It reads PY_VALIDATORS,
+# SH_VALIDATORS and DATA_GATES from tools/gate_list.py -- the same tool the
+# Makefile calls -- and EXTRA out of the Makefile, because the entire reason for
+# one list is that the gates once lived in two places and four of them had
+# drifted out of CI while still passing locally. A shim with its own copy would
+# be the third place. A gate joins by declaring GATE_KIND in its own file (S1).
 #
 #   bash scripts/make.sh validate        every code gate, keep going, then report;
 #                                        data gates run and report, no exit code
@@ -23,6 +24,11 @@
 #   bash scripts/make.sh html            rebuild docs/html/ from the papers' .md
 #   bash scripts/make.sh library-check   the library's gate on its own
 #   bash scripts/make.sh list            what would run
+#   bash scripts/make.sh validate-group <gate> <group>
+#                                        one group of a long gate (B97): the
+#                                        gate's GATE_GROUPS, read by gate_list.py;
+#                                        <gate> as validate_stack or its path;
+#                                        no <group> lists them
 #
 # NOT COVERED, DELIBERATELY: `figures`. It has an ADOPT=1 mode that overwrites the
 # committed Currencies figures, which CLAUDE.md says not to run yet, and a shim is
@@ -37,16 +43,41 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 
-# The same interpreter the Makefile picks, and for the same reason: a bare
-# `python` on the authoring laptop has neither PyYAML nor pandas, and the failure
-# reads as a broken validator rather than a missing interpreter.
-if [ -x .venv/bin/python ]; then
-    PY=.venv/bin/python
-elif [ -x .venv/Scripts/python.exe ]; then
-    PY=.venv/Scripts/python.exe
-else
-    PY=python
-fi
+# THE INTERPRETER (B100, 1 Nov 2026), in this order:
+#   1. $PYTHON, when set;
+#   2. .venv in this tree (the box: .venv/bin/python in the checkout, as before);
+#   3. .venv in the MAIN checkout, for a worktree that has none of its own --
+#      `git rev-parse --git-common-dir` is the main repository's .git, and the
+#      checkout is its parent;
+#   4. otherwise stop, and say so.
+# There is no fallback to a bare `python` any more. A system Python on the
+# authoring laptop has neither PyYAML nor pandas, and a run on it fails as a
+# broken validator rather than a missing interpreter: A99 met exactly that from a
+# worktree. `PY_FROM` says which rule chose it, and `list` prints both.
+resolve_py() {
+    if [ -n "${PYTHON:-}" ]; then
+        PY="$PYTHON"; PY_FROM='$PYTHON'; return 0
+    fi
+    local c
+    for c in .venv/bin/python .venv/Scripts/python.exe; do
+        if [ -x "$c" ]; then PY="$c"; PY_FROM="this tree's .venv"; return 0; fi
+    done
+    local common main
+    common="$(git rev-parse --git-common-dir 2>/dev/null | tr -d '\r')"
+    if [ -n "$common" ] && main="$(cd "$common/.." 2>/dev/null && pwd)"; then
+        for c in "$main/.venv/bin/python" "$main/.venv/Scripts/python.exe"; do
+            if [ -x "$c" ]; then
+                PY="$c"; PY_FROM="the main checkout's .venv ($main)"; return 0
+            fi
+        done
+    fi
+    echo "scripts/make.sh: no interpreter with the repo's dependencies." >&2
+    echo "  Looked for: \$PYTHON; .venv in this tree ($(pwd)); .venv in the main" >&2
+    echo "  checkout${main:+ ($main)}. Set PYTHON=/path/to/python, or create the venv." >&2
+    echo "  A system python is not used: it lacks PyYAML and pandas." >&2
+    exit 2
+}
+resolve_py
 
 # One variable out of the Makefile, continuations joined, CR stripped -- the
 # working copy may be CRLF on Windows and a trailing \r turns every path into one
@@ -64,20 +95,31 @@ mk_list() {
     ' Makefile | tr -d '\r'
 }
 
-PY_VALIDATORS="$(mk_list PY_VALIDATORS)"
+# The declared lists, from the one tool (S1); CR stripped for the same reason.
+gate_list() { "$PY" tools/gate_list.py --kind "$1" | tr -d ''; }
+
+PY_VALIDATORS="$(gate_list code)"
 EXTRA="$(mk_list EXTRA)"
-SH_VALIDATORS="$(mk_list SH_VALIDATORS)"
-DATA_GATES="$(mk_list DATA_GATES)"
+SH_VALIDATORS="$(gate_list shell)"
+DATA_GATES="$(gate_list data)"
 
 if [ -z "$(echo "$PY_VALIDATORS" | tr -d ' \n')" ]; then
-    echo "could not read PY_VALIDATORS out of the Makefile -- refusing to run a" >&2
+    echo "tools/gate_list.py listed no code gates -- refusing to run a" >&2
     echo "shorter list than the Makefile holds, which is the failure this whole" >&2
     echo "arrangement exists to prevent." >&2
     exit 2
 fi
 
+# BOTH LINE ENDINGS (B111, 2 Nov 2026). A105 found every gate path arriving with a
+# trailing CR on the laptop ("check_library.py\r", so nearly every gate failed to
+# open): the list reader's `tr -d` had lost its \r (a literal CR in a file
+# normalised to LF). Here, wherever the list came from: a CR is a word separator in
+# the list loops, and run_gate strips any CR left on a path. What runs is unchanged.
+IFS=$' \t\n\r'
+
 # How one gate runs. Shell gates go through bash, everything else through $PY.
 run_gate() {
+    set -- "${1//$'\r'/}"
     case "$1" in
         *.sh) bash "$1" ;;
         *)    "$PY" "$1" ;;
@@ -92,7 +134,7 @@ list)
     echo "python:"; for v in $PY_VALIDATORS $EXTRA; do echo "  $v"; done
     echo "shell:";  for v in $SH_VALIDATORS; do echo "  $v"; done
     echo "data:";   for v in $DATA_GATES; do echo "  $v"; done
-    echo "interpreter: $PY"
+    echo "interpreter: $PY  ($PY_FROM)"
     ;;
 
 html)
@@ -144,6 +186,7 @@ validate)
 
 validate-fast)
     set -e
+    echo "interpreter: $PY  ($PY_FROM)"
     for v in $PY_VALIDATORS $EXTRA $SH_VALIDATORS; do
         echo "== $v"
         run_gate "$v" >/dev/null
@@ -160,9 +203,30 @@ data-gates)
     exit "$fail"
     ;;
 
+validate-group)
+    # B97: one group of a long gate, inside the laptop's ten minutes. The whole
+    # gate is still what `validate` and CI run; this is the edit loop's run.
+    gate="${2:-}"
+    case "$gate" in
+        "") echo "usage: bash scripts/make.sh validate-group <gate> [<group>]" >&2; exit 2 ;;
+        */*) ;;
+        *) gate="tools/${gate%.py}.py" ;;
+    esac
+    [ -f "$gate" ] || { echo "no such gate: $gate" >&2; exit 2; }
+    names="$("$PY" tools/gate_list.py --groups "$gate" | tr -d '\r')"
+    if [ -z "$names" ]; then
+        echo "$gate declares no GATE_GROUPS; run it whole" >&2; exit 2
+    fi
+    if [ -z "${3:-}" ]; then echo "$names"; exit 0; fi
+    if ! echo "$names" | grep -qixF -- "$3"; then
+        echo "$gate has no group $3: one of" $names >&2; exit 2
+    fi
+    exec "$PY" "$gate" --group "$3"
+    ;;
+
 *)
     echo "unknown target: $target" >&2
-    echo "one of: validate validate-fast data-gates html library-check list" >&2
+    echo "one of: validate validate-fast validate-group data-gates html library-check list" >&2
     exit 2
     ;;
 esac

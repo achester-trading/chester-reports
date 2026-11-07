@@ -87,7 +87,7 @@ PrivateTmp=true
 # THE KERNEL KILLS A REPORT BEFORE THE GATEWAY (AUD-2, ruled 14 Oct 2026). The
 # Gateway's Java shares the box's RAM with every report; under memory pressure the
 # OOM killer picks the highest score. A report can be rendered again; a day's
-# chains cannot be fetched again; the Gateway needs Ari's supervised login. So the
+# chains cannot be fetched again; the Gateway needs the operator's supervised login. So the
 # reports carry 500, the EOD capture 300, and the Gateway -500. Lowering a score
 # below 0 needs privilege a --user unit may be refused, silently; that is
 # harmless, because the reports' and the capture's raised scores (no privilege

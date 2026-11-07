@@ -26,7 +26,7 @@
 
 - **F2, no new by-hand lines.** Rule 30 and the 16 Oct standing rule on sources: friction means a keyless alternative or a listed gap.
   - **62's cross-house CMA table** is not updated by hand. It becomes a reference table of the reading shelf's publication watch: the watch adds HSBC AM's Capital Market Assumptions and Vanguard's Capital Markets Model outlook to the shelf, and records each house's 10-year assumptions (US equity, ex-US developed equity, EM equity, Treasuries, IG, HY, 60/40) with the URL and the edition date. The scans ingest stores them as sourced figures; code computes the median and the dispersion; the Monthly's slow layers print the table. The watch is a chat-side scheduled task, and this chat updates its prompt.
-  - **65's AI-credit watch** (CoreWeave, Oracle and SpaceX CDS and spreads) is a **listed gap**, beside SR-16's neocloud line (Batch 12, F2), unless Ari gives an explicit yes to a monthly by-hand line.
+  - **65's AI-credit watch** (CoreWeave, Oracle and SpaceX CDS and spreads) is a **listed gap**, beside SR-16's neocloud line (Batch 12, F2), unless the operator gives an explicit yes to a monthly by-hand line.
   - **65's Broad AI against S&P ex-AI-enablers** is built only from a free proxy the session maps (§5, item 2), labelled "proxy" and never given Goldman's name. Until then it is a listed gap.
   - **The one-off lines** go to `docs/dated-appendix-queue.md`: the 10y and real-10y record (64), the NAR 66.0 print (68) and the 8% forecast (70). Each is a dated record, not a data line.
 

@@ -30,6 +30,8 @@ string that must appear in no output.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import json
 import math
 import os
@@ -174,6 +176,7 @@ def group_c() -> None:
         out = fa.pull(db=st, get=fake_get, cfg=cfg, day="2026-10-16",
                       quota_path=TD / "q.json", blob_dir=TD / "blobs")
         from altdata import session as _s  # noqa: PLC0415
+        # THE GATE'S CLOCK (B106): reads today on purpose -- the stored vendor rows as of the run's instant. Next attention: none.
         stored = fa.stored(st, _s.utc_iso(), "SPY")
     check(out["status"] == "OK" and out["calls"] == 37 and out["written"] > 0
           and all(k for _, k in calls) and stored["gex"] == -4000000000.0

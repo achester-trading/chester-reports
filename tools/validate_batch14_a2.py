@@ -31,6 +31,8 @@ network, no model, no live store.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import hashlib
 import json
@@ -210,10 +212,12 @@ def group_c() -> None:
           f"the hyperscalers' filed capex: the five names' sum, fiscal 2025 on 2024 "
           f"({c['pct']:+.1f}%)")
     lines = cc.relative_lines(r)
-    check(any("not tracked" in x and "guidance" in x.lower() for x in lines)
+    # A66: guidance is read from the filings beside the filed capex; this fixture
+    # stores none, so the line says so by name.
+    check(any("guidance from the filings" in x and "not stored for AMZN" in x for x in lines)
           and "leads" in lines[0] and "lags" in lines[0] and not any(ISO.search(x) for x in lines),
-          "the line names the leader and the laggard, says guidance is not tracked, and "
-          "prints no ISO date")
+          "the line names the leader and the laggard, says the filings' guidance is not "
+          "stored, and prints no ISO date")
     st2 = capex_store("cc_gap", with_vrt=False)
     try:
         r2 = cc.relative(st2, CUT)
@@ -376,7 +380,7 @@ def group_g() -> None:
     ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
     check("transmission_block.subsection(st, now)" in ms
           and "capex_chain_block.priced_subsection(st, now)" in ms
-          and "capex_chain_block.slow_subsection()" in ms,
+          and __import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.capex_chain_block", "slow_subsection", []),
           "the Monthly calls the three: Plumbing's loosening leg, what's priced, Factor I")
     vs = yaml.safe_load((REPO / "config" / "voices_sources.yaml").read_text(encoding="utf-8"))
     j = [s for s in vs["sources"] if s.get("id") == "jdi_research"]

@@ -62,6 +62,8 @@ no network, no model:
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import json
 import sys
 from pathlib import Path
@@ -297,6 +299,25 @@ def group_c() -> None:
                                mv), "a clause with no directional word is not checked")
     check(not direction.faults("The curve fell to 10 bp.", mv),
           "a figure after 'to' is a level, not a change, and is not read")
+    # B87: the Monthly's second dry run (29 Oct) withheld block:plumbing:yields
+    # twice on the long end's word bound to the spread's figure. Its two drafts
+    # must pass; a word that disagrees with its own clause's figure still fails.
+    ym = {"2s10s": (-18.0, "−18 bp", "bp"), "30-year": (11.0, "+11 bp", "bp"),
+          "10-year": (-12.0, "−12 bp", "bp")}
+    for tail in ("backed up", "firmed"):
+        draft = (f"The curve flattened as 2s10s narrowed −18 bp to 29 bp even as the "
+                 f"long end {tail}, a split between the front and the belly.")
+        check(not direction.faults(draft, ym),
+              f"B87: 'even as the long end {tail}' is its own clause: the dry run's "
+              f"draft passes against 2s10s −18 bp and the 30-year +11 bp")
+    check(direction.faults("The 10-year rose −12 bp to 4.10% even as the curve "
+                           "flattened.", ym)
+          and direction.faults("The curve flattened as 2s10s widened −18 bp even as "
+                               "the long end backed up.", ym)
+          and direction.faults("The long end backed up even as the 10-year rose "
+                               "−12 bp.", ym),
+          "B87: a word against its own clause's figure still fails on either side "
+          "of 'even as' (the 10-year rose when it fell; 2s10s widened when it fell)")
     ed, seen = run_write([plumbing_section()],
                          [shaped(d["plumbing_paragraph"], "deep"),
                           shaped(d["firmed_paragraph"], "deep")])
@@ -745,11 +766,16 @@ def group_j() -> None:
     ahead = ("December closes the quarter with its own concentration of risk: ISM "
              "Manufacturing on the 1st, ISM Services on the 3rd, payrolls on the "
              "4th, AVGO earnings and the FOMC statement both on the 9th.")
+    # A91 (D42.8): A88 ended the role audit's span at a colon and taught it to
+    # skip a date's numerals, so the role audit ALONE no longer binds these
+    # ordinals either; B84's mask in the Monthly's wiring is now belt and braces.
+    # The audit still flags a real average written as a close.
     check(not mp.t36_faults(ahead, avg, {})
-          and na.role_faults(ahead, avg["slice"]),
-          "B84: looking_ahead's calendar ('closes the quarter ... on the 1st ... the "
-          "4th') passes the Monthly's role check; the role audit alone still binds "
-          "the ordinals (its rule is unchanged)")
+          and not na.role_faults(ahead, avg["slice"])
+          and na.role_faults("SPY closed the month at 721.82.", avg["slice"]),
+          "B84 with A88: looking_ahead's calendar ('closes the quarter ... on the 1st "
+          "... the 4th') passes the Monthly's role check and the role audit alone; "
+          "SPY's 40-week average written as its close is still withheld")
     check(mp.t36_faults("SPY closed September 2026 at 721.82, with the 10-year "
                         "yield at 4.48.", avg, {})
           and mp.t36_faults("The tape closed the 4th week with SPY at 721.82.",
@@ -1021,10 +1047,67 @@ def group_k() -> None:
               f"the role audit still fails: {c['case']}")
 
 
+# ---------------------------------------------------------------------------
+# L. THE MONTHLY'S BINDING FROM THE 29 OCT DRY RUN (A90)
+# ---------------------------------------------------------------------------
+# Dry run #2's false positives, as sentences over blocks in the rows' real
+# labels (tests/fixtures/monthly_dryrun_2026-10-29.json): each passes, each
+# must-fail case beside it fails, and summary:tape -- averages written as closes
+# -- passes the binding only to be withheld by the role audit.
+M29 = json.loads((REPO / "tests" / "fixtures" / "monthly_dryrun_2026-10-29.json")
+                 .read_text(encoding="utf-8"))
+
+
+def group_l() -> None:
+    print(f"\n{LINE}\nL. THE MONTHLY'S BINDING FROM THE 29 OCT DRY RUN (A90)\n{LINE}")
+    for c in M29["binding_pass"]:
+        a = na.audit(c["text"], c["block"])
+        check(a.passed, f"passes: {c['case']} ({a.reason()[:120]})")
+    for c in M29["binding_fail"]:
+        a = na.audit(c["text"], c["block"])
+        check(not a.passed and "is bound to" in a.reason(),
+              f"still fails: {c['case']} ({a.reason()[:120]})")
+    t = M29["tape"]
+    check(na.audit(t["text"], t["block"]).passed and na.role_faults(t["text"], t["block"]),
+          "summary:tape's averages written as closes: the binding passes them, the "
+          "role audit withholds them")
+
+
+# ---------------------------------------------------------------------------
+# M. THE MONTHLY'S BINDING FROM THE FIRST EDITION (A111, 1 Nov 2026)
+# ---------------------------------------------------------------------------
+# The four binding false positives A90's tip still withheld on 1 Nov, as their
+# logged sentences over blocks in the rows' real labels
+# (tests/fixtures/monthly_binding_2026-11-01.json): a hyphenated name, a long
+# name without an inner word, "27+ weeks" written "27 weeks", a name up to its
+# tenor. Each passes; each must-fail case beside it still fails; and a short
+# name two series share is printed as each one's label in the retry's message.
+M01 = json.loads((REPO / "tests" / "fixtures" / "monthly_binding_2026-11-01.json")
+                 .read_text(encoding="utf-8"))
+
+
+def group_m() -> None:
+    print(f"\n{LINE}\nM. THE MONTHLY'S BINDING FROM THE FIRST EDITION (A111)\n{LINE}")
+    for c in M01["binding_pass"]:
+        a = na.audit(c["text"], c["block"])
+        check(a.passed, f"passes: {c['case']} ({a.reason()[:120]})")
+    for c in M01["binding_fail"]:
+        a = na.audit(c["text"], c["block"])
+        check(not a.passed and "is bound to" in a.reason(),
+              f"still fails: {c['case']} ({a.reason()[:120]})")
+    geo = next(c["block"] for c in M01["binding_pass"] if "geopolitics" in c["case"])
+    why = na.audit("China's foreign-exchange reserves rose to 77.47 million ounces.",
+                   geo).reason()
+    check("bound to China's foreign-exchange reserves (SAFE) but belongs to China's "
+          "official gold holdings (SAFE)" in why,
+          f"two series sharing the name SAFE are each named by label in the message "
+          f"({why[:110]})")
+
+
 def main() -> int:
     print(f"{LINE}\nW-1.1a: THE AUDIT FIXES FROM THE 12 OCT DRY RUN\n{LINE}")
     for g in (group_a, group_b, group_c, group_d, group_e, group_f, group_g, group_h,
-              group_j, group_k):
+              group_j, group_k, group_l, group_m):
         g()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     return 1 if FAIL else 0

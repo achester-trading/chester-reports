@@ -1,0 +1,15 @@
+# ai_lab_ledger.yaml -- signal-triage Batch 15, item 75 (written as 68;
+# ST-R6.75a): the mega-IPO watch beside SPCX (the Equities paper's float-versus-
+# forced-flow watch). Read by altdata/ai_lab_ledger.py; printed in the Monthly's
+# Factor I lines (daily_cascade/absorption_block.py). Report only.
+#
+# Every field is null, so it prints "not yet public", until a filing on EDGAR
+# gives it; a session fills a field only from the filing, with its URL in `note`.
+version: ai-lab-ledger-v1
+updated: 2026-10-23
+mega_ipo_watch:
+  - name: Anthropic
+    note: "beside SPCX; the S-1 was not public on EDGAR at 23 Oct 2026, per public reporting"
+    expected_float: null
+    index_inclusion: null
+    lockups: null

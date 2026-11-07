@@ -1,0 +1,11 @@
+# Batch 5 item 22 (ST-R4.22a, 22b): the expansion's age and Factor I's information-processing dependency line.
+# Moved from monthly_macro/stack.py's inline list by S1 part 5 (26 Oct 2026).
+id: monthly-slow-batch5b-expansion
+cadence: monthly
+section: slow
+after: monthly-slow-batch5-construction
+module: daily_cascade.batch5b_block
+function: slow_subsections
+args: [st, now]
+requires: [st, now]
+returns: many

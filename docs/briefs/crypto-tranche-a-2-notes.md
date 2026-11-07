@@ -6,7 +6,7 @@ line and **merges after `crypto-tranche-a-1`, in the second stitched chain**.
 
 **What it builds.** CD-3, CD-4, CD-7, CD-8, the Weekly and Monthly parts of CD-9,
 and CD-10 of `docs/change-order-crypto-data-sources-2026-10-06.md`. It also applies
-Ari's rulings 1 to 5 of 17 Oct on the part 1 report. Config:
+The operator's rulings 1 to 5 of 17 Oct on the part 1 report. Config:
 `config/crypto_sources.yaml`.
 
 **Rules kept.**
@@ -222,7 +222,7 @@ The Weekly and Monthly stack gates render PDFs, so they're left to CI.
 - **The `CLAUDE.md` gate count** is unchanged at eighty, since no new gate file was
   added.
 
-## Box commands, for Ari (after Thursday's merge, inside a window; printed, not run)
+## Box commands, for the operator (after Thursday's merge, inside a window; printed, not run)
 
 ```
 cd ~/chester-reports

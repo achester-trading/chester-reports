@@ -2,7 +2,7 @@
 
 **Merge order:** this branch is cut from `aud-3b-security-master`'s tip, `2fb1048`, the end of next week's chain. It merges **after aud-3b**, as the chain's tenth link. The branch was not merged or deployed, and nothing ran on the box. aud-3b itself is untouched.
 
-**What Ari passed on:** chester-meme's five points after its T5d build. The change order is `docs/change-order-sm-schema-1-1-2026-10-16.md`.
+**What the operator passed on:** chester-meme's five points after its T5d build. The change order is `docs/change-order-sm-schema-1-1-2026-10-16.md`.
 
 | # | Point | Done |
 |---|---|---|

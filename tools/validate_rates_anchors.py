@@ -28,6 +28,8 @@ Synthetic stores only; no network, no box.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import math
 import os
@@ -262,23 +264,23 @@ def main() -> int:
     anchors = {"inflation": {"ten_year_pct": 5.30}, "fiscal": r1}
     v = {x["voice"]: x["verdict"] for x in rs.adjudicate(
         {"state": "correlated"}, {"current": None}, anchors, cfg)}
-    check(v == {"Charles Diebel": "consistent",
-                "Jeremy Courtial (SocGen idea)": "consistent",
-                "Maxence Visseau": "consistent",
+    check(v == {"outlet not named in the order (post cited)": "consistent",
+                "Société Générale (an idea, via a post)": "consistent",
+                "Arkevium": "consistent",
                 "Sarmaya Partners": "outside these measures"},
           f"each verdict from its rule ({v})")
     v2 = {x["voice"]: x["verdict"] for x in rs.adjudicate(
         {"state": "divergent"}, {"current": {"label": "breakeven-led"}},
         {"inflation": {"ten_year_pct": 5.8}, "fiscal": {"state": "absent"}}, cfg)}
-    check(v2["Charles Diebel"] == "not consistent"
-          and v2["Jeremy Courtial (SocGen idea)"] == "not testable yet"
-          and v2["Maxence Visseau"] == "not settled",
+    check(v2["outlet not named in the order (post cited)"] == "not consistent"
+          and v2["Société Générale (an idea, via a post)"] == "not testable yet"
+          and v2["Arkevium"] == "not settled",
           f"divergent refutes the 1994 read; an absent fit is not testable; above "
           f"the band without a term-premium-led selloff is not settled ({v2})")
     v3 = {x["voice"]: x["verdict"] for x in rs.adjudicate(
         {"state": "mixed"}, {"current": {"label": "term-premium-led"}},
         {"inflation": {"ten_year_pct": 5.9}, "fiscal": r1}, cfg)}
-    check(v3["Maxence Visseau"] == "consistent" and v3["Charles Diebel"] == "not settled",
+    check(v3["Arkevium"] == "consistent" and v3["outlet not named in the order (post cited)"] == "not settled",
           "above the band with a term-premium-led selloff reads as the spiral path")
     check(set(v.values()) | set(v2.values()) | set(v3.values()) <= set(rs.VERDICTS),
           "every verdict is in the vocabulary")
