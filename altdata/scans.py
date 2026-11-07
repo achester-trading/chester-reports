@@ -128,6 +128,7 @@ ADVICE = re.compile(r"\b(overweight|underweight|buy|sell|recommend\w*|favou?r\w*
 REFERENCE_HEADING = re.compile(r"^##\s+(\d+)\.\s+Reference table\b(.*)$", re.I)
 SLIDE = re.compile(r"\bslides?\s+(\d{1,3})\b", re.I)
 FAMILY_SUFFIX = re.compile(r"-\d{4}q[1-4]$", re.I)
+URL_CELL = re.compile(r"https?://\S+")
 MONTHS = {m: i for i, m in enumerate(
     ("january", "february", "march", "april", "may", "june", "july", "august",
      "september", "october", "november", "december"), 1)}
@@ -219,6 +220,12 @@ def parse(path: Path) -> dict:
         fig = {**head, "metric": metric, "value": value, "comparison": comparison,
                "section_ref": section,
                "slide": int(slide) if slide and str(slide).isdigit() else None}
+        # A ROW'S OWN SOURCE (Batch 14 item 62, b55): a table whose rows each cite
+        # their own page -- a CMA edition's assets -- carries a "source url"
+        # column, and an http URL there wins over the header's for that row.
+        own = URL_CELL.search(row.get("source url") or "")
+        if own:
+            fig["source_url"] = own.group(0).rstrip(").,")
         why = refusal(fig)
         if why:
             refused.append({"metric": metric, "reason": why})

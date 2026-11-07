@@ -188,7 +188,7 @@ A note at Sunday 21:30 needs about 53 hours of items (from Friday 16:10). Each f
 - **Every feed the laptop can read holds weeks.** So no Saturday pull is proposed.
 - **Unmeasured from the laptop:** BLS's two feeds answer 403 here (known), and Yahoo Finance's RSS answers 404. Yahoo is the one fast-rolling feed in the list.
 - **The listing pages** (the desks') hold weeks of links.
-- **If the first Sunday dry run's Yahoo items stop short of Friday,** the proposal is a Saturday 12:00 `events_ingest pull --only news` plus a voices pass, for Ari's yes. It is not built.
+- **If the first Sunday dry run's Yahoo items stop short of Friday,** the proposal is a Saturday 12:00 `events_ingest pull --only news` plus a voices pass, for the operator's yes. It is not built.
 
 ## Part 4: the two ledgers
 
@@ -214,7 +214,7 @@ A note at Sunday 21:30 needs about 53 hours of items (from Friday 16:10). Each f
 - **The meme ingest moves to 21:15.** This covers the timer, the wrapper's and module's text, `validate_meme_ingest`'s pin and CLAUDE.md.
   - **Safe:** it shares no lock and no input with the note.
   - **Timing:** its two-minute random delay ends before 21:30.
-  - **It takes effect** when Ari reloads and restarts the timer (box commands below).
+  - **It takes effect** when the operator reloads and restarts the timer (box commands below).
 - **`tools/validate_secondary_notes.py`** is in the Makefile: 87 checks in groups A to H, both SHA-256s pinned. It seeds its own stores; no network and no model.
 - **The other gates changed:**
   - `validate_events`: the notes added to its no-fetch files and its socket-less run;
@@ -239,7 +239,7 @@ A note at Sunday 21:30 needs about 53 hours of items (from Friday 16:10). Each f
 1. **Book C has no 07:00 setup list and no draft object.** Block 5 prints the not-built line. The confirm-or-cancel right is printed and never exercised.
 2. **There is no macro consensus.** The note prints "No consensus" with the gap named, plus the naive surprise, labelled.
 3. **PPI and retail sales have no declared form** in `release_calendar.yaml`'s `tier1_headlines`. Their days print "no declared form in the release calendar; the print is not read", and the targeted FRED pull covers only declared series.
-   - **For Ari:** declare their forms (e.g. `fred.ppi_final_demand` mom; retail sales mom) in a later ruling.
+   - **For the operator:** declare their forms (e.g. `fred.ppi_final_demand` mom; retail sales mom) in a later ruling.
 4. **Lens 24 lines exist** for CPI, payrolls, PPI and GDP only.
 5. **The 10-year's reaction** is ^TNX where its 5-minute bars cover 08:25. Yahoo's hourly ^TNX starts at 08:20, so the first-edition ledger cannot score it at all (Part 4).
 6. **The CNH hourly bars:** `altdata/sources/cnh.py` stores only the daily close. The evening fetch therefore writes CNH=X's own 5-minute bars (note id `cnh`).
@@ -255,7 +255,7 @@ A note at Sunday 21:30 needs about 53 hours of items (from Friday 16:10). Each f
     - A day with several releases counts under its highest tier, and within a tier under the order the registration lists them.
 15. **The open note's capture wait is four minutes,** session-set. The order says only "a bounded time".
 
-**Session-set values for Ari's review:**
+**Session-set values for the operator's review:**
 - the evening thresholds: 0.75%, 1% and 1.5%;
 - the capture wait: 4 min;
 - `news_max`: 5 and 8;
@@ -264,7 +264,7 @@ A note at Sunday 21:30 needs about 53 hours of items (from Friday 16:10). Each f
 - the timeouts: 12 and 15 min;
 - the voices pass: 120 s.
 
-## The merge sheet: box commands (Ari's; printed, never run here)
+## The merge sheet: box commands (the operator's; printed, never run here)
 
 Inside the deploy windows, after the merge:
 
@@ -288,7 +288,7 @@ systemctl --user list-timers 'chester-*note*' chester-meme-ingest.timer
 
 ## Doctrine #2 (7–8 Nov), listed and not edited
 
-- **The 1000 report:** the Doctrine's text becomes the open note's, by Ari's ruling.
+- **The 1000 report:** the Doctrine's text becomes the open note's, by the operator's ruling.
 - **The mandatory touch:** once Book C activates, is the open note mandatory on volatile-protocol days, as the Doctrine's 1000 touch is?
 - **The Book D touch:** the Doctrine names the 1000 report as a Book D touch. The open note carries no Book D block.
 

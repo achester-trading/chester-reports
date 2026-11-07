@@ -1,0 +1,56 @@
+# ai_release_watch.yaml -- the Hugging Face model-release watch (rulings of 24 Oct
+# 2026, D26; b59-trigger-sources). Read by altdata/sources/hf_releases.py. Report
+# only: nothing here enters a composite or the market-state object.
+#
+# THE SOURCE CHECK (24 Oct 2026, re-confirmed before the reader; B58's brief,
+# docs/briefs/new-sources-check-2026-10-24.md section 5):
+#   robots    huggingface.co/robots.txt: "User-agent: *" then "Allow: /".
+#   terms     the terms of service (https://huggingface.co/terms-of-service,
+#             effective 15 Sep 2022) carry no clause on automated access; the API
+#             states its limit in its headers.
+#   limit     RateLimit-Policy: "fixed window";"api";q=500;w=300 -- 500 requests per
+#             300 seconds, anonymous (read 24 Oct 2026). The reader makes one
+#             request per organisation a day (more only to page a busy week), well
+#             inside it, and stops on a 429 with the organisation STALE.
+#   listing   /api/models?author=<org>&sort=createdAt&direction=-1 answered 200 for
+#             every organisation below on 24 Oct 2026; pages follow the Link header.
+version: ai-release-watch-v1
+updated: 2026-10-24
+
+api: "https://huggingface.co/api/models"
+page_size: 100
+# Session-set. The pause between requests (seconds): 2 requests a second at most,
+# a tenth of the stated limit.
+pause_seconds: 0.5
+# Session-set. Each daily run recounts this many complete weeks (a repository made
+# public late lands in an older week) and writes a new vintage where a count moved.
+reread_weeks: 4
+
+# THE ORGANISATIONS (session-set and listed in the notes). Counts and dates only:
+# a repository's id and creation date, never its weights, card or files.
+#   china   the Chinese labs the brief named (deepseek-ai, Qwen, moonshotai,
+#           zai-org, MiniMaxAI) and their open-weight peers;
+#   peer    the US and European open-weight labs, for the comparison.
+# Left out, with the reason: google, microsoft and nvidia publish hundreds of
+# research checkpoints a year, which would swamp the count of frontier releases.
+organisations:
+  - {id: deepseek-ai, group: china}
+  - {id: Qwen, group: china}
+  - {id: moonshotai, group: china}
+  - {id: zai-org, group: china}
+  - {id: MiniMaxAI, group: china}
+  - {id: baidu, group: china}
+  - {id: tencent, group: china}
+  - {id: BAAI, group: china}
+  - {id: internlm, group: china}
+  - {id: stepfun-ai, group: china}
+  - {id: XiaomiMiMo, group: china}
+  - {id: ByteDance-Seed, group: china}
+  - {id: meta-llama, group: peer}
+  - {id: mistralai, group: peer}
+  - {id: openai, group: peer}
+
+# The read: the newest complete week, the four before it, and the week's count's
+# percentile over the last two years of weekly counts (the hypothesis' window,
+# H-B59-3) and the full history.
+lens_years: 2

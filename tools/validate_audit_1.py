@@ -28,6 +28,8 @@ network, no box: every check seeds its own temporary store.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import os
 import sqlite3
 import sys
@@ -438,6 +440,7 @@ def group_e() -> None:
             mock.patch.object(fred, "_get_key", lambda: "k"), \
             mock.patch.object(fred.time, "sleep", lambda s: None):
         fred.pull(st, lookback_days=1500, series=[monthly])
+    # THE GATE'S CLOCK (B106): reads today on purpose -- a fixture window ending today, so the revision window is measured from it. Next attention: none.
     check(fixed and fixed[0]["observation_start"] == (
               fred.session.session_date_obj() - dt.timedelta(days=1500)).isoformat(),
           "a caller that passes lookback_days keeps the fixed window (the Monthly)")

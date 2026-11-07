@@ -55,6 +55,8 @@ temporary store of its own -- no live store, no network, no model:
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import inspect
 import json

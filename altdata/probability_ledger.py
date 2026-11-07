@@ -147,6 +147,15 @@ BEGIN SELECT RAISE(ABORT, 'a forecast is not deletable; it is the record'); END;
 
 METHOD_VERSION = "brier-v1"
 
+# The missing_inputs column is part of the forecast: what the source could not
+# see when it spoke is as immutable as what it said (LL-3, B73).
+MISSING_INPUTS_TRIGGER = """
+CREATE TRIGGER IF NOT EXISTS probabilities_missing_inputs_immutable
+BEFORE UPDATE OF missing_inputs ON probabilities
+WHEN OLD.missing_inputs IS NOT NEW.missing_inputs
+BEGIN SELECT RAISE(ABORT, 'missing_inputs is written once, at emission'); END;
+"""
+
 
 def probability_id(source: str, claim: str, emitted_at: str) -> str:
     raw = f"{source}\x1f{claim}\x1f{emitted_at}".encode()
@@ -167,6 +176,17 @@ class ProbabilityLedger:
         self.conn.execute("PRAGMA journal_mode = WAL")
         self.conn.execute("PRAGMA busy_timeout = 5000")
         self.conn.executescript(SCHEMA)
+        # LL-3 (B73): WHAT WAS MISSING AT EMISSION, as a JSON list of the inputs
+        # the source could not read (a market-state row's absent dimensions; "[]"
+        # where the source recorded nothing missing). ADDITIVE and nullable: a
+        # row written before the column reads NULL, "not recorded at emission",
+        # never "nothing missing". Written once, with the forecast.
+        try:
+            self.conn.execute(
+                "ALTER TABLE probabilities ADD COLUMN missing_inputs TEXT")
+        except sqlite3.OperationalError:
+            pass
+        self.conn.executescript(MISSING_INPUTS_TRIGGER)
         self.conn.commit()
 
     def close(self) -> None:
@@ -183,8 +203,13 @@ class ProbabilityLedger:
                horizon_date: str, resolution_criterion: str,
                scenario_set: Optional[str] = None,
                emitted_at: Optional[str] = None,
-               emitted_by: Optional[str] = None) -> str:
-        """Write one forecast. Refuses a claim with no resolution criterion."""
+               emitted_by: Optional[str] = None,
+               missing_inputs: Optional[Iterable[str]] = None) -> str:
+        """Write one forecast. Refuses a claim with no resolution criterion.
+
+        `missing_inputs` (LL-3): the inputs the source could not read at
+        emission; [] for none recorded; None (the default) stores NULL, "not
+        recorded"."""
         if not str(resolution_criterion or "").strip():
             raise ValueError(
                 "a forecast needs a resolution criterion declared at emission -- "
@@ -203,10 +228,12 @@ class ProbabilityLedger:
         self.conn.execute(
             "INSERT OR IGNORE INTO probabilities (probability_id, source, "
             " scenario_set, claim, probability, emitted_at, horizon_date, "
-            " resolution_criterion, emitted_by, method_version) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            " resolution_criterion, emitted_by, method_version, missing_inputs) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (pid, source, scenario_set, claim, p, at, horizon_date,
-             resolution_criterion, emitted_by, METHOD_VERSION))
+             resolution_criterion, emitted_by, METHOD_VERSION,
+             None if missing_inputs is None
+             else json.dumps(sorted(str(x) for x in missing_inputs))))
         self.conn.commit()
         return pid
 
@@ -394,7 +421,7 @@ def seed_from_monthly(db_path: Optional[str] = None, *,
                     source="monthly_macro", scenario_set=set_id,
                     claim=r["claim"], probability=r["probability"],
                     emitted_at=emitted, horizon_date=horizon,
-                    emitted_by=str(path.name),
+                    emitted_by=str(path.name), missing_inputs=[],  # LL-3
                     resolution_criterion=(
                         f"Resolved at {horizon} against the Monthly's own stated "
                         f"scenario definition. Horizon assumed as {horizon_days} "

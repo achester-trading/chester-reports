@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | **Ruled 2026-10-03 16:32 ET** in chat — Ari: "accept all recommendations, across all groups." Register numbers (SR-36 onward) are assigned at Audit #4 (14–15 Oct), where this batch's slot in the order of work is confirmed. |
+| Status | **Ruled 2026-10-03 16:32 ET** in chat — the operator: "accept all recommendations, across all groups." Register numbers (SR-36 onward) are assigned at Audit #4 (14–15 Oct), where this batch's slot in the order of work is confirmed. |
 | Source | `docs/scans/jpm-gtm-2026q4.md` — the quarterly read of J.P. Morgan Asset Management's *Guide to the Markets*, U.S. 4Q 2026 (data as of 30 Sep 2026), produced 3 Oct 2026 by the scheduled task "JPM Guide to the Markets — quarterly read". Candidate IDs GTM-1…GTM-23 are the scan's. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Binding on | Claude Code sessions building T3 (Monthly), 6e (metric lenses), Phase B (voices) and the GTM batch |
 | Precedence | Below Part 26, the change orders, Amendments #3–#5, the reporting-stack brief and the metric-lenses brief. Rights are narrow: base-rate row, modifier, sourced figure or voices entry; nothing here becomes a panel or trigger before an offline calibration study. Figures from the Guide print in the Monthly only as sourced figures (URL and slide number stored); the Guide's recommendations never print. |
 

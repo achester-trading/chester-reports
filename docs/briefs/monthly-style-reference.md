@@ -1,6 +1,6 @@
 # Monthly style reference
 
-Supplied by Ari Chester on 2026-10-01 as the register the Monthly v2 prose should read in: institutional desk commentary. This is the pre-rebuild Monthly's "Institutional Desk Commentary" and Themes A–F (May 2026 edition), reproduced verbatim.
+Supplied by the operator on 2026-10-01 as the register the Monthly v2 prose should read in: institutional desk commentary. This is the pre-rebuild Monthly's "Institutional Desk Commentary" and Themes A–F (May 2026 edition), reproduced verbatim.
 
 **Use it for tone, structure and density only.** Its figures and attributed views are from May 2026 and were not stored with sources; never cite, reuse or restate any of them. Every number and attributed view in a new edition comes from the store, the claims registry or the voices register, under the brief's rules.
 

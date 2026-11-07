@@ -91,7 +91,7 @@ one paragraph on the writer. check_library: 0 failures.
 
 CI: the push's number is in the report.
 
-## Box commands, printed for Ari, run by no session
+## Box commands, printed for the operator, run by no session
 
 Run these after aud-1-data-fixes and this branch are on main, and after the FRED
 compaction. Use a weekday evening inside the window (17:20–23:30 ET), clear of the

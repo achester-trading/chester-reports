@@ -40,6 +40,8 @@ reader is poisoned), no model, no live store.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import io
 import math
@@ -458,12 +460,13 @@ def group_h() -> None:
     head("H. THE HOOKS, THE REGISTRY, NO FETCH")
     ws = (REPO / "daily_cascade" / "weekly_stack.py").read_text(encoding="utf-8")
     ms = (REPO / "monthly_macro" / "stack.py").read_text(encoding="utf-8")
-    check("batch5_block.plumbing_subsections(st, now, then, cadence)" in ws
+    # A103 (W3): the call also passes month_aligned, the Plumbing table's prior rule.
+    check("batch5_block.plumbing_subsections(st, now, then, cadence," in ws
           and "batch5_block.mechanics_subsection(st, cutoff)" in ws,
           "the Weekly: the attribution and net liquidity in Plumbing, 24 in Mechanics")
     check('batch5_block.plumbing_subsections(st, now, then, "monthly")' in ms
           and "batch5_block.mechanics_subsection(st, now)" in ms
-          and "batch5_block.slow_subsection(st, now)" in ms,
+          and __import__('daily_cascade.stack_hooks').stack_hooks.wired("monthly", "slow", "daily_cascade.batch5_block", "slow_subsection", ["st", "now"]),
           "the Monthly: Plumbing, Mechanics, and Factor I in the slow layers")
     reg = yaml.safe_load((REPO / "metrics_registry.yaml").read_text(encoding="utf-8"))
     met = reg["metrics"]

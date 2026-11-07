@@ -13,9 +13,14 @@ SOURCE. https://accounts.profunds.com/etfdata/ByFund/<TICKER>-historical_nav.csv
   NAV Change ($), Shares Outstanding (000), Assets Under Management
 Republished around 00:20 GMT after each trading day, with Last-Modified.
 
-FUNDS -- the largest ProShares leveraged and inverse products on the two indices:
-  Nasdaq-100   TQQQ (3x), SQQQ (-3x), QLD (2x)
+FUNDS -- the largest ProShares leveraged and inverse products on the indices:
+  Nasdaq-100   TQQQ (3x), SQQQ (-3x), QLD (2x), QID (-2x)
   S&P 500      UPRO (3x), SPXU (-3x), SSO (2x), SDS (-2x)
+  Dow 30       UDOW (3x), SDOW (-3x)
+  Russell 2000 URTY (3x), SRTY (-3x)
+QID, UDOW, SDOW, URTY and SRTY joined by ruling D13 of 24 Oct 2026 (a61); each is
+served by the same file (checked 24 Oct 2026: QID from 2006, the other four from
+2010).
 
 STORED, instrument = the ticker, observed_at = the NAV date:
   levetf.aum                 Assets Under Management, usd
@@ -48,7 +53,8 @@ log = logging.getLogger(__name__)
 
 SOURCE = "proshares"
 URL = "https://accounts.profunds.com/etfdata/ByFund/{ticker}-historical_nav.csv"
-FUNDS = ("TQQQ", "SQQQ", "QLD", "UPRO", "SPXU", "SSO", "SDS")
+FUNDS = ("TQQQ", "SQQQ", "QLD", "UPRO", "SPXU", "SSO", "SDS",
+         "QID", "UDOW", "SDOW", "URTY", "SRTY")
 KEYS = ["levetf.aum", "levetf.shares_outstanding", "levetf.nav"]
 
 

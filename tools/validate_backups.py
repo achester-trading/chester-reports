@@ -33,6 +33,8 @@ Google credential.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import gzip
 import os
 import re
@@ -270,9 +272,12 @@ def group_j() -> None:
         check(r is not None and r.stdout.strip() == "98765",
               f"the record's count is parsed from the snapshot line "
               f"({r.stdout.strip() if r else 'no SNAP_ROWS line'})")
-    check(sw.count('rname="$INBOX_RNAME"') == 4 and 'rname="$OUTBOX_RNAME"' in sw
+    # A92b: pull_folder (the letters and cards archives, AAII's weekly folder) is
+    # the fifth, and like the others reads the inbox remote.
+    check(sw.count('rname="$INBOX_RNAME"') == 5 and 'rname="$OUTBOX_RNAME"' in sw
           and "${REMOTE%%:*}" not in sw,
-          "the four inbound pulls (AAII, GLD, the X pilot, the lab) read the inbox "
+          "the five inbound pulls (the named files, GLD, the X pilot, the folders, "
+          "the lab) read the inbox "
           "remote, the lab outbox writes through its own remote (ruling 1 of 17 Oct), "
           "and none goes through the backup remote")
     # Ruling 8 (19 Oct 2026): the outbox's drive.file remote sees only what its

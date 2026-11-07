@@ -52,7 +52,7 @@ A Takeaway that reads the week's rotation names the series it rotated between, a
 
 `validate_no_filler` **32/0**.
 
-**The Weekly of 18 Oct** runs live at 05:00 ET on main as it is, so the same shape can be withheld again there. Withholding prints the section's tables without its paragraph, as designed. This fix merges Monday with post-friday-fixes unless Ari says otherwise.
+**The Weekly of 18 Oct** runs live at 05:00 ET on main as it is, so the same shape can be withheld again there. Withholding prints the section's tables without its paragraph, as designed. This fix merges Monday with post-friday-fixes unless the operator says otherwise.
 
 ## 2. AQ-8a's official gold leg reads the IMF IFS writer's series
 

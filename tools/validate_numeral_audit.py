@@ -30,11 +30,16 @@ while it was being written:
      formats every code-written percentile: the scanner's candidate line prints
      "RS 92nd" where dry run #6 printed "RS 92th", and no f-string in the
      report code writes a suffix by hand.
+  M  A95, THE MONTHLY OF 1 NOV 2026. A negative move given as its display
+     string (a frame's change, a table's change cell) carries its sign through
+     a falling verb; the role audit's gap runs on across a date.
 
     python tools/validate_numeral_audit.py
 """
 
 from __future__ import annotations
+
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
 
 import sys
 from pathlib import Path
@@ -791,6 +796,37 @@ def group_l() -> None:
                     "formats them all" + (f" -- not: {hand[:6]}" if hand else ""))
 
 
+def group_m() -> None:
+    """A95: the Monthly of 1 Nov 2026 (tests/fixtures/monthly_first_edition_
+    2026-11-01.json). A negative move handed over as its display string -- a
+    frame's {"change": "−169,786 contracts"}, a table's change cell "−19 bp" --
+    is read by the sign rule, so a falling verb carries its sign; a rising verb
+    or no verb still fails, now naming the display. The role audit's gap runs on
+    across a date, so "against its average since 2021-09-20 of 32.01" is the
+    average it says; an average after a date and called the close still fails."""
+    import json
+    from altdata import numeral_audit as na
+    print(f"\n{LINE}\nM. THE MONTHLY OF 1 NOV 2026 (A95)\n{LINE}")
+    fx = json.loads((REPO / "tests" / "fixtures" / "monthly_first_edition_2026-11-01"
+                     ".json").read_text(encoding="utf-8"))
+    for part in ("sign_display", "table_sign"):
+        g = fx[part]
+        for c in g["pass"]:
+            a = audit(c["text"], g["block"])
+            check(a.passed, f"passes: {c['case']} ({a.reason()[:110]})")
+        for c in g["fail"]:
+            a = audit(c["text"], g["block"])
+            check(not a.passed and "the payload's value is negative" in a.reason(),
+                  f"still fails, naming the display: {c['case']} ({a.reason()[:110]})")
+    r = fx["role"]
+    for c in r["pass"]:
+        f = na.role_faults(c["text"], r["payload"])
+        check(not f, f"the role audit passes: {c['case']} ({(f or [''])[0][:90]})")
+    for c in r["fail"]:
+        check(bool(na.role_faults(c["text"], r["payload"])),
+              f"the role audit still fails: {c['case']}")
+
+
 def main() -> int:
     print(f"{LINE}\nD3 numeral audit -- the precondition for any generated "
           f"sentence\n{LINE}")
@@ -806,6 +842,7 @@ def main() -> int:
     group_j()
     group_k()
     group_l()
+    group_m()
     print(f"\n{LINE}\n{PASS} passed, {FAIL} failed\n{LINE}")
     if FAIL:
         print("VALIDATION FAILED")

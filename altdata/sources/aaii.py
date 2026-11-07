@@ -17,6 +17,8 @@ go to xlrd, anything else is read as that CSV layout.
 
   aaii.bull_bear_spread   Bullish minus Bearish, in percentage points,
                           observed_at = the survey's reported date (a Thursday)
+  aaii.bearish_share      The Bearish share of respondents, in percent (0-100),
+                          from the same rows and by the same rules (D40.3, B82)
 
 WHY IT WROTE NOTHING (T2.7, 8 Oct 2026). The 4 Oct note "no robots.txt rule
 against it" was wrong: aaii.com/robots.txt carries `Disallow: /files/*` for every
@@ -87,7 +89,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import urlsplit
 
 from . import _publication as pub
@@ -99,7 +101,8 @@ SOURCE = "aaii"
 URL = "https://www.aaii.com/files/surveys/sentiment.xls"
 ROBOTS_URL = "https://www.aaii.com/robots.txt"
 KEY = "aaii.bull_bear_spread"
-KEYS = [KEY]
+BEARISH_KEY = "aaii.bearish_share"
+KEYS = [KEY, BEARISH_KEY]
 FILE_VAR = "AAII_SENTIMENT_FILE"
 INBOX_DIR = "~/chester-data/inbox/aaii"
 INBOX = f"{INBOX_DIR}/sentiment.xls"
@@ -116,21 +119,35 @@ HISTORY_WINDOW_DAYS = 365 * 60
 AGENT = "chester-reports"
 
 
+def _survey_rows(keys, day: dt.date, bull: float, bear: float, scale: float,
+                 available_at: str, kind: str) -> list[dict]:
+    """One survey's rows for `keys`, from its Bullish and Bearish shares and the
+    scale that makes them percents: the spread in percentage points, the bearish
+    share in percent."""
+    values = {KEY: round(scale * (bull - bear), 2),
+              BEARISH_KEY: round(scale * bear, 2)}
+    return [{"registry_key": k, "instrument": None,
+             "observed_at": day.isoformat(), "available_at": available_at,
+             "value": values[k], "availability_kind": kind} for k in keys]
+
+
 def rows_from_xls(data: bytes, available_at: str, kind: str) -> list[dict]:
-    """One row per dated survey. The header row is found by its 'Bullish' and
-    'Bearish' columns rather than by position, so an added column does not shift
-    the read silently."""
+    """One row per dated survey and key. The header row is found by its 'Bullish'
+    and 'Bearish' columns rather than by position, so an added column does not
+    shift the read silently."""
     import xlrd  # noqa: PLC0415
     book = xlrd.open_workbook(file_contents=data)
     return rows_from_sheet(book.sheet_by_index(0), book.datemode, available_at,
-                           kind)
+                           kind, keys=KEYS)
 
 
-def rows_from_bytes(data: bytes, available_at: str, kind: str) -> list[dict]:
+def rows_from_bytes(data: bytes, available_at: str, kind: str,
+                    keys=(KEY,)) -> list[dict]:
     """The history file, whatever it is named: xls by its magic bytes, else CSV."""
     if data[:8] == OLE2_MAGIC:
-        return rows_from_xls(data, available_at, kind)
-    return rows_from_csv(data, available_at, kind)
+        return [r for r in rows_from_xls(data, available_at, kind)
+                if r["registry_key"] in keys]
+    return rows_from_csv(data, available_at, kind, keys=keys)
 
 
 _DATE_FORMATS = ("%m-%d-%y", "%m/%d/%y", "%m-%d-%Y", "%m/%d/%Y", "%Y-%m-%d",
@@ -161,7 +178,8 @@ def _share(text: str) -> Optional[float]:
     return v / 100.0 if pct or v > 1.0 else v
 
 
-def rows_from_csv(data: bytes, available_at: str, kind: str) -> list[dict]:
+def rows_from_csv(data: bytes, available_at: str, kind: str,
+                  keys=(KEY,)) -> list[dict]:
     """The CSV history: an address line, a two-row header, then the data. The
     header is found by its 'Bullish' and 'Bearish' cells, as in the xls, so an
     added line or column does not shift the read silently."""
@@ -190,10 +208,7 @@ def rows_from_csv(data: bytes, available_at: str, kind: str) -> list[dict]:
             continue
         if day.year < 1987 or day > dt.date.today() + dt.timedelta(days=7):
             continue
-        out.append({"registry_key": KEY, "instrument": None,
-                    "observed_at": day.isoformat(), "available_at": available_at,
-                    "value": round(100.0 * (b - e), 2),
-                    "availability_kind": kind})
+        out += _survey_rows(keys, day, b, e, 100.0, available_at, kind)
     return out
 
 
@@ -209,7 +224,7 @@ def _num(text: str) -> Optional[float]:
         return None
 
 
-def rows_from_weekly(data: bytes) -> list[dict]:
+def rows_from_weekly(data: bytes, keys=(KEY,)) -> list[dict]:
     """The scheduled task's file, one row a week. See THE WEEKLY FILE'S RULES."""
     rdr = csv.DictReader(io.StringIO(data.decode("utf-8-sig")))
     missing = [c for c in WEEKLY_HEADER if c not in (rdr.fieldnames or [])]
@@ -252,21 +267,22 @@ def rows_from_weekly(data: bytes) -> list[dict]:
         if cc.lower().startswith("disagrees"):
             log.warning("aaii-weekly.csv %s: cross-check flag -- %s (written anyway)",
                         week, cc)
-        out.append({"registry_key": KEY, "instrument": None,
-                    "observed_at": reported_date(week).isoformat(),
-                    "available_at": got.astimezone(dt.timezone.utc).isoformat(
-                        timespec="microseconds"),
-                    "value": value, "availability_kind": "ingest_instant"})
+        out += _survey_rows(
+            keys, reported_date(week), b, e, scale,
+            got.astimezone(dt.timezone.utc).isoformat(timespec="microseconds"),
+            "ingest_instant")
     return out
 
 
 def union(history: list[dict], weekly: list[dict]) -> list[dict]:
-    """By Reported Date; a date present in both keeps the history's row."""
-    have = {r["observed_at"] for r in history}
-    return history + [r for r in weekly if r["observed_at"] not in have]
+    """By key and Reported Date; a date present in both keeps the history's row."""
+    have = {(r["registry_key"], r["observed_at"]) for r in history}
+    return history + [r for r in weekly
+                      if (r["registry_key"], r["observed_at"]) not in have]
 
 
-def rows_from_sheet(sh, datemode: int, available_at: str, kind: str) -> list[dict]:
+def rows_from_sheet(sh, datemode: int, available_at: str, kind: str,
+                    keys=(KEY,)) -> list[dict]:
     """rows_from_xls over an open sheet (anything with nrows and row_values)."""
     import xlrd  # noqa: PLC0415
     bull = bear = None
@@ -292,10 +308,7 @@ def rows_from_sheet(sh, datemode: int, available_at: str, kind: str) -> list[dic
             continue
         if day.year < 1987 or day > dt.date.today() + dt.timedelta(days=7):
             continue
-        out.append({"registry_key": KEY, "instrument": None,
-                    "observed_at": day.isoformat(), "available_at": available_at,
-                    "value": round(100.0 * (b - e), 2),
-                    "availability_kind": kind})
+        out += _survey_rows(keys, day, b, e, 100.0, available_at, kind)
     return out
 
 
@@ -363,17 +376,75 @@ def weekly_path() -> Path:
     return Path(os.environ.get(WEEKLY_VAR) or WEEKLY).expanduser()
 
 
+# A92b PART 4 (1 Nov 2026): THE WEEKLY FOLDER. Since 24 Oct the AAII task writes
+# one file a week to chester-vendor-checks/aaii/weekly/YYYY-MM-DD.csv (the weekly
+# file's header and rules); aaii-weekly.csv holds the 2026-10-14 row alone and is
+# read-only history. The sweep copies the folder to the inbox's weekly/
+# (scripts/rclone_sync.sh, pull_folder). Every weekly file is read with
+# rows_from_weekly and unioned BY WEEK: for a week in two files the row with the
+# newest retrieved_at (its available_at) wins; a cross-check of "disagrees" stays
+# on the row as its `crosscheck` flag (and in the run log), never dropping it.
+WEEKLY_DIR_VAR = "AAII_WEEKLY_DIR"
+WEEKLY_DIR = f"{INBOX_DIR}/weekly"
+
+
+def weekly_dir() -> Path:
+    return Path(os.environ.get(WEEKLY_DIR_VAR) or WEEKLY_DIR).expanduser()
+
+
+def weekly_files() -> list[Path]:
+    """aaii-weekly.csv first, then the weekly folder's *.csv in name order."""
+    w, d = weekly_path(), weekly_dir()
+    return ([w] if w.is_file() else []) + (sorted(d.glob("*.csv")) if d.is_dir() else [])
+
+
+def _crosschecks(data: bytes) -> dict[str, str]:
+    """{Reported Date: cross-check text} for each row of one weekly file."""
+    out: dict[str, str] = {}
+    for r in csv.DictReader(io.StringIO(data.decode("utf-8-sig"))):
+        text = (r.get("week_ending") or "").strip()
+        try:
+            week: Optional[dt.date] = dt.date.fromisoformat(text)
+        except ValueError:
+            week = parse_date(text)
+        if week is not None:
+            out[reported_date(week).isoformat()] = (r.get("crosscheck") or "").strip()
+    return out
+
+
+def weekly_rows(*args: Any) -> list[dict]:
+    """Every weekly file's rows, unioned by (key, Reported Date), the newest
+    retrieved_at winning. `args` pass through to rows_from_weekly."""
+    best: dict[tuple, dict] = {}
+    for p in weekly_files():
+        data = p.read_bytes()
+        try:
+            rows = rows_from_weekly(data, *args)
+        except ValueError as exc:
+            log.warning("aaii weekly file %s skipped: %s", p.name, exc)
+            continue
+        flags = _crosschecks(data)
+        for r in rows:
+            cc = flags.get(r["observed_at"]) or ""
+            if cc.lower().startswith("disagrees"):
+                r = dict(r, crosscheck=cc)
+            k = (r["registry_key"], r["observed_at"])
+            if k not in best or str(r["available_at"]) > str(best[k]["available_at"]):
+                best[k] = r
+    return sorted(best.values(), key=lambda r: (r["registry_key"], r["observed_at"]))
+
+
 def _from_file(p: Path) -> list[dict]:
     when = dt.datetime.fromtimestamp(p.stat().st_mtime, dt.timezone.utc)
     return rows_from_bytes(p.read_bytes(), when.isoformat(timespec="microseconds"),
-                           "ingest_instant")
+                           "ingest_instant", keys=KEYS)
 
 
 def _produce() -> list[dict]:
-    p, w = inbox_path(), weekly_path()
-    if p.is_file() or w.is_file():
+    p = inbox_path()
+    if p.is_file() or weekly_files():
         history = _from_file(p) if p.is_file() else []
-        weekly = rows_from_weekly(w.read_bytes()) if w.is_file() else []
+        weekly = weekly_rows(KEYS)       # A92b with B82: both files, both keys
         return union(history, weekly)
     try:
         allowed, rule = robots_verdict(http_get_text(ROBOTS_URL, timeout=30), URL)
@@ -392,7 +463,7 @@ def _produce() -> list[dict]:
             f"not fetched. Place the spreadsheet, downloaded in a browser, at "
             f"{p} (or ${FILE_VAR})")
     data, headers = http_get_response(URL, timeout=60)
-    return rows_from_xls(data, *pub.availability(headers))
+    return rows_from_xls(data, *pub.availability(headers))  # both keys
 
 
 def pull(run_id: Optional[str] = None, db=None, history: bool = False) -> dict:

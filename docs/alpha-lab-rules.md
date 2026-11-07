@@ -296,3 +296,21 @@ when:
 A `zscore` or `mean_band` key must be in `metrics_registry.yaml`; `instrument` reads that instrument's rows only. Each trade records the values it read under `when`, and its `available_at` covers them. One function reads all three (`rules.when_value`): the grammar search's conditioning calls it, so a search candidate conditioned on a state is exactly the v2 rule with that one `when` item, and a conditioned survivor registers that rule.
 
 **What v2 still cannot say:** everything in section 13, and a state condition on anything other than these three kinds (an intraday state, a vendor's figure). Nothing in the search's family `search-v1` needs code.
+
+## 15. Families
+
+**Every hypothesis carries one `family_ref`** (Batch 19 item 99, accepted 27 Oct 2026). It names a section of Kakushadze and Serur's *151 Trading Strategies* (2018; SSRN 3247865), written `KS §<section> <short name>`, for example `KS §3.1 price momentum`. It may instead name one of the two house entries K&S does not carry: `KS options` (the premium sleeve, item 100) and `liquidity-sweep` (item 101(b)).
+- **The registry** is `config/alpha_families.yaml`: one entry per K&S section the lab could use, with its section number, its title, a one-line house description and the asset classes it applies to. A `family_ref` not in it is refused.
+- **Required from the next inbox batch.** A weekly-brief or sitting batch written from 1 Nov 2026 needs a `family_ref` on every hypothesis. Before that, the field is optional.
+- **The daily proposer asks for it too** (A113, 2 Nov 2026). Its prompt (`alpha-proposer-v2`) lists the registry's refs and asks for one per hypothesis. A missing or unknown ref keeps the idea, without the ref and flagged "needs family_ref" in its translation note, and it counts under its own `family` until a human sets the ref.
+- **Hypotheses registered before the change** are mapped once, in the registry's `assignments`. Their files are not edited, because a registered batch is held by its manifest's sha256 and its translations by the file's.
+- **`family` stays.** It is the hypothesis's own short label, and nothing about it changes.
+
+**The count keys on it.** The variant count, the weekly brief's per-family budget, the proposer's weekly family count and the deflated Sharpe (with RAS reading the same N) all group by the `family_ref`. A hypothesis with none, such as an importer's tell or a search survivor, groups by its `family`.
+- A `family_ref`'s first count starts from the counts already stored under the old families its hypotheses came from, so no trial is lost when the key changes.
+- Where one old family split across several refs, each ref starts from that family's whole count. That over-counts and so deflates harder, never softer.
+- An engine's own re-fits still count under its engine family (`config/alpha_engines.yaml`) until the engine carries a `family_ref`.
+
+**The leakage list gains two named cases.** Each is a breach of section 5.
+- **HP-filter look-ahead.** The Hodrick-Prescott trend at a date is solved over the whole sample, so its value at day t moves when later days arrive: a rule that reads it reads the future. Only a one-sided filter, refitted on data to t, is knowable at t, and the grammar has no HP transform at all.
+- **The unfinished candle.** A bar's close, high and low are not known until the bar has closed and been stored, so a rule deciding inside the session that reads "today's close" reads a number that does not yet exist. A `this_close` rule decides at 15:50 ET and therefore reads yesterday's close, and a run whose reads post-date its decision is void.
