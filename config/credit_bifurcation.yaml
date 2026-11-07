@@ -1,0 +1,41 @@
+# THE HY BIFURCATION LINE (signal-triage Batch 25 item 131, the order's 110;
+# docs/change-order-signal-triage-batch-25-2026-11-06.md; S3: it amends the credit
+# dimension's PRINT, never its computation; B139, 7 Nov 2026). Read by
+# altdata/credit_bifurcation.py; held by tools/validate_items_131_132.py.
+#
+# One line in Plumbing & rates (the close, the Weekly and the Monthly) that sets
+# the cycle series (HY OAS, Baa less the 10-year) beside the idiosyncratic ones
+# (the CCC/HY OAS ratio, CCC less BB), so "CCC moving alone" and "the cycle
+# moving" read apart. Report line: no flag, no threshold, nothing enters the
+# credit dimension, the market-state object, an overlay or a composite. 106d's
+# policy-put triggers read the cycle series, not CCC (the order's section 3).
+
+version: credit-bifurcation-1
+updated: 2026-11-07
+
+cycle:
+  - {key: fred.hy_oas, label: "HY OAS"}
+  - {key: calc.baa_less_10y, label: "Baa less the 10-year"}
+ratio:
+  numerator: fred.ccc_oas          # ICE BofA CCC & lower OAS (BAMLH0A3HYC)
+  denominator: fred.hy_oas         # ICE BofA US HY OAS (BAMLH0A0HYM2)
+  label: "CCC/HY OAS"
+  # The percentile's window, asked: five years, the spread family's short lens
+  # (session-set). FRED serves ICE's OAS for three years only, so the label says
+  # what is stored (A126's derived.window_label: "5y asked, 3.4y stored").
+  window_days: 1826
+  min_n: 2
+tail:
+  key: calc.ccc_bb_oas_bp          # altdata/macro_6e.py, bp
+  label: "CCC less BB"
+# Every change on the line is over the same count of observations (session-set).
+change_observations: 20
+# THE COMPOSITION CLAUSE: printed only when a stored source carries it -- a
+# reading-shelf scan's reference-table row, through the scans ingest
+# (altdata/scans.py: a URL, a section reference and an as-of on every row). None
+# is stored today, so the clause is omitted, never invented. Sector concentration
+# and distressed-exchange counts have no keyless source (the order's ruling): gap.
+composition:
+  family: credit-ccc               # docs/scans/credit-ccc-<date>.md, when one exists
+  metrics:
+    - {metric: "Share of the CCC index below $60", label: "share of the CCC index below $60"}

@@ -606,6 +606,12 @@ def plumbing_week(st, now: str, then: str, book: Optional[dict] = None,
     rows += pr["rows"]
     fx = wsec.global_fx(st, now, then, cadence)
     subs = [{**fx, "paragraph_wanted": False}]
+    # BATCH 25 ITEM 131 (B139, 7 Nov 2026): the bifurcation line, the Weekly's
+    # and the Monthly's -- the cycle series beside the idiosyncratic ones.
+    from altdata import credit_bifurcation                       # noqa: PLC0415
+    bif = credit_bifurcation.subsection(st, now)
+    if bif:
+        subs.append(bif)
     nt = list(pr["not_tracked"])
     pdata = {"series": data, "tier1_releases": rel, "plumbing": pr["data"]}
     # YIELDS-UP/DOLLAR-DOWN (AQ-8a; Currencies section 19, Rates S10/S29): one

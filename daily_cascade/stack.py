@@ -603,10 +603,14 @@ def plumbing_section(p: dict, st, cutoff: str, cfg: dict) -> dict:
     for x in rel:
         items.append(item(f"plumb:release:{x['release']}", x["line"], 1,
                           (x["release"], x["month"], x["line"])))
+    # BATCH 25 ITEM 131 (B139, 7 Nov 2026): the bifurcation line -- the cycle
+    # series beside the idiosyncratic ones on one line. Data, no paragraph.
+    from altdata import credit_bifurcation                       # noqa: PLC0415
+    bif = credit_bifurcation.subsection(st, cutoff)
     return {"items": items, "deep_reason": reason,
             "charts": ["C3"] if reason else [],
             "not_tracked": ["repo-market stress (SOFR, general collateral)"],
-            "subsections": [lt] if lt else [],
+            "subsections": [x for x in (lt, bif) if x],
             "data": {"series": data, "release_lines": rel}}
 
 
