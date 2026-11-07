@@ -1,0 +1,146 @@
+# vol_state.yaml -- signal-triage Batch 23 item 124c(i) (the order's 106c(i); paste
+# B134, 6 Nov 2026). Read by altdata/vol_state.py; printed by
+# daily_cascade/vol_state_block.py in the close's Mechanics (after item 52's block)
+# and as one row in the Weekly's.
+#
+# RIGHTS (the order): a daily line and the sizing input to item 124g, through the
+# hook vol_state_k. No regime, no dial, no composite: the stored calc.vol_state.*
+# keys are barred from the market-state object (metrics_registry.yaml
+# market_state_barred).
+#
+# EVERY VALUE HERE IS SESSION-SET, not fitted: the rule, the bins and the k table
+# are declared, and changing one is a config change with its date, never a fit.
+
+version: vol-state-v1
+updated: 2026-11-06
+
+# The five inputs, each as a percentile over its own stored history to the day
+# (expanding, point in time: the share of its values on or before the day that are
+# at or below the day's). `from` is the first day an input is read; before it, and
+# before `min_history` values, the input is "n/a" and leaves the mean.
+min_history: 252
+inputs:
+  - id: vix
+    label: VIX
+    # FRED's VIXCLS is the history; on the close's own day, before FRED publishes,
+    # Yahoo's ^VIX close fills the day. FRED's value wins wherever both exist.
+    keys: [fred.vix, yfinance.mkt_vix]
+    from: "1990-01-02"
+  - id: rv20
+    label: S&P 500 20-day realised vol
+    # Annualised: the sample standard deviation of the 20 daily log returns
+    # ending the day, times sqrt(252), in percent.
+    keys: [yfinance.mkt_gspc]
+    from: "1990-01-02"
+  - id: term
+    label: VIX/VIX3M
+    keys: [yfinance.mkt_vix3m]
+    from: "2007-01-03"
+  - id: vvix
+    label: VVIX
+    keys: [yfinance.mkt_vvix]
+    from: "2012-01-03"
+  - id: bigmove
+    label: "|return| >= 2% days in the last 20"
+    keys: [yfinance.mkt_gspc]
+    from: "1990-01-02"
+    threshold: 0.02
+    window: 20
+
+# THE RULE, session-set (the order's default): the state score is the mean of the
+# available percentiles, unweighted; no weight is fitted. The decile is the
+# score's bin: 1 below 10, 2 from 10 to below 20, ..., 10 at 90 and above.
+rule:
+  combine: mean_of_available
+  min_inputs: 2
+
+# THE CALIBRATION the print reads, copied from the ledger (written once,
+# refreshed yearly by the Annual Structural Review, never edited by hand). Its
+# head carries the computation's SHA-256, which must equal `computation_sha256`.
+calibration:
+  ledger: docs/ledgers/vol-state-calibration-2026-11.md
+  as_of: "2026-11-05"
+  computation_sha256: be6efc27ab14f9cc9fd8bb2c4f5297e3c5a85c19fe2c2c77e3b23bffefad6ddd
+  big_move: 0.03
+  horizon: 10
+  deciles:
+    1: {hi: null, lo: null, n: 0, p: null, t20: null, t5: null}
+    2:
+      hi: 0.0799
+      lo: 0.0097
+      n: 106
+      p: 0.0283
+      t20: {higher: 0.8962, lower: 0.0, same: 0.1038}
+      t5: {higher: 0.6698, lower: 0.0, same: 0.3302}
+    3:
+      hi: 0.0274
+      lo: 0.0127
+      n: 1338
+      p: 0.0187
+      t20: {higher: 0.5605, lower: 0.0291, same: 0.4103}
+      t5: {higher: 0.3199, lower: 0.0411, same: 0.639}
+    4:
+      hi: 0.0152
+      lo: 0.0054
+      n: 1543
+      p: 0.0091
+      t20: {higher: 0.4026, lower: 0.2727, same: 0.3247}
+      t5: {higher: 0.2528, lower: 0.2463, same: 0.501}
+    5:
+      hi: 0.0297
+      lo: 0.0138
+      n: 1234
+      p: 0.0203
+      t20: {higher: 0.2748, lower: 0.4976, same: 0.2276}
+      t5: {higher: 0.2304, lower: 0.346, same: 0.4236}
+    6:
+      hi: 0.0615
+      lo: 0.0364
+      n: 1118
+      p: 0.0474
+      t20: {higher: 0.3145, lower: 0.4866, same: 0.1989}
+      t5: {higher: 0.2732, lower: 0.3179, same: 0.4089}
+    7:
+      hi: 0.0907
+      lo: 0.0584
+      n: 1001
+      p: 0.0729
+      t20: {higher: 0.255, lower: 0.521, same: 0.224}
+      t5: {higher: 0.1888, lower: 0.3876, same: 0.4236}
+    8:
+      hi: 0.2334
+      lo: 0.1782
+      n: 817
+      p: 0.2044
+      t20: {higher: 0.3537, lower: 0.4749, same: 0.1714}
+      t5: {higher: 0.2668, lower: 0.3439, same: 0.3892}
+    9:
+      hi: 0.2867
+      lo: 0.2304
+      n: 924
+      p: 0.2576
+      t20: {higher: 0.2348, lower: 0.4913, same: 0.2738}
+      t5: {higher: 0.197, lower: 0.3095, same: 0.4935}
+    10:
+      hi: 0.4947
+      lo: 0.431
+      n: 938
+      p: 0.4627
+      t20: {higher: 0.0, lower: 0.5021, same: 0.4979}
+      t5: {higher: 0.0, lower: 0.2612, same: 0.7388}
+
+# THE SIZING HOOK (item 124g(ii), DTH-1): vol_state_k(decile) is the ATR multiple
+# A130's sizing module reads as the stop's floor (D8 of 6 Nov 2026: structure sets
+# the stop, the ATR multiple is its floor). Session-set; a wider floor in the top
+# deciles. Nothing here sizes anything itself.
+k_table:
+  1: 1.5
+  2: 1.5
+  3: 1.5
+  4: 1.5
+  5: 1.5
+  6: 1.75
+  7: 2.0
+  8: 2.25
+  9: 2.5
+  10: 3.0
