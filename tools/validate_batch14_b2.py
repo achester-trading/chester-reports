@@ -323,7 +323,11 @@ def group_f() -> None:
         "WHERE narrative_id='market_cheap_on_peg'").fetchone()
     check(row == ("proposed", "config_proposal", "emerging"),
           f"seeded PROPOSED through the existing path ({row}); confirming stays the operator's")
-    check(len(cfg["proposals"]) == 7, "the proposals pin is seven")
+    # The committed proposals: seven on main, plus B136's ai_capex_j_curve (the
+    # sell-side J-curve, the bull case) and ai_capex_treadmill (the treadmill
+    # rebuttal), so nine here.
+    # chain-13's stitch sets the pin to ten (B133 adds one, B136 adds two)
+    check(len(cfg["proposals"]) == 9, "the proposals pin is nine")
 
 
 def months(y0: int, m0: int, n: int) -> list[str]:

@@ -144,3 +144,7 @@ after this one, so ten after both.
 ## CI
 
 Read once after the push.
+
+**B142.** CI run 42328165216 was red on `validate_batch14_b2`: "the proposals
+pin is seven". The pin is now nine (this branch's `ai_capex_j_curve` and
+`ai_capex_treadmill`); chain-13's stitch sets it to ten.
