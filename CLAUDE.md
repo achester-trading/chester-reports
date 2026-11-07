@@ -245,7 +245,7 @@ from the existing store and `--skip-narrative` to skip the LLM step.
 writes only to `reports/dryrun/` (no fetch, snapshot or state record); add
 `--email` to send it once under a "[DRY RUN]" subject.
 
-**`make validate` runs every gate** — one hundred and sixty-seven code gates (one hundred and sixty-four Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
+**`make validate` runs every gate** — one hundred and sixty-eight code gates (one hundred and sixty-five Python, three shell) and eight data gates, no network, no box. **A code gate never reads the live store**: each seeds a
 temporary store of its own, so its verdict is about the commit and is the same
 in CI, on the laptop and on the box. Checks about the box's real history are
 data gates (`GATE_KIND = "data"`, the Makefile's `DATA_GATES`), which report
@@ -748,6 +748,29 @@ earnings; `config/vol_event.yaml` `volatile_day`), each with its reading and
 as-of. The 09:50 open note settles the gap from the 09:30 open and its prose gate
 reads the completed flag. Printed, never applied: nothing halves a size or
 refuses a packet until Doctrine #2 and Book C's activation.
+
+**DTH-1's day-trade sizing prints, and never places an order (Batch 23 item
+124g(ii); D63's D8; A130, 6 Nov 2026).** The rule is "structure sets the stop; the
+ATR multiple is its floor; size = fixed dollar risk / stop distance".
+- **The module.** `altdata/dth1_sizing.py` (`config/dth1.yaml` `sizing`) reads the
+  operator's account base. The file is dth1-account-base.csv in the private Drive
+  folder chester-cards, which the nightly sweep's cards copy brings into the inbox;
+  it is never read from the repo.
+- **The inputs.** 1% of the base is the risk and 2% the daily limit. The 14-session
+  ES ATR comes from the stored bars, through the volatile-day flag's reader.
+- **The floor.** It is k x ATR, with k 1.0 and session-set; 124c(i)'s vol state sets
+  k once built (`vol_state_k`, "not built").
+- **Contracts.** The count is floor(risk / (distance x point value)), MES when ES
+  rounds to zero.
+- **What the 07:00 anchor prints.** Its DTH-1 block prints the day's table after the
+  checklist: the risk and the limit in dollars, the ATR, the floor, and ES and MES at
+  three candidate stops. It never prints the base itself or a trade. This supersedes
+  D41's "sizes on the card only" for that block. With no file it prints "account
+  base not found in chester-cards (dth1-account-base.csv)".
+- **The ledger.** The manual ledger gains `atr_at_entry` and `floor_applied`, both
+  nullable; the Weekly counts the second.
+- **Imports.** There is no broker, order or register import.
+  `tools/validate_item_124_g2.py` holds it.
 
 **The calibration ledgers are studies, not rights (Batch 6 Tranche 2 part 1 and
 Batch 5 Tranche 2, 17 Oct 2026).** `altdata/ledgers/` holds ST-R5.30b, 32b, 35b,

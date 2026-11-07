@@ -375,6 +375,15 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
     except Exception as exc:                                    # noqa: BLE001
         dth1 = {"enabled": False, "title": "", "lines": []}
         warnings.append(f"DTH-1 checklist not read: {type(exc).__name__}")
+    # A130 (Batch 23 item 124g(ii); D63's D8): the day's sizing table, from the
+    # operator's account base in the inbox and ES's stored bars. Sizes only:
+    # never the base itself, a trade or an order.
+    try:
+        from altdata import dth1_sizing                         # noqa: PLC0415
+        dth1_size = dth1_sizing.plan_block(this_session, cutoff, db_path)
+    except Exception as exc:                                    # noqa: BLE001
+        dth1_size = {"enabled": False, "title": "", "lines": [], "table": None}
+        warnings.append(f"DTH-1 sizing not read: {type(exc).__name__}")
 
     return {
         "report": "morning_anchor",
@@ -386,6 +395,7 @@ def build(sess: Optional[str] = None, as_of: Optional[str] = None,
         "overnight": overnight,
         "es_block": es,
         "dth1_checklist": dth1,
+        "dth1_sizing": dth1_size,
         "events": events,
         "stories": stories,
         "exposure": exposure,

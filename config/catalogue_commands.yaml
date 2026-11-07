@@ -111,6 +111,9 @@ commands:
   altdata.dth1_ledger:
     domain: portfolio
     line: "DTH-1 (D41): the anchor's day-trade rules checklist and the manual ledger's aggregates for the Weekly -- counts and R only, read from the box's inbox"
+  altdata.dth1_sizing:
+    domain: portfolio
+    line: "DTH-1's constant-dollar-risk sizing (Batch 23 item 124g(ii), D63's D8): `[--date D]` prints the anchor's sizing table; `--stop POINTS [--instrument ES|MES]` sizes one stop. Reads the account base from the box's inbox; never places an order"
   altdata.error_corpus:
     domain: register
     line: The error corpus -- every graded miss, with what was said, what happened and what was missing (LL-3)

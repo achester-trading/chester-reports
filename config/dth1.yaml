@@ -7,6 +7,14 @@
 #   - the ledger reader's AGGREGATES in the Weekly's book section: counts and
 #     R-multiples only, never a currency, never a single trade's row.
 # The checklist's wording lives here so it changes without code.
+#
+# A130 (6 Nov 2026; Batch 23 item 124g(ii) and D63's D8) adds a THIRD piece, by
+# the order's explicit words: the 07:00 anchor's DTH-1 block prints the day's
+# sizing table (`sizing` below; altdata/dth1_sizing.py) -- the risk per trade and
+# the daily limit in dollars from the operator's account base, the ES ATR, the
+# floor, and ES and MES contracts at three candidate stop distances. It never
+# prints the base itself, a trade, an entry or an order. This supersedes D41's
+# "sizes on the chat-side card only" for that one block; the rest stands.
 version: 1
 
 checklist:
@@ -32,6 +40,10 @@ ledger:
   # cards' richer columns:
   #   date, time_et, instrument, side, entry, stop, target, contracts, risk_usd,
   #   exit, result_r, result_usd, status, rule_broken, notes
+  # and, from A130 (124g(ii)), two the operator MAY fill, both nullable:
+  #   atr_at_entry (ES's ATR in points when the trade was sized; never read or
+  #   printed), floor_applied (y when the ATR floor, not the structure, set the
+  #   stop; counted in the Weekly's aggregate line when the column exists)
   # The reader reads only date, result_r, rule_broken, status (and promoted where
   # a column carries it). entry, stop, target, contracts, risk_usd, result_usd,
   # notes, instrument and side are never read and never printed (the gate proves
@@ -47,6 +59,7 @@ ledger:
     rule_broken: [rule_broken, rule_break, broke_rule, rules_broken, rule_broken_flag]
     status: [status, check, verify, verified]
     promoted: [promoted, promoted_to_book_c, promotion, book_c]
+    floor_applied: [floor_applied, atr_floor_applied, floor]
   required: [date, result_r, rule_broken]
   # A row whose status says one of these, or whose result is blank or not a
   # number ("verify", "FILL FROM STATEMENT"), waits for the broker statement:
@@ -56,3 +69,30 @@ ledger:
   # the closed-trade aggregates and counted as "k open" (A92b).
   open_words: [open]
   truthy: ["y", "yes", "true", "1", "x"]
+
+# A130: DTH-1's constant-dollar-risk sizing (Batch 23 item 124g(ii); the day-
+# trading rules' rule 8 as D63's D8 rules it until paste B140 files the order:
+# "structure sets the stop; the ATR multiple is its floor; size = fixed dollar
+# risk / stop distance"). altdata/dth1_sizing.py. Every value is SESSION-SET.
+sizing:
+  enabled: true
+  title: "DTH-1 sizing (constant dollar risk)"
+  # The operator's account base: chester-cards/dth1-account-base.csv on the
+  # private Drive. The nightly sweep already copies the whole chester-cards
+  # folder into the cards inbox (scripts/rclone_sync.sh `pull_folder chester-
+  # cards cards`, A92b), so no new pull is needed. Header: date, account_base.
+  # Never read from the repo; absent, the block prints "account base not found
+  # in chester-cards (dth1-account-base.csv)" and sizes nothing.
+  base_path: "~/chester-data/inbox/cards/dth1-account-base.csv"
+  base_columns:
+    date: [date, as_of, day]
+    base: [account_base, base, equity, account_value]
+  risk_fraction: 0.01           # 1% of the base per trade
+  daily_limit_fraction: 0.02    # 2% of the base a day, printed beside it
+  atr_sessions: 14              # ES's ATR over 14 complete sessions (stored bars)
+  # k x ATR is the stop's floor. 124c(i)'s vol state will set k once it exists
+  # (dth1_sizing.vol_state_k, "not built" today); until then this.
+  k: 1.0
+  candidates_atr: [1.0, 1.5, 2.0]   # the table's three stop distances, x ATR
+  point_value: {ES: 50.0, MES: 5.0}
+  footer: "Sizes only: nothing here places an order; the stop is the structure's."

@@ -149,7 +149,9 @@ def read(path: Optional[str] = None, ending: Optional[dt.date] = None,
         if d > ending:
             continue
         done.append((d, res, cell(r, "rule_broken").lower() in truthy,
-                     cell(r, "promoted").lower() in truthy))
+                     cell(r, "promoted").lower() in truthy,
+                     # A130 (124g(ii)): the operator's optional column, a count only.
+                     cell(r, "floor_applied").lower() in truthy))
     rs = [x[1] for x in done]
     n = len(done)
     clean = sum(1 for x in done if not x[2])
@@ -165,6 +167,8 @@ def read(path: Optional[str] = None, ending: Optional[dt.date] = None,
         "promotions": sum(1 for x in done if x[3]),
         "awaiting": awaiting, "undated": undated, "open": open_n,
         "promotion_column": col.get("promoted") is not None,
+        "floor_applied": sum(1 for x in done if x[4]),
+        "floor_column": col.get("floor_applied") is not None,
     }
 
 
@@ -192,6 +196,8 @@ def weekly_lines(agg: dict) -> list[str]:
                f"{_rr(agg['largest_loss_r']) if agg['largest_loss_r'] is not None else 'none'}; "
                f"promotions to Book C: "
                f"{agg['promotions'] if agg['promotion_column'] else 'not tracked (no column)'}."]
+        if agg.get("floor_column"):
+            out.append(f"The ATR floor set the stop in {agg['floor_applied']} of {n}.")
     if agg.get("open"):
         out.append(f"{agg['open']} open, not scored.")
     if agg.get("awaiting"):
