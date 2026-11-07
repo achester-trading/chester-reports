@@ -32,11 +32,6 @@ modules:
     calls: {datetime.datetime.now: 1}
     lines_b106: [108]
     burn_down: "_now(): session.utc_iso(), identical text; B101 pins _now for its gate, which a session pin then replaces"
-  altdata/security_master.py:
-    source: B106
-    calls: {datetime.date.today: 1}
-    lines_b106: [99]
-    burn_down: "the default as-of date: session.session_date(); the export and the resolver read it, so prove resolve() unchanged across 20:00-24:00 ET"
   altdata/sources/aaii.py:
     source: B106
     calls: {datetime.date.today: 2}

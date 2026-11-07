@@ -96,7 +96,11 @@ class Ambiguous(LookupError):
 
 def _day(d: Day) -> str:
     if d is None:
-        return dt.date.today().isoformat()
+        # A123's one-line fix (A132): the ET session date, never the machine's
+        # (UTC on the box), so an undated resolve between 20:00 and 24:00 ET no
+        # longer answers with tomorrow's window.
+        from altdata import session                             # noqa: PLC0415
+        return session.session_date()
     return d.isoformat() if isinstance(d, dt.date) else str(d)[:10]
 
 
