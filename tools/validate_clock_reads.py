@@ -242,9 +242,14 @@ def group_a(allow: dict) -> None:
           "each carries its calls with counts and a burn-down note")
     b106 = [r for r, e in mods.items() if e.get("source") == "B106"]
     a124 = [r for r, e in mods.items() if e.get("source") == "A124 scan"]
-    check(len(b106) + len(a124) == len(mods),
-          f"each says where it came from: B106's inventory ({len(b106)}) or "
-          f"the whole-tree scan of A124 ({len(a124)})")
+    # A132 (6 Nov 2026): the reads main's merge week brought in, carried when
+    # main merged into this branch -- existing code, each pending burn-down.
+    a132 = [r for r, e in mods.items() if e.get("source") == "A132 merge of main"
+            and e.get("reason") == "pending burn-down"]
+    check(len(b106) + len(a124) + len(a132) == len(mods),
+          f"each says where it came from: B106's inventory ({len(b106)}), "
+          f"the whole-tree scan of A124 ({len(a124)}) or main's merge week, "
+          f"carried by A132 ({len(a132)})")
     check(all(e.get("reason") == "pending burn-down" and e.get("group") in ("IN", "OUT")
               for e in mods.values() if e.get("source") == "A124 scan"),
           "each A124 entry is 'pending burn-down' with its group by A119's rule "

@@ -229,3 +229,49 @@ modules:
     calls: {datetime.datetime.now: 1}
     lines_b106: [151]
     burn_down: "the heat band's as-of fallback: session.utc_now(), identical value (A119 converted it on its branch; this entry burns down when A119 merges)"
+  # A132 (6 Nov 2026): the reads main's merge week brought in (A92b, B59, B69,
+  # B70, A79's 6i-3, A98), found when main merged into this branch: existing
+  # code, not new reads, so carried here like B106's inventory and burned down
+  # by a later paste. Lines as found at main ee04ba21.
+  altdata/dth1_ledger.py:
+    source: A132 merge of main
+    reason: pending burn-down
+    calls: {datetime.date.today: 1}
+    lines_b106: [132]
+    burn_down: "the Weekly's default week ending: session.local_today() (the machine's date, as now) or the ET session date, decided per site"
+  altdata/sources/_quarterly_common.py:
+    source: A132 merge of main
+    reason: pending burn-down
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [81]
+    burn_down: "the one-a-day guard's instant: session.utc_now(), identical value"
+  altdata/sources/gdelt.py:
+    source: A132 merge of main
+    reason: pending burn-down
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [216]
+    burn_down: "the pull instant: session.utc_now(), identical value"
+  altdata/sources/hf_releases.py:
+    source: A132 merge of main
+    reason: pending burn-down
+    calls: {datetime.datetime.now: 2}
+    lines_b106: [148, 214]
+    burn_down: "the pull instant and the week's end: session.utc_now(), identical value"
+  altdata/sources/llama_breadth.py:
+    source: A132 merge of main
+    reason: pending burn-down
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [117]
+    burn_down: "the pull instant: session.utc_now(), identical value"
+  altdata/tb_harness.py:
+    source: A132 merge of main
+    reason: pending burn-down
+    calls: {datetime.datetime.now: 4}
+    lines_b106: [111, 587, 760, 814]
+    burn_down: "the harness's run instants: session.utc_now(), identical value; its gates pin through session"
+  paper_exec/state.py:
+    source: A132 merge of main
+    reason: pending burn-down
+    calls: {datetime.datetime.now: 1}
+    lines_b106: [22]
+    burn_down: "the executor's state stamp: session.utc_now(), identical value"
