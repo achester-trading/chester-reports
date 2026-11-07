@@ -656,3 +656,34 @@ Each table names its window and source class. Figures computed from data the sys
 ### SR-25 — the memory cycle (no ledger on this line)
 
 - No ledger: its inputs were by-hand lines, which rule 30 does not create.
+
+## Appendix E — Dated: Two-sided tail base rates (item 124a) (as of 5 November 2026)
+
+*Dated appendix (signal-triage Batch 23 item 124a, the order's 106a; paste B133, 6 November 2026). The figures are recomputed by `tools/calibration/tail_days_base_rates.py`, whose computation is printed at the head of its output with its SHA-256 (`eb3c1f924c0192f1ffb3a7667856cbfd99d4e0455450f70be4836ba86dcda3ed`), and the table is refreshed once a year by the Annual Structural Review, never by hand. This edition is the laptop's, from public sources (the S&P 500 through the yfinance writer's reader, VIX from FRED's VIXCLS); the box's run from the store supersedes it.*
+
+**As of** the close of 5 November 2026. **Sample:** the S&P 500's daily price returns from 3 January 1950 (n = 19,334 sessions); the standardised rows on the matched sample from 3 January 1955 (n = 18,083), where a GARCH(1,1) forecast fitted each year-end on data through that year only, and the 20-session realised volatility ending the day before, both exist; the VIX rows and the openers from 2 January 1990. A bottom-decile day is at or below its series' own 10th percentile and a top-decile day at or above its 90th. The standardised columns lead.
+
+**The co-location of the best and worst days is a volatility phenomenon, not reversal.** The table is the sizing input to item 124g through its dispersion columns only, the 10th and 90th percentiles of the forward returns, and its other columns size nothing.
+
+| Row | GARCH-standardised | RV20-standardised | Raw | Against |
+|---|---|---|---|---|
+| P(top-decile day within 5 sessions \| bottom-decile day) | 49.7% (n 1,808) | 51.6% (n 1,808) | 62.8% (n 1,933, from 1950) | any day: 41.9% GARCH, 41.3% RV20, 37.6% raw |
+| — the same, within 1 session / within 10 | 9.3% / 74.4% | 11.3% / 75.0% | 16.9% / 82.3% | any day: 10.0% / 67.9% GARCH; 10.0% / 56.8% raw |
+| — VIX below 20 at T-1 (from 1990) | 56.8% (n 548) | | 56.3% (n 428) | any day from 1990: 44.4% GARCH, 45.6% raw |
+| — VIX 20 to 30 | 59.0% (n 310) | | 79.5% (n 493) | |
+| — VIX 30 to 45 | 67.2% (n 64) | | 89.7% (n 156) | |
+| — VIX 45 and above | 73.3% (n 15) | | 95.7% (n 46) | |
+| Clustering: top-decile days with a bottom-decile day within 5 sessions either side | 60.3% (n 1,809) | 60.8% (n 1,809) | 72.6% (n 1,934, from 1950) | shuffled: 65.1% (95% range 62.8–67.6%) GARCH, 65.2% RV20, 65.1% raw |
+| Forward 1 session after a bottom-decile day: mean / 10th / 90th pct / share up | −0.11σ / −1.50σ / +1.19σ / 48% | −0.11σ / −1.75σ / +1.44σ / 49% | +0.01% / −1.63% / +1.54% / 51% | all days: +0.03σ / −1.22σ / +1.25σ GARCH; +0.03% / −1.02% / +1.06% raw |
+| Forward 5 sessions: mean / 10th / 90th / share up | +0.02σ / −1.34σ / +1.36σ / 54% | +0.02σ / −1.58σ / +1.57σ / 54% | +0.28% / −3.25% / +3.76% / 55% | all days: +0.08σ / −1.27σ / +1.32σ GARCH; +0.17% / −2.38% / +2.56% raw |
+| Forward 20 sessions: mean / 10th / 90th / share up | +0.11σ / −1.37σ / +1.38σ / 60% | +0.13σ / −1.60σ / +1.63σ / 60% | +0.93% / −5.90% / +7.18% / 61% | all days: +0.15σ / −1.23σ / +1.38σ GARCH, +0.17σ / −1.33σ / +1.52σ RV20; +0.69% / −4.37% / +5.32% raw |
+| — raw 20-session 10th pct by VIX at T-1: below 20 / 20 to 30 / 30 to 45 / 45 and above | | | −4.20% / −6.38% / −6.21% / −8.90% | |
+| Openers since 1990: bottom 1% of sessions (≤ −3.11%), VIX below 20 at T-1, no 2% day in the 20 before | | | 6 of 93 bottom-1% days; 1 at −4% or worse | next session / five sessions |
+| — 15 Nov 1991 | | | −3.66% (VIX 13.96) | +0.68% / −1.69% |
+| — 27 Feb 2007 | | | −3.47% (VIX 11.15) | +0.56% / −0.26% |
+| — 24 Jun 2016 | | | −3.59% (VIX 17.25) | −1.81% / +3.22% |
+| — 10 Oct 2018 | | | −3.29% (VIX 15.95) | −2.06% / +0.84% |
+| — 24 Feb 2020 | | | −3.35% (VIX 17.08) | −3.03% / −4.21% |
+| — 5 Nov 2026 | | | −4.36% (VIX 16.61) | pending / pending |
+
+*Read it this way.* Raw, a bottom-decile day is followed by a top-decile day within a week far more often than any day is, and the more so the higher VIX stood the day before; standardised by the volatility known the day before, most of that excess goes, and the clustering falls below its shuffled baseline. The best days sit beside the worst because both come from the same high-volatility sessions, not because a fall forecasts a rise: the standardised forward means after a bottom-decile day are at or below the all-days baseline, and the 10th-percentile outcomes are wider. *Sample: the S&P 500's daily closes, 1950 to 5 November 2026; VIX from 1990.*
