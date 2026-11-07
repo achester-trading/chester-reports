@@ -698,13 +698,77 @@ FRED_BANK_STRESS_SERIES: list[SeriesSpec] = [
     SeriesSpec("stlfsi", "STLFSI4", "St. Louis Fed Financial Stress Index", "6", "idx", "weekly"),
 ]
 
+# THE PER-HOUSEHOLD DEFLATOR (signal-triage Batch 14, item 68, ST-R6.61a; F3: NAR's
+# index has no free series, so Redfin's pending sales are deflated by Census
+# household counts). Read off FRED on 23 Oct 2026: TTLHHM156N, "Household
+# Estimates", the Census Bureau's, THOUSANDS, not seasonally adjusted, monthly
+# (from 1955; quarterly before the monthly rows begin).
+FRED_HOUSEHOLDS_SERIES: list[SeriesSpec] = [
+    SeriesSpec("households", "TTLHHM156N", "Household estimates, total, thousands, NSA (Census)", "2", "K", "monthly"),
+]
+
+# SIGNAL-TRIAGE BATCH 14, PART B1 (items 65 and 71; a57-batch14-b1, 23 Oct 2026,
+# session A). Ids, first observations and units read off fredgraph.csv on 23 Oct
+# 2026 (F3: BLS's PPI detail through FRED, BLS having refused the box's reads):
+#   PCU334418334418     PPI by industry: printed circuit assembly (electronic
+#                       assembly) manufacturing, INDEX Dec 2003 = 100, NSA, monthly,
+#                       from 2003-12 (item 65's AI-bottleneck line)
+#   PCU334112334112     PPI by industry: computer storage device manufacturing,
+#                       INDEX, NSA, monthly, from 1992-12
+#   PCU334413334413     PPI by industry: semiconductor and related device
+#                       manufacturing, INDEX, NSA, monthly, from 1967-01
+#   BOGZ1LM893064105Q   Z.1 all sectors: corporate equities, liability, MARKET
+#                       VALUE, MILLIONS, quarterly, from 1945 (item 71: the
+#                       capitalisation margin debt is a share of)
+FRED_BATCH14_B1_SERIES: list[SeriesSpec] = [
+    SeriesSpec("ppi_pcb_assembly", "PCU334418334418", "PPI by industry: printed circuit assembly (electronic assembly) manufacturing, index Dec 2003 = 100, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_storage_devices", "PCU334112334112", "PPI by industry: computer storage device manufacturing, index, NSA", "4", "idx", "monthly"),
+    SeriesSpec("ppi_semiconductors", "PCU334413334413", "PPI by industry: semiconductor and related device manufacturing, index, NSA", "4", "idx", "monthly"),
+    SeriesSpec("z1_equities_mv", "BOGZ1LM893064105Q", "Z.1 all sectors: corporate equities, liability, market value, millions", "6", "M", "quarterly"),
+]
+
+# SIGNAL-TRIAGE BATCH 15, ITEM 73 (a58-batch15-1, 23 Oct 2026, session A): the
+# developed-market drawdown screen's one FRED index, read off fredgraph.csv on 23
+# Oct 2026 (source check 2): NIKKEI225, Nikkei Stock Average, INDEX, daily close,
+# not seasonally adjusted, from 1949-05-16. FRED carries no TOPIX, DAX, CAC 40,
+# FTSE 100, KOSPI or TAIEX series; those are proxies or listed gaps
+# (config/dm_drawdown.yaml).
+FRED_BATCH15_A_SERIES: list[SeriesSpec] = [
+    SeriesSpec("nikkei225", "NIKKEI225", "Nikkei Stock Average (Nikkei 225), daily close", "7", "idx", "daily"),
+]
+
+# THE QUARTERLY'S READERS, TRANCHE 1 (b69-quarterly-readers-1, 25 Oct 2026; D34;
+# B67 section 5): Cboe's crude-oil volatility index, OVXCLS, daily close, an
+# INDEX of percent volatility, from 2007-05-10 (fredgraph probed in B67). The
+# series page: "Copyright, 2016, Chicago Board Options Exchange, Inc."; FRED's
+# legal FAQ: a copyrighted series is for "your own personal use" without the
+# owner's permission. Read through the API with the key, stored for own use,
+# never redistributed (the store is outside the public repository).
+FRED_6I_SERIES: list[SeriesSpec] = [
+    SeriesSpec("ovx", "OVXCLS", "Cboe crude oil volatility index (OVX), daily close", "5", "idx", "daily"),
+]
+
+# 6i-3 (A79, 26 Oct 2026; the 6i brief's decision 6, both credit proxies): the
+# long credit proxy the Top & Bottom harness's episodes need, Baa less the
+# 10-year (calc.baa_less_10y and _m, altdata/market_features.py), because HY OAS
+# reaches no episode before 2023 on FRED. Moody's Seasoned Baa Corporate Bond
+# Yield: DBAA, PERCENT, daily, from 1986-01-02; BAA, PERCENT, monthly average,
+# from 1919-01. Public domain through FRED; history from ALFRED's first vintage
+# (altdata/fred_history.py). Report-only: barred from the market-state object.
+FRED_6I3_SERIES: list[SeriesSpec] = [
+    SeriesSpec("dbaa", "DBAA", "Moody's Seasoned Baa Corporate Bond Yield, daily", "6", "%", "daily"),
+    SeriesSpec("baa",  "BAA",  "Moody's Seasoned Baa Corporate Bond Yield, monthly average", "6", "%", "monthly"),
+]
+
 # Everything the FRED pull fetches and the freshness roster watches.
 FRED_PULL_SERIES: list[SeriesSpec] = (FRED_SERIES + FRED_SIGNAL_SERIES
                                       + FRED_FX_SCAN_SERIES + FRED_THAILAND_SERIES
                                       + FRED_SLOOS_SERIES + FRED_AQ3_SERIES
                                       + FRED_SR43_SERIES + FRED_6E_SERIES
                                       + FRED_RELEASES_SERIES + FRED_GROUP_B_SERIES
-                                      + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES)
+                                      + FRED_NOTES_SERIES + FRED_BANK_STRESS_SERIES
+                                      + FRED_HOUSEHOLDS_SERIES + FRED_BATCH14_B1_SERIES + FRED_BATCH15_A_SERIES
+                                      + FRED_6I_SERIES + FRED_6I3_SERIES)
 
 
 # Quick lookup by key
@@ -794,6 +858,25 @@ PAPER_BID_SYMBOLS: list[str] = ["GLD", "SLV", "IBIT", "USO"]
 def options_universe() -> list[str]:
     """Symbols the yfinance chain fetcher pulls with Greeks. 13 today."""
     return INDEX_ETF_SYMBOLS + SINGLE_NAMES
+
+
+def exposure_exceptions(path: "str | None" = None) -> list[str]:
+    """Symbols computed into the nightly exposure files beside the 13, each a
+    declared exception in config/exposure_universe.yaml with its ruling (Batch
+    16 item 88(c): GLD). Only a symbol already captured nightly is returned."""
+    from pathlib import Path                                    # noqa: PLC0415
+    import yaml                                                 # noqa: PLC0415
+    p = Path(path) if path else Path(__file__).resolve().parent.parent / \
+        "config" / "exposure_universe.yaml"
+    try:
+        doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    except OSError:
+        return []
+    held = set(options_universe())
+    captured = set(options_universe()) | set(PAPER_BID_SYMBOLS)
+    return [str(e["symbol"]) for e in doc.get("exceptions") or []
+            if e.get("symbol") and e.get("ruled") and str(e["symbol"]) in captured
+            and str(e["symbol"]) not in held]
 
 
 def chain_universe() -> list[str]:

@@ -283,14 +283,14 @@ noise.
   by hand) are kept.
 - **`docs/runbooks/restore.md`** now restores a dead box through the crypt
   remote. It says plainly that the crypt password and salt must survive the box:
-  in Ari's password manager.
+  in the operator's password manager.
 - **CLAUDE.md** gains the paragraph on backups, `open_writer`, the triggers and
   incremental pulls. **The count line is recounted: eighty-five code gates
   (eighty-two Python, three shell) and seven data gates.** That is the merge's
   84 plus `validate_backups.py`, and the data gates gain `validate_backup_crypt.py`
   (`validate_audit_3a` holds the count, 83/0).
 
-## Box steps, for Ari, in order
+## Box steps, for the operator, in order
 
 **Inside a window after Thursday's merge. Printed, never run here.** Values never
 appear here or anywhere but `.env` and your password manager.
@@ -427,7 +427,7 @@ call; see Needs you 1.
 
 - the lab outbox gets its own `drive.file` remote (step 7);
 - GeckoTerminal's guard at 6 a minute is confirmed;
-- GLD's archive is a one-time download on Ari's list;
+- GLD's archive is a one-time download on the operator's list;
 - the fold of aud-2 stands.
 
 ## CI

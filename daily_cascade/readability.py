@@ -606,45 +606,32 @@ def withhold_duplicates(ed: dict) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# 2. One paragraph, at most 120 words (per cadence, T2.6)
+# 2. The paragraph targets (per cadence, T2.6; targets, never caps, D20)
 # ---------------------------------------------------------------------------
-def _cut(para: str, cap: int) -> tuple[str, bool]:
-    """`para` cut at a sentence boundary to `cap` words; (text, was it cut)."""
-    from .stack import words                                    # noqa: PLC0415
-    if words(para) <= cap:
-        return para, False
-    keep: list[str] = []
-    for x in sentences(para):
-        if keep and words(" ".join(keep + [x])) > cap:
-            break
-        keep.append(x)
-    return " ".join(keep), True
-
-
 def _guard(paras: list, limit: Optional[int], cap: int) -> tuple[list[str], bool]:
-    """At most `limit` paragraphs (None: any number), each cut to `cap` words."""
+    """Every non-empty paragraph, in full (D19/D20, 24 Oct 2026: nothing is cut
+    or withheld for length), and whether the reply ran past the cadence's
+    paragraph target -- more than `limit` paragraphs (None: any number) or one
+    over `cap` words. The flag is recorded, never acted on."""
+    from .stack import words                                    # noqa: PLC0415
     kept = [p for p in paras or [] if p and p.strip()]
-    trimmed = limit is not None and len(kept) > limit
-    if limit is not None:
-        kept = kept[:limit]
-    out = []
-    for p in kept:
-        p, cut = _cut(p, cap)
-        trimmed = trimmed or cut
-        if p:
-            out.append(p)
-    return out, trimmed
+    over = ((limit is not None and len(kept) > limit)
+            or any(words(p) > cap for p in kept))
+    return kept, over
 
 
 def finalize(ed: dict, cadence: str = "daily") -> dict:
-    """The paragraph guard, from the cadence's config (`cadences:`): how many
-    paragraphs a section keeps, how many words each may run to, and whether a
-    sub-section keeps its own. The prompt asks for the shape; this is the guard.
+    """The paragraph guard, from the cadence's config (`cadences:`): the
+    paragraphs a section is asked for, the words each is asked to run to, and
+    whether a sub-section keeps its own. The prompt asks for the shape; since
+    D19/D20 (24 Oct 2026) the guard cuts nothing: a reply longer than its target
+    prints in full, and the section records `over_target` (the edition's foot
+    line, stack.target_line, is what the reader sees).
 
-    The close and the Weekly: ONE paragraph per section, cut at a sentence
-    boundary to 120 words, and no sub-section paragraph -- the section's one
-    paragraph follows its charts (T2.5 item 2). The Monthly: its paragraphs and
-    its sub-sections' kept, each cut to the section's depth allowance."""
+    The close and the Weekly ask ONE paragraph per section of 120 words, and no
+    sub-section paragraph -- the section's paragraph follows its charts (T2.5
+    item 2). The Monthly: its paragraphs and its sub-sections', each asked to the
+    section's depth allowance."""
     from .cadence import get, paragraph_cap                     # noqa: PLC0415
     from .stack import edition_words                            # noqa: PLC0415
     cad = get(cadence)
@@ -656,15 +643,15 @@ def finalize(ed: dict, cadence: str = "daily") -> dict:
             if not cad.get("subsection_paragraphs"):
                 continue
             if ss.get("paragraphs"):
-                ss["paragraphs"], cut = _guard(ss["paragraphs"], None, cap)
-                if cut:
-                    ss["trimmed"] = s["trimmed"] = True
+                ss["paragraphs"], over = _guard(ss["paragraphs"], None, cap)
+                if over:
+                    ss["over_target"] = s["over_target"] = True
         if s.get("empty"):
             s["paragraphs"] = []
             continue
-        paras, cut = _guard(s.get("paragraphs") or [], limit, cap)
-        if cut:
-            s["trimmed"] = True
+        paras, over = _guard(s.get("paragraphs") or [], limit, cap)
+        if over:
+            s["over_target"] = True
         s["paragraphs"] = paras
     ed["words"] = edition_words(ed)
     return ed

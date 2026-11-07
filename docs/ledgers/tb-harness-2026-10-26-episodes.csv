@@ -1,0 +1,68 @@
+set,episode,class,date,spx_check,concentration,hy_accel,liquidity,classification
+calibration,top_2000,top,2000-03-24,"agrees (1,527.46)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",unread
+calibration,top_2007,top,2007-10-09,"agrees (1,565.15)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",unread
+calibration,top_2022,top,2022-01-03,"agrees (4,796.56)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),unread
+calibration,bottom_1990,bottom,1990-10-11,agrees (295.46),"UNREAD 0/5 (1 read, 1 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",not scored
+calibration,bottom_2002,bottom,2002-10-09,agrees (776.76),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",not scored
+calibration,bottom_2009,bottom,2009-03-09,agrees (676.53),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",not scored
+calibration,bottom_2011,bottom,2011-10-03,"agrees (1,099.23)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",not scored
+calibration,bottom_2020,bottom,2020-03-23,"agrees (2,237.40)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),not scored
+calibration,bottom_2022,bottom,2022-10-12,"agrees (3,577.03)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),not scored
+calibration,control_1998,control,1998-07-17,"agrees (1,186.75)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",unread
+calibration,control_1998,control,1998-10-08,agrees (959.44),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",unread
+calibration,control_2015,control,2015-05-21,"agrees (2,130.82)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",unread
+calibration,control_2015,control,2016-02-11,"agrees (1,829.08)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",unread
+calibration,control_2018,control,2018-09-20,"agrees (2,930.75)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),unread
+calibration,control_2018,control,2018-12-24,"agrees (2,351.10)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),unread
+calibration,control_2024,control,2024-07-16,"agrees (5,667.20)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),unread
+calibration,control_2024,control,2024-08-05,"agrees (5,186.33)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),unread
+extended:bears,bear_1973,top,1973-01-11,agrees (120.24),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_1973,bottom,1974-10-03,agrees (62.28),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_1980,top,1980-11-28,agrees (140.52),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_1980,bottom,1982-08-12,agrees (102.42),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_1987,top,1987-08-25,agrees (336.77),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_1987,bottom,1987-12-04,agrees (223.92),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_1990,top,1990-07-16,agrees (368.95),"UNREAD 1/5 (1 read, 1 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_1990,bottom,1990-10-11,agrees (295.46),"UNREAD 0/5 (1 read, 1 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_2000,top,2000-03-24,"agrees (1,527.46)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_2000,bottom,2002-10-09,agrees (776.76),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:bears,bear_2007,top,2007-10-09,"agrees (1,565.15)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:bears,bear_2007,bottom,2009-03-09,agrees (676.53),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:bears,bear_2020,top,2020-02-19,"agrees (3,386.15)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:bears,bear_2020,bottom,2020-03-23,"agrees (2,237.40)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:bears,bear_2022,top,2022-01-03,"agrees (4,796.56)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:bears,bear_2022,bottom,2022-10-12,"agrees (3,577.03)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:near_misses,near_1994,control,1994-02-02,agrees (482.00),"UNREAD 1/5 (1 read, 1 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:near_misses,near_1994,control,1994-04-04,agrees (438.92),"UNREAD 0/5 (1 read, 1 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:near_misses,near_1998,control,1998-07-17,"agrees (1,186.75)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:near_misses,near_1998,control,1998-10-08,agrees (959.44),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:near_misses,near_2011,control,2011-04-29,"agrees (1,363.61)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:near_misses,near_2011,control,2011-10-03,"agrees (1,099.23)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:near_misses,near_2015,control,2015-05-21,"agrees (2,130.82)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:near_misses,near_2015,control,2016-02-11,"agrees (1,829.08)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:near_misses,near_2018,control,2018-09-20,"agrees (2,930.75)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:near_misses,near_2018,control,2018-12-24,"agrees (2,351.10)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:near_misses,near_2024,control,2024-07-16,"agrees (5,667.20)",UNREAD 1/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:near_misses,near_2024,control,2024-08-05,"agrees (5,186.33)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:pre_1970,pre_1907,top,1906-01-19,not existent,"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1907,bottom,1907-11-15,not existent,"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1929,top,1929-09-16,agrees (31.86),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1929,bottom,1932-06-01,agrees (4.40),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1937,top,1937-03-10,agrees (18.67),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1937,bottom,1938-03-31,agrees (8.50),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1946,top,1946-05-29,agrees (19.25),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1946,bottom,1947-05-19,agrees (13.77),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1961,top,1961-12-12,agrees (72.64),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:pre_1970,pre_1961,bottom,1962-06-26,agrees (52.32),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:false_bottoms,fb_1973_08,false bottom,1973-08-22,agrees (100.53),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:false_bottoms,fb_1974_02,false bottom,1974-02-11,agrees (90.66),"UNREAD 0/5 (0 read, 2 not existent)","NOT EXISTENT 0/4 (0 read, 2 not existent)","UNREAD 0/5 (0 read, 2 not existent)",
+extended:false_bottoms,fb_2000_04,false bottom,2000-04-14,"agrees (1,356.56)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:false_bottoms,fb_2001_04,false bottom,2001-04-04,"agrees (1,103.25)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:false_bottoms,fb_2001_09,false bottom,2001-09-21,agrees (965.80),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:false_bottoms,fb_2002_07,false bottom,2002-07-23,agrees (797.70),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 2 not existent)",
+extended:false_bottoms,fb_2008_03,false bottom,2008-03-10,"agrees (1,273.37)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:false_bottoms,fb_2008_10a,false bottom,2008-10-10,agrees (899.22),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:false_bottoms,fb_2008_10b,false bottom,2008-10-27,agrees (848.92),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:false_bottoms,fb_2008_11,false bottom,2008-11-20,agrees (752.44),UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),"UNREAD 0/5 (0 read, 1 not existent)",
+extended:false_bottoms,fb_2022_03,false bottom,2022-03-08,"agrees (4,170.70)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),
+extended:false_bottoms,fb_2022_06,false bottom,2022-06-16,"agrees (3,666.77)",UNREAD 0/5 (1 read),UNREAD 0/4 (0 read),UNREAD 0/5 (0 read),

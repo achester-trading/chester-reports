@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | **Ruled 2026-10-01 16:09 ET** — Ari: "yes and yes" (adopt per-family lenses, built in 6e; dual percentiles on every level metric). Thresholds marked *proposed* below are ratified at the Doctrine monthly (3–4 Oct). |
-| Owner | Ari Chester |
+| Status | **Ruled 2026-10-01 16:09 ET** — the operator: "yes and yes" (adopt per-family lenses, built in 6e; dual percentiles on every level metric). Thresholds marked *proposed* below are ratified at the Doctrine monthly (3–4 Oct). |
+| Owner | the operator |
 | Binding on | Claude Code sessions building 6e and the Monthly |
 | Placement | Built inside 6e (macro completeness, ~12 h planned) — this adds ~8–10 h. Displayed in the Monthly v2 tables; the Weekly and the close may adopt the same columns later. |
 | Precedence | Below Part 26, the change orders and Amendments #4–#5. `altdata/derived.py` stays the one place a delta, percentile or z-score is computed. |

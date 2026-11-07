@@ -1,4 +1,4 @@
-# The box sheet for the second chain (for Ari)
+# The box sheet for the second chain (for the operator)
 
 **What this is.** Every box step the second chain's notes ask for, de-duplicated and ordered, for the evening the second chain merges to main (planned: Tuesday 20 Oct, after Monday's six). It is compiled from the box-command sections of the 47 notes files the chain carries that main does not. It leaves out what Monday's sheet already covers:
 - the store registry check's first run, the quality check, `feeds pull --only official`;

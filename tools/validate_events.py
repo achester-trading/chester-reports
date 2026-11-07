@@ -21,6 +21,8 @@ reports the same verdict on a runner with no store as it does on the box.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import datetime as dt
 import sys
 import tempfile
@@ -341,7 +343,7 @@ def group_f() -> None:
           "on a variable nobody has set trains its reader to ignore it")
 
     # In make validate, and therefore in CI: the matrix reads the Makefile.
-    mk = (REPO / "Makefile").read_text(encoding="utf-8")
+    mk = __import__("gate_list").makefile_text(REPO)
     check("tools/validate_events.py" in mk,
           "this gate is in the Makefile's one list, which is what puts it in the "
           "CI matrix")
@@ -399,6 +401,7 @@ def group_g() -> None:
     try:
         fr.key = lambda: "fixture"
         fr.release_map = lambda refresh=False: {}
+        # THE GATE'S CLOCK (B106): reads today on purpose -- release dates written relative to today, so the window always holds them. Next attention: none.
         today = dt.date.fromisoformat(session.session_date())
         def fake(path, **kw):
             if path == "releases":

@@ -1,0 +1,187 @@
+{
+ "source": "The stacked Monthly of 1 Nov 2026 (main at 422ea697), its run log's withheld drafts, quoted verbatim; the blocks are rebuilt from the figures the drafts cite, in the frames' own shapes, since the edition's payload is on the box",
+ "sign_display": {
+  "block": {
+   "section": "Positioning & flows",
+   "figures_you_may_cite": [
+    {
+     "series": "CFTC 30-year bond futures",
+     "change": "+136,667 contracts"
+    },
+    {
+     "series": "CFTC 10-year note futures",
+     "change": "−169,786 contracts"
+    },
+    {
+     "series": "CFTC S&P 500 futures",
+     "change": "+2,012 contracts"
+    },
+    {
+     "series": "CFTC Russell 2000 futures",
+     "change": "+39,704 contracts"
+    },
+    {
+     "series": "CFTC VIX futures",
+     "change": "+1,814 contracts"
+    },
+    {
+     "series": "CFTC gold futures",
+     "change": "−39,402 contracts"
+    },
+    {
+     "series": "CFTC crude oil futures",
+     "change": "−66,763 contracts"
+    },
+    {
+     "series": "CFTC yen futures",
+     "change": "+29,609 contracts"
+    }
+   ]
+  },
+  "pass": [
+   {
+    "case": "stack:positioning draft 2, whole",
+    "text": "Speculative futures positioning split sharply along the curve in October: 30-year bond futures added 136,667 contracts even as 10-year note futures shed 169,786 contracts, a divergence that leaves leveraged duration exposure concentrated at the long end rather than balanced across tenors. Equity futures positioning stayed comparatively quiet, with S&P 500 futures up 2,012 contracts and Russell 2000 futures up 39,704 contracts, while VIX futures added 1,814 contracts alongside the small-cap build. In commodities and currencies, gold futures positioning fell 39,402 contracts and crude oil futures fell 66,763 contracts, both unwound in the same month that yen futures rose 29,609 contracts. Set together, the month's positioning shifts cluster in rates and commodities rather than in the equity complex itself, with the bond-futures split marking the sharpest repositioning of the four weeks."
+   }
+  ],
+  "fail": [
+   {
+    "case": "a rising verb on a negative move",
+    "text": "10-year note futures rose 169,786 contracts."
+   },
+   {
+    "case": "a negative move with no verb",
+    "text": "10-year note futures positioning stood at 169,786 contracts."
+   }
+  ]
+ },
+ "table_sign": {
+  "block": {
+   "block": "Yields and spreads",
+   "table": {
+    "columns": [
+     "Series",
+     "Level",
+     "Change on the month",
+     "As of"
+    ],
+    "rows": [
+     [
+      "CCC OAS",
+      "13.25%",
+      "+168 bp",
+      "2026-10-30"
+     ],
+     [
+      "CCC less BB",
+      "1,131 bp",
+      "+163 bp",
+      "2026-10-30"
+     ],
+     [
+      "30-year yield",
+      "5.37%",
+      "−19 bp",
+      "2026-10-30"
+     ],
+     [
+      "10-year term premium (ACM)",
+      "0.66%",
+      "−18 bp",
+      "2026-10-30"
+     ]
+    ]
+   }
+  },
+  "pass": [
+   {
+    "case": "block:plumbing:yields draft 1, its second sentence",
+    "text": "That divergence sat against a duration market that richened rather than cheapened: the 30-year yield fell 19 bp to 5.37% and the 10-year term premium (ACM) fell 18 bp to 0.66%."
+   }
+  ],
+  "fail": [
+   {
+    "case": "the same move with a rising verb",
+    "text": "the 30-year yield rose 19 bp to 5.37%."
+   }
+  ]
+ },
+ "role": {
+  "payload": {
+   "rows": [
+    {
+     "market": "The silver fund (SLV)",
+     "close": 44.6,
+     "long_run_average": 32.01,
+     "percentile_5y": 80
+    }
+   ]
+  },
+  "pass": [
+   {
+    "case": "block:slow:metals draft 1, first sentence",
+    "text": "The silver fund (SLV) closed October at 44.60, down −19.10 percent over 20 days, against its full-history average since 2021-09-20 of 32.01, still the 80th percentile on a five-year window."
+   },
+   {
+    "case": "block:slow:metals draft 2, first sentence",
+    "text": "The silver fund (SLV) ended October at 44.60, down −19.10 percent over 20 days, against its full-history average since 2021-09-20 of 32.01, still the 80th percentile on a five-year window."
+   }
+  ],
+  "fail": [
+   {
+    "case": "the average after a date, called the close",
+    "text": "The silver fund (SLV) closed on 2021-09-20 at 32.01."
+   },
+   {
+    "case": "the average as the close, the date after it",
+    "text": "SLV closed October at 32.01, against its average since 2021-09-20."
+   }
+  ]
+ },
+ "retry_all_faults": {
+  "case": "month_in_markets: draft 1 carried '7580.07' and '+29,000'; the retry heard only the first",
+  "text": "October's damage was concentrated in growth-sensitive risk: the S&P 500 slipped −0.93% to 7580.07. The month's calendar adds detail rather than resolution: payrolls for September rose by +29,000 while unemployment held at 4.2% by the same release, and September CPI increased 0.6% on the month, consistent with the stable-but-not-falling inflation read noted above."
+ },
+ "policy": {
+  "draft": "Fed-funds pricing carries 85% of a 25 bp hike into the FOMC 2026-12-09 meeting, with the implied rate after the 2027-03-17 meeting still showing 58% of a 25 bp hike, while prediction markets for that same 2027-03-17 decision moved a cut −4.5 pts against no comparable move on the other side. Odds of US recession in 2026 and in 2027 fell together, −3.0 pts and −0.5 pts, the front year giving up more than the second. None of this month's repricing came from the equity complex: the index has carried +61.9% since the 12 Oct 2022 low, a gain the fed-funds path and the recession odds neither confirm nor dispute on their own terms. What the month priced is a Fed still seen more likely than not to hike once more by December, a diminishing but still-live hike risk into March, and a recession market that spent the month marking its odds down rather than up.",
+  "sentence_starts": "What the month priced is"
+ },
+ "intensity": {
+  "text": "Lower term premium and a firmer long bond alongside a sharply wider CCC tier describe compensation demanded for the riskiest issuers rising even as the rate path offered less term compensation overall."
+ },
+ "percent_share": {
+  "rows": [
+   {
+    "label": "Unemployment rate (U-3)",
+    "metric": "fred.u3_rate",
+    "state": "ok",
+    "latest_level": 4.2,
+    "change": 0.1,
+    "level_percentile_5y": 81.0
+   },
+   {
+    "label": "Avg weekly hours, private",
+    "metric": "fred.avg_wkly_hours",
+    "state": "ok",
+    "latest_level": 34.4,
+    "change": 0.0
+   }
+  ],
+  "pass": "The unemployment rate (U-3) ticked up to 4.2%, which still sits at the 81st percentile.",
+  "fail": "Average weekly hours held at 34.4%."
+ },
+ "separated": {
+  "rows": [
+   {
+    "label": "Gold, COMEX front-month future (GC=F)",
+    "metric": "yfinance.mkt_gc",
+    "state": "ok",
+    "latest_level": 3898.9,
+    "change_pct": -6.87
+   }
+  ],
+  "pass": "the COMEX front-month future fell −6.87% to 3,898.9.",
+  "raw": "Gold nonetheless sold off sharply alongside this: GLD fell −6.58% to 355.78 (78th percentile) and the COMEX front-month future fell −6.87% to 3898.9 (79th percentile), a decline that sits uneasily next to a weak-dollar, fiscal-dominance thesis and argues for caution in reading the month's long-end rally and gold drawdown as a single coherent signal rather than two moves that, this month, point different ways."
+ },
+ "misfit_vocabulary": "Seven exceptions sit open at month end, the deepest count of the year to date. Equities against high-yield credit opened this month, 2026-09-28, and has held nine sessions with a z of 2.8 against a threshold of 2.0, SPY's rise sitting against high-yield spreads (OAS) widening, unresolved by either spreads tightening back or equities meeting them. Bank reserves joined the five-year extreme list this month alongside three extremes carried over without a scheduled catalyst: the 30-year mortgage rate, the 10-year Treasury yield and the 30-year Treasury yield, each invalidated only by a new extreme beyond itself. CCC credit spreads (OAS) and four-week average jobless claims sit apart from these as extremes with a lead function, each resolved either by returning inside its five-year range or by the market it has led before following it. Polymarket prices a cut at the 2027-04-28 meeting at 16%, normalised with legs summing to 99%, against 0% implied by fed funds futures, a gap of 16 points against a 15-point threshold. The breadth dimension corrected this month to broad, reversing the prior read of narrow."
+}

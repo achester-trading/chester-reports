@@ -62,6 +62,8 @@ THE J.P. MORGAN GUIDE BATCH, PARTS 1 AND 2 (GTM-1, 3, 4, 7, 8, 9, 10, 12, 13, 15
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import ast
 import csv
 import json

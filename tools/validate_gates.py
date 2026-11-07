@@ -36,6 +36,8 @@ What it proves:
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import re
 import subprocess
 import sys
@@ -88,7 +90,14 @@ def makefile_vars() -> dict[str, list[str]]:
     """
     text = MAKEFILE.read_text(encoding="utf-8")
     out: dict[str, list[str]] = {}
-    for name in ("PY_VALIDATORS", "SH_VALIDATORS", "EXTRA", "DATA_GATES"):
+    # The three gate lists are the gates' own declarations (S1), read through
+    # tools/gate_list.py, which the Makefile calls; EXTRA stays in the Makefile.
+    sys.path.insert(0, str(REPO / "tools"))
+    import gate_list                                            # noqa: PLC0415
+    out.update({"PY_VALIDATORS": gate_list.gates("code"),
+                "SH_VALIDATORS": gate_list.gates("shell"),
+                "DATA_GATES": gate_list.gates("data")})
+    for name in ("EXTRA",):
         m = re.search(rf"^{name}\s*:?=\s*((?:.*?\\\n)*.*)$", text, re.M)
         if not m:
             out[name] = []

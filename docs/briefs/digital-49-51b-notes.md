@@ -152,7 +152,7 @@ branches from its tip).
    follow-up can read the XBRL tags once, and if they carry debt and par per class,
    add the second line, labelled "Strategy's mNAV (enterprise-value basis)", with
    the preferreds' prices from Yahoo.
-2. **CHESTER_SEC_CONTACT** is Ari's `.env` write. Until it is set, mNAV prints "not
+2. **CHESTER_SEC_CONTACT** is the operator's `.env` write. Until it is set, mNAV prints "not
    tracked" (unchanged, gated).
 3. **CoinPaprika may be stored.** `source_registry.yaml` `coinpaprika` now carries
    `terms_url` (https://docs.coinpaprika.com/api-plans, the plan table: Free is
@@ -197,7 +197,7 @@ version, and the terms fields on both sources); `validate_digital_addendum.py`
 No gate reads the live store, fetches or calls a model. The Weekly and Monthly gates
 render PDFs, so CI runs them.
 
-## Box commands, for Ari (after Thursday's merge, inside a window; printed, not run)
+## Box commands, for the operator (after Thursday's merge, inside a window; printed, not run)
 
 ```
 cd ~/chester-reports

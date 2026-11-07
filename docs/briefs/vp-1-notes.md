@@ -230,7 +230,7 @@ gates, fifty-five Python.
 Local results are in the session report and in "The gates, as run" at the foot
 of this file. CI is the validate.
 
-## The box commands, for Ari (none run here)
+## The box commands, for the operator (none run here)
 
 1. **The one-time history**, after the merge, inside the operating windows. It
    writes `calc.vp_*` from the first stored 5-minute bar onward:

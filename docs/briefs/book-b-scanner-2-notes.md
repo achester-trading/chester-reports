@@ -163,7 +163,7 @@ These are unchanged:
 - the +1R-first hit rate;
 - every session-set parameter except item 3's mapping.
 
-## The backfill, for Ari (after merge, on the box, inside the windows)
+## The backfill, for the operator (after merge, on the box, inside the windows)
 
 Run these after `book-b-scanner-2` merges and the box has pulled it. Run them
 before Sunday 05:00, so the Weekly's scanner reads the history, and keep clear

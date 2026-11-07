@@ -410,19 +410,26 @@ def regime_section(p: dict) -> str:
                        "describes a book about to stop existing.*\n")
         ts = d.get("term_structure")
         if ts:
+            ch = ts.get('champion') or {}
+            # D45 (31 Oct 2026): a champion on the Cboe hold prints the hold.
+            ch_held = str(ch.get('absent_reason') or "").startswith("not tracked: held")
+            basis = ts.get('basis')
+            basis_cell = (f"(VX1 less VIX) {basis}" if isinstance(basis, str)
+                          else f"{_v(basis)} vol points")
             out.append(
                 f"- Term structure, published by **{ts.get('published_by')}**: "
                 f"{ts.get('published_state') or '—'}\n"
-                f"- champion `{(ts.get('champion') or {}).get('metric')}` "
-                f"{(ts.get('champion') or {}).get('state') or '—'} "
-                f"(ratio {_v((ts.get('champion') or {}).get('ratio'), 4)}, "
-                f"pctile {_v((ts.get('champion') or {}).get('percentile'), 1)})\n"
-                f"- challenger `{(ts.get('challenger') or {}).get('metric')}` "
+                f"- champion `{ch.get('metric')}` "
+                + (f"{ch.get('absent_reason')}\n" if ch_held else
+                   f"{ch.get('state') or '—'} "
+                   f"(ratio {_v(ch.get('ratio'), 4)}, "
+                   f"pctile {_v(ch.get('percentile'), 1)})\n")
+                + f"- challenger `{(ts.get('challenger') or {}).get('metric')}` "
                 f"{(ts.get('challenger') or {}).get('state') or '—'} "
                 f"(ratio {_v((ts.get('challenger') or {}).get('ratio'), 4)}, "
                 f"pctile {_v((ts.get('challenger') or {}).get('percentile'), 1)})\n"
                 f"- legs agree: {_v(ts.get('legs_agree'))} · basis "
-                f"{_v(ts.get('basis'))} vol points · dual run to "
+                f"{basis_cell} · dual run to "
                 f"{ts.get('dual_run_until') or '—'}\n")
         ri = d.get("realized_implied")
         if ri:

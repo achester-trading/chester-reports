@@ -111,8 +111,15 @@ class Engine(abc.ABC):
 
 
 def registered(path=None) -> list[dict]:
-    """The registry's entries, as written."""
+    """The registry's entries, as written -- a disabled one included, so a
+    hypothesis may name it at registration."""
     return acfg.engines(path)
+
+
+def active(path=None) -> list[dict]:
+    """The entries the loops run: every one but those marked `enabled: false`
+    (B99: the premium sleeve ships disabled)."""
+    return [e for e in registered(path) if e.get("enabled", True) is not False]
 
 
 def load(entry: dict) -> Engine:

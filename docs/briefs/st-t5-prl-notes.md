@@ -81,7 +81,7 @@ point-in-time series, and `calc.prl_*` derived from them. **I built the fetcher
 as specified and left it behind the existing switch,
 `ENABLED_SOURCES["coingecko"]`, which stays off.** While off it fetches and
 parses, so `--dry-run` shows exactly what it would store, and it **writes
-nothing**. Reconciling the two rulings is Ari's (needs-you 1).
+nothing**. Reconciling the two rulings is the operator's (needs-you 1).
 
 The derived layer does not wait on that. It reads PRL's price and cap from the
 basket's permitted series (Yahoo's close; DefiLlama's cap) and names the
@@ -142,7 +142,7 @@ available_at is the pull instant. A response for another coin is refused.
 carries it.
 - **Its name is `COINGECKO_DEMO_API_KEY`**, sent as `x-cg-demo-api-key`. It is
   named in the catalogue line and `config/prl.yaml`.
-- No session creates it; `.env` is Ari's.
+- No session creates it; `.env` is the operator's.
 - The User-Agent names no one.
 
 **The budget:** two calls a pull, 6 s apart. A weekly pull plus one daily close
@@ -367,7 +367,7 @@ CoinGecko. The box commands that stand are the explorer's dry run (now
 `python -m altdata.prl weekly --dry-run --force`) and the compute's
 (`python -m altdata.prl daily --dry-run`).
 
-## Box commands, for Ari
+## Box commands, for the operator
 
 Run these inside a window, **after Thursday's merge**, dry run first. Nothing
 here was run.

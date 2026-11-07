@@ -74,7 +74,9 @@ def config() -> dict:
     global _CFG
     if _CFG is None:
         import yaml  # noqa: PLC0415
-        _CFG = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+        from . import price_sources                             # noqa: PLC0415
+        _CFG = price_sources.resolve_tree(
+            yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {})
     return _CFG
 
 

@@ -245,7 +245,10 @@ def _dimension_items(p: dict, dims: list[str]) -> tuple[list, list]:
             continue
         it = {"kind": "dimension", "dimension": name, "state": now,
               "previous_state": was, "sources": [source],
-              "text": f"The {name} dimension moved from {was or 'absent'} to "
+              # A95: the reader's words, not the object's -- the 1 Nov Monthly's
+              # misfit paragraph copied "The breadth dimension ..." from here and
+              # was withheld for naming the report's machinery.
+              "text": f"Our {name} read moved from {was or 'absent'} to "
                       f"{now or 'absent'}"
                       + (f" (percentile {row.get('percentile')})"
                          if row.get("percentile") is not None else "")}
@@ -398,12 +401,16 @@ def what_changed(p: dict, conn, window: tuple[str, str]) -> dict:
             rows.append({"what": f"story {s['narrative_id']}", "from": None,
                          "to": f"opened ({s.get('state')})",
                          "source": src("narrative", s["narrative_id"], s["opened"])})
-    for f in _q(conn, "SELECT probability_id, claim, probability, emitted_at"
+    # A95 (M3): each forecast carries its ledger source, so the header can say
+    # how many of the month's forecasts are scenario weights -- the count the
+    # scenario record keeps -- beside the ledger's whole count.
+    for f in _q(conn, "SELECT probability_id, claim, probability, emitted_at, source"
                       " FROM probabilities WHERE emitted_at >= ? AND emitted_at <= ?",
                 (start, cutoff)):
         rows.append({"what": "forecast emitted", "from": None,
                      "to": f"p {f['probability']}: {str(f['claim'])[:90]}",
                      "probability": f.get("probability"),
+                     "ledger_source": f.get("source"),
                      "source": src("forecast", f["probability_id"], f["emitted_at"])})
     # T3.6 M6: a resolved forecast carries its probability and outcome, so the
     # Monthly's header can say how many were right without re-reading the ledger.
@@ -512,7 +519,7 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
             refused.append({**row, "refused_because":
                             "no stored, dated signpost -- a weight with nothing "
                             "that would change it is not printed"})
-    # SPLIT BY WINDOW (Ari's second round): the rest of this month, then the two
+    # SPLIT BY WINDOW (the operator's second round): the rest of this month, then the two
     # after it -- "October" and "November–December" on 1 Oct.
     wins = calendar_windows(cutoff)
     windows = [{"name": n, "first": f, "last": l,
@@ -550,7 +557,7 @@ def looking_ahead(p: dict, conn, window: tuple[str, str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# THE MONTH IN MARKETS -- the opening scorecard (Ari's revision, 1 Oct)
+# THE MONTH IN MARKETS -- the opening scorecard (the operator's revision, 1 Oct)
 # ---------------------------------------------------------------------------
 def _quarter_start(d: dt.date) -> dt.date:
     return d.replace(month=3 * ((d.month - 1) // 3) + 1, day=1)
@@ -649,11 +656,20 @@ def month_in_markets(p: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# EVERYTHING THE STORE HOLDS FOR A THEME (Ari's second round, 1 Oct)
+# EVERYTHING THE STORE HOLDS FOR A THEME (the operator's second round, 1 Oct)
 # ---------------------------------------------------------------------------
 # A print older than this before the month-end is not "this month's" -- it goes
 # to the footnote with its date instead of into the prose as if it were current.
 STALE_DAYS = 75
+
+
+def prior_target(start: dt.date, latest: dt.date) -> dt.date:
+    """THE MONTH'S PRIOR (A95, M2): the print on or before the earlier of the
+    previous month-end and the latest print less 25 days. One definition, read
+    by metric_month and by the stack's month-aligned change
+    (daily_cascade.weekly_stack.change_over), so a series' month change prints
+    the same in every Monthly table that prints it."""
+    return min(start, latest - dt.timedelta(days=25))
 
 
 def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
@@ -671,14 +687,19 @@ def metric_month(st, spec: dict, cutoff: str, month_end: dt.date) -> dict:
                  key=lambda r: str(r.get("observed_at")))
     b = _level_on(obs, month_end)
     out = {"label": spec.get("label") or key, "metric": key, "instrument": inst}
+    # HELD (D45, 31 Oct 2026): a series on a declared hold prints the hold's
+    # line with its last stored date, never a month computed from frozen rows.
+    from altdata import refusals                                # noqa: PLC0415
+    held = refusals.key_text(key, str(b["observed_at"])[:10] if b else None)
+    if held:
+        return {**out, "state": "held", "why": held}
     if not b:
         return {**out, "state": "missing",
                 "why": "no print knowable at the cutoff"}
     b_day = dt.date.fromisoformat(str(b["observed_at"])[:10])
     if (month_end - b_day).days > STALE_DAYS:
         return {**out, "state": "stale", "last_print": b_day.isoformat()}
-    prev_target = min(month_end.replace(day=1) - dt.timedelta(days=1),
-                      b_day - dt.timedelta(days=25))
+    prev_target = prior_target(month_end.replace(day=1) - dt.timedelta(days=1), b_day)
     a = _level_on(obs, prev_target)
     unit, _ = derived.delta_unit_for(key)
     s1 = float(b["value_num"])
@@ -729,6 +750,8 @@ def theme_metrics(p: dict, theme_cfg: dict) -> dict:
                 rows.append(r)
             elif r["state"] == "stale":
                 gaps.append(f"{r['label']} (latest print {r['last_print']})")
+            elif r["state"] == "held":
+                gaps.append(f"{r['label']} ({r['why']})")
             else:
                 gaps.append(r["label"])
     return {"rows": rows,
@@ -844,11 +867,26 @@ def our_read(p: dict, conn, ahead: dict) -> dict:
     else:
         parts.append("The register holds no active position, so the books state "
                      "no view either.")
-    if bz.get("line"):
-        parts.append(f"Against Book Z: {bz['line']}.")
+    if book_z_sentence(bz):
+        parts.append(book_z_sentence(bz))
     return {"state": "ok", "paragraph": " ".join(parts),
             "bounded_to": ["probabilities", "decisions", "benchmark"],
             "live_weights": len(scen), "active_decisions": len(open_)}
+
+
+def book_z_sentence(bz: dict) -> Optional[str]:
+    """A95 (M4, the Monthly Letter of 1 Nov): THE ONE BOOK Z SENTENCE, read by
+    the read's paragraph and the book section alike. "Against Book Z" is the
+    book against Book Z over one window, with the excess (benchmark.book_line,
+    the Weekly's line). Book Z's own ledgers (benchmark.line) are returns, not
+    excesses, and say so: the 1 Nov edition printed them under "Against Book Z"
+    beside the real excess line, two figures under one label."""
+    if bz.get("book_line"):
+        return f"Against Book Z, {bz['book_line']}."
+    if bz.get("line"):
+        return (f"Book Z's own ledgers, each a return and not an excess: "
+                f"{bz['line']}.")
+    return None
 
 
 # ---------------------------------------------------------------------------

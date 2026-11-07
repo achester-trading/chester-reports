@@ -345,7 +345,11 @@ fi
 # write, and "close enough" is how the installed copy drifted in the first
 # place.
 
-UNIT_SRC="$REPO/deploy/systemd"
+# CHESTER_UNIT_SRC (B124, 2 Nov 2026): the repo's unit directory. Unset on the box,
+# so it is deploy/systemd/ as before; tools/validate_heartbeat_caller.sh names a
+# sandbox copy of the units its checks use, so each of its seventy runs does not
+# compare all of deploy/systemd/ one process per file.
+UNIT_SRC="${CHESTER_UNIT_SRC:-$REPO/deploy/systemd}"
 UNIT_DST="${CHESTER_SYSTEMD_USER_DIR:-$HOME/.config/systemd/user}"
 DRIFT_COUNT=0
 DRIFT_NAMES=""
@@ -554,7 +558,13 @@ fi
 # session on a Saturday, so the check asks about a day that did have a close pass.
 STATE_OBJECT=unknown
 STATE_SESSION=""
-if [[ -x "$REPO/.venv/bin/python" ]]; then
+# CHESTER_STATE_PY (B124, 2 Nov 2026): the interpreter, named outright. Unset on
+# the box, so the lookup below is unchanged there; tools/validate_heartbeat_caller.sh
+# sets it to the venv it resolves, so a laptop whose venv is .venv/Scripts runs
+# the wrapper's checks on the same interpreter as the gate's own seeding.
+if [[ -n "${CHESTER_STATE_PY:-}" ]]; then
+    STATE_PY="$CHESTER_STATE_PY"
+elif [[ -x "$REPO/.venv/bin/python" ]]; then
     STATE_PY="$REPO/.venv/bin/python"
 else
     STATE_PY="$(command -v python3 || command -v python || true)"

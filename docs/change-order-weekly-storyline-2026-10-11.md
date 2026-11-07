@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | **Ruled, 11 Oct 2026; tranche 3 amended 12 Oct (items 3.0, 3.8, 3.9 on the operator's reading).** Recommendations accepted in chat 11 Oct ("Yes, I accept your recommendations"); the five rulings in §8 taken one at a time the same morning, all as proposed. Tranche 1 is specified to paste level and goes to session A tonight; tranche 2's three open points (§3) wait for dry run #4 and Monday's rulings; tranche 3 follows tranche 2. The id W-1 is provisional — Audit #4 numbers it. |
-| Owner | Ari Chester |
+| Owner | the operator |
 | Inputs | The Weekly of 9 Oct 2026 (19 pp); the reader's storyline rewrite of it (`weekly-2026-10-09-storyline.md`); the operator's critique and GPT's review of the same edition (11 Oct); T3.4 (figure budget at the frame), merged 11 Oct. |
 | Why | The edition had the week's story in its tables and did not tell it. Six of ten commentaries were withheld by the figure cap (T3.4 fixes the mechanism); but a fully-commented edition would still lack a through-line, because each section's prose is written from its own frame and no frame sees the others. Beneath that, the edition carries reconcilable inconsistencies it does not catch itself. Order of work: catch the inconsistencies first, then tell the story, then sharpen the analytics that need no evidence sample. The validated and probabilistic layers wait for the scorecard — evidence does not compress. |
 
