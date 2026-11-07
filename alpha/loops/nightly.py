@@ -99,7 +99,7 @@ class Run:
         self.ledger.record_holdout(holdout_months(HISTORY_START, self.day, every),
                                    self.con["holdout_months"]["rule"], self.as_of)
         from .. import promote                                  # noqa: PLC0415
-        entries = list(engine_mod.registered(self.registry_path))
+        entries = list(engine_mod.active(self.registry_path))   # B99: not a disabled one
         entries += promote.register_engines(self.ledger)      # promoted grammar rules
         from .weekly import latest_refit                        # noqa: PLC0415
         for entry in entries:

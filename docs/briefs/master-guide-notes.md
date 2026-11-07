@@ -148,7 +148,7 @@ their timers exist. The Guide's text says so.
 17. **The specification's sample timer list** has no 16:31 Massive line labelled as
     such. It is `chester-vendor-chains` (Massive's SPX and SPCX). The FlashAlpha writer
     also runs inside the intraday captures.
-18. **"The narrative register (Ari confirms or rejects)"** holds. Story proposals also
+18. **"The narrative register (the operator confirms or rejects)"** holds. Story proposals also
     come from the anchor's narrative scan.
 
 ## Found while checking, not mine to fix (for the owners)

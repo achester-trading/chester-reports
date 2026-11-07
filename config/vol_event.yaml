@@ -90,7 +90,7 @@ volatile_day:
   # RULED (Doctrine 5.5): an FOMC decision, CPI, the employment report -- by the
   # events calendar's stored titles, as triggers.plumbing.tier1_events names them.
   tier1_events: ["FOMC statement", "Consumer Price Index", "Employment Situation"]
-  # SESSION-SET, listed for Ari: "a name large enough to move the index" is
+  # SESSION-SET, listed for the operator: "a name large enough to move the index" is
   # config/weekly_ahead.yaml's earnings_mega class -- the ten largest S&P 500
   # index weights the ranking holds (weights_as_of there) and the hyperscalers
   # wherever they rank. Reason: the largest index weights are the names whose

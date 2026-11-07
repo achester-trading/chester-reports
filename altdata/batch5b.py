@@ -121,6 +121,12 @@ def realized_dispersion(st, cutoff: str, c: dict) -> dict:
             "names": min(len(rets[d]) for d in days)}
 
 
+def _last(st, key: str, cutoff: str) -> Optional[str]:
+    """The newest stored date of `key` at the cutoff (for a held row's line)."""
+    p = _pts(st, key, cutoff)
+    return p[-1][0] if p else None
+
+
 def _manual(st, key: Optional[str], cutoff: str) -> Optional[tuple[str, float]]:
     if not key:
         return None
@@ -136,6 +142,15 @@ def dispersion(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
         keys = c.get(name)
         keys = [keys] if isinstance(keys, str) or keys is None else list(keys)
         key, ser = keys[0], []
+        # HELD (D45, 31 Oct 2026): Cboe's history file is on a declared hold.
+        # The row prints the hold with the last stored date and NO fallback --
+        # Yahoo's copy is the substitute Doctrine #2 rules on, not this panel.
+        from . import refusals                                  # noqa: PLC0415
+        held = refusals.key_text(keys[0], _last(st, keys[0], cutoff))
+        if held:
+            rows[name] = {"absent": True, "held": True, "reason": held,
+                          "as_of": _last(st, keys[0], cutoff)}
+            continue
         for k in keys:                     # the first key with rows; never spliced
             ser = _pts(st, k, cutoff)
             if ser:
@@ -150,6 +165,8 @@ def dispersion(st, cutoff: str, cfg: Optional[dict] = None) -> dict:
                       "source": "Cboe" if str(key).startswith("cboe.") else "Yahoo"}
     flag = {"state": None, "why": "DSPX not stored"}
     d = rows["dspx"]
+    if d.get("held"):
+        flag = {"state": None, "why": f"withheld: DSPX {d['reason']}"}
     if not d.get("absent"):
         long = d["percentiles"][max(int(y) for y in years)]
         need = int(c.get("min_n", 250))

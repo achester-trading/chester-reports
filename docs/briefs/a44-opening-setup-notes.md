@@ -50,7 +50,7 @@ Its run, **39175853075, is green.** a43's notes carry the failing rows. This run
 
 Nothing else on the vendor writer changed.
 
-**Ruling 3** is in the box sheet below: Ari enables `chester-vendor-chains.timer` on Thursday evening, so **Friday 16:31 is the first capture by the new path.**
+**Ruling 3** is in the box sheet below: the operator enables `chester-vendor-chains.timer` on Thursday evening, so **Friday 16:31 is the first capture by the new path.**
 
 **Rulings 1, 4 and 5** need no code. The 57-request plan stands; the stitch keeps both sides of the technical appendix; the drafts are on the accept-all list.
 

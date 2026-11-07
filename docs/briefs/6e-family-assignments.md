@@ -2,7 +2,7 @@
 
 2781 resolved registry keys: price 267, rate 120, spread 30, release 154, quantity 599, conditions 88, ratio 865; 658 not level series (no family).
 
-## The ambiguous assignments, 289, for Ari
+## The ambiguous assignments, 289, for the operator
 
 | Series | Family | Basis | Why ambiguous, and the alternative |
 |---|---|---|---|

@@ -259,7 +259,7 @@ These docs are a further push.
 
 ## 14 Oct evening
 
-The follow-ups ruled at 08:40 ET (rulings 6, 8, 10, 13, 18), with Ari's answers
+The follow-ups ruled at 08:40 ET (rulings 6, 8, 10, 13, 18), with the operator's answers
 of the evening folded in. Branch only: nothing merged to main, nothing deployed,
 nothing run on the box.
 
@@ -300,7 +300,7 @@ and one predates it. Each is fixed in the changes commit:
   row a loop writes lifts nothing, and neither does a recovery of the equity.
 - **Not named, chosen here:** on the resume, the lab's high-water mark is re-based
   to its equity at that moment. Otherwise the next night would re-halt on the
-  same drawdown Ari had just reviewed. A fresh -15% from the re-based mark halts
+  same drawdown the operator had just reviewed. A fresh -15% from the re-based mark halts
   the lab again.
 - The command is denied to sessions as the register writes are:
   `Bash(*alpha.governor resume*)` in `.claude/settings.json`, the CLAUDE.md
@@ -379,7 +379,7 @@ as a backfill under its own run.
   (no rule stored, a date off the calendar, a move beyond 25 bp).
 - Engine 3's `contracts()` now reads only `confirmed: true` entries.
   `config/alpha_pm_map.yaml` stays `contracts: []`, so engine 3 holds no
-  contracts until Ari confirms lines and a later paste commits them.
+  contracts until the operator confirms lines and a later paste commits them.
 - validate_alpha **group V** drafts from a synthetic six-contract store:
   - two entries, a cut and a hold, each quoting its rule;
   - nothing for the contract with no stored rule;
@@ -407,7 +407,7 @@ No gate read the live store, fetched or called a model. CI is the validate.
 - **#409** (`26e86d3`, the merge): failed, as above; fixed in the changes commit.
 - `cc4cf79` (the changes and the three fixes): **CI #413 green.**
 
-### Box commands, printed for Ari and run by no session
+### Box commands, printed for the operator and run by no session
 
 **The deep price backfill.** Run it after aud-1-data-fixes is on main and after
 the FRED compaction, on a weekday evening inside the window (17:20-23:30 ET),
@@ -454,9 +454,9 @@ branch only). It is read-only, prints to the screen, and writes nothing:
 cd ~/chester-reports && .venv/bin/python -m alpha.pm_map draft
 ```
 
-Paste its output into chat. A later paste commits the lines Ari confirms.
+Paste its output into chat. A later paste commits the lines the operator confirms.
 
-**lab_resume**, for when the lab ever halts. It is Ari's, and denied to sessions:
+**lab_resume**, for when the lab ever halts. It is the operator's, and denied to sessions:
 
 ```bash
 cd ~/chester-reports && .venv/bin/python -m alpha.governor status
@@ -480,7 +480,7 @@ cd ~/chester-reports && .venv/bin/python -m alpha.governor resume --reason "<why
 
 ## 15 Oct
 
-Ari's answers to the 14 Oct evening needs-you list.
+The operator's answers to the 14 Oct evening needs-you list.
 
 - **The resume re-bases the high-water mark: kept** (needs-you 2). A resume now
   never hides a loss:

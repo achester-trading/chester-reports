@@ -242,8 +242,22 @@ def apply_persistence(row: dict, prior: list[dict], session_day: str,
                 since = p.get("since") or p.get("session") or since
             else:
                 break
+        # A row held open through a failing session (the symmetric close) keeps
+        # the session its divergence began.
+        if was_open and prior[-1].get("since"):
+            since = prior[-1]["since"]
         row["since"] = since
         row["persistence_days"] = run
+    elif not cond and was_open and run + 1 < persistence:
+        # THE SYMMETRIC CLOSE (config v2.0; ruled for v1.13 at Audit #4): an open
+        # row closes after `persistence` consecutive failing sessions, as it opens
+        # after `persistence` meeting ones. Until then it stays open, closing.
+        row["open"] = True
+        row["open_state"] = "closing"
+        row["since"] = prior[-1].get("since")
+        row["persistence_days"] = int(prior[-1].get("persistence_days") or 0)
+        row["closing_note"] = (f"the condition has failed {run + 1} of the "
+                               f"{persistence} sessions required to close")
     elif cond:
         row["open"] = False
         row["open_state"] = "pending"

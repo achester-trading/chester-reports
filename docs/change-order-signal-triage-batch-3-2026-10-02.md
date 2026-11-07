@@ -132,4 +132,4 @@ All eleven decisions ruled as of 6 Oct 2026. Open at filing: the SR-30 crisis-ti
 
 ## 8. Sign-off
 
-Ruled by: Ari Chester, in chat · Date: 2026-10-06 (decisions 1–6 and 8–11; decision 7 on 2026-10-02) · Amendment number: Batch 3 of Post-Freeze Amendment #4, confirmed at filing against `docs/signal-triage-register.md`
+Ruled by: the operator, in chat · Date: 2026-10-06 (decisions 1–6 and 8–11; decision 7 on 2026-10-02) · Amendment number: Batch 3 of Post-Freeze Amendment #4, confirmed at filing against `docs/signal-triage-register.md`

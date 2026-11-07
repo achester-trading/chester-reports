@@ -74,8 +74,16 @@ ET = ZoneInfo("America/New_York")
 
 
 def load_config(path: Optional[Path] = None) -> dict:
+    """The config, with each listed pair's pinned "price:<family>.<member>@<source>"
+    reference resolved to that source's key (A115: the parallel-run pairs). A pin
+    names one source whatever is active, so a pair never moves with a switch."""
     with open(path or CONFIG_PATH, encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
+        cfg = yaml.safe_load(fh) or {}
+    pl = (cfg.get("pairs") or {}).get("list")
+    if pl and any(str(pc.get(k, "")).startswith("price:") for pc in pl for k in ("a", "b")):
+        from . import price_sources                             # noqa: PLC0415
+        cfg["pairs"]["list"] = price_sources.resolve_tree(pl)
+    return cfg
 
 
 # ---------------------------------------------------------------------------

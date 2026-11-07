@@ -1,8 +1,8 @@
-# The box sheet for the third chain (for Ari)
+# The box sheet for the third chain (for the operator)
 
 **What this is.** Every box step the third chain's notes ask for, de-duplicated and ordered, for the evening `chain-3` merges to main. It is compiled from the box-command sections of six notes files:
-- `docs/briefs/a47-chain3-notes.md` ("Box commands for Ari, after the third chain merges");
-- `docs/briefs/a48-batch11-notes.md` ("Box commands for Ari, after the third chain merges (each dry run first)");
+- `docs/briefs/a47-chain3-notes.md` ("Box commands for the operator, after the third chain merges");
+- `docs/briefs/a48-batch11-notes.md` ("Box commands for the operator, after the third chain merges (each dry run first)");
 - `docs/briefs/a49-secondary-notes-notes.md` ("The merge sheet: box commands");
 - `docs/briefs/b45-chain3-notes.md` ("Box commands");
 - `docs/briefs/alpha-lab-4-notes.md` (the second paste's "Box commands", which supersedes the first paste's search and LTH lines);

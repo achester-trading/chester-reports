@@ -84,7 +84,7 @@ def draft(store, next_id: int) -> list[dict]:
 def render(entries: list[dict], next_id: int) -> str:
     import yaml  # noqa: PLC0415
     head = ["# DRAFT -- python -m altdata.security_master draft-box (read-only).",
-            "# Paste into chat; a later paste commits the lines Ari confirms.",
+            "# Paste into chat; a later paste commits the lines the operator confirms.",
             f"# {len(entries)} entries from SM{next_id:05d}; next_id after them: "
             f"{next_id + len(entries)}"]
     body = yaml.safe_dump({"instruments": entries}, sort_keys=False, allow_unicode=True,

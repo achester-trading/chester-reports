@@ -32,6 +32,8 @@ never calls a model.
 
 from __future__ import annotations
 
+GATE_KIND = "code"   # S1: a gate declares itself; tools/gate_list.py reads it
+
 import csv
 import datetime as dt
 import hashlib
@@ -60,6 +62,7 @@ FIX = REPO / "tests" / "fixtures" / "security_master"
 TMP = Path(mkdtemp("gate_secmaster_"))
 LINE = "=" * 78
 PASSED = FAILED = 0
+# THE GATE'S CLOCK (B106): reads today on purpose -- the real master's identifiers resolved today. Next attention: the next active window in config/security_master.yaml that ends.
 TODAY = dt.date.today().isoformat()
 
 
@@ -701,7 +704,7 @@ def group_j(m: Master) -> None:
     raw = yaml.safe_load(smod.MASTER_PATH.read_text(encoding="utf-8"))
     check(not any(e.get("identifiers", {}).get(k) for e in raw["instruments"]
                   for k in ("pm_id", "ibkr_conid")),
-          "until Ari's paste is committed, both schemes stay empty in the master")
+          "until the operator's paste is committed, both schemes stay empty in the master")
     _ = contextlib, io
 
 
@@ -801,7 +804,8 @@ def group_m(m: Master) -> None:
           f"all {len(yf.SYMBOLS)} SYMBOLS resolve through the master to their seed keys")
     check(yf.resolve_basket(yf.CRYPTO_BASKET) == yf.CRYPTO_BASKET,
           f"the crypto basket's {len(yf.CRYPTO_BASKET)} names resolve likewise")
-    check("resolve_basket(symbols or SYMBOLS)" in inspect.getsource(yf.pull),
+    # A71: the call also passes the list the blocklist check fills.
+    check("resolve_basket(symbols or SYMBOLS" in inspect.getsource(yf.pull),
           "pull() takes its keys from the master's resolver, not the map")
     eq = {s for s in yf.SYMBOLS if m.resolve(s, "yahoo")["asset_class"] == "equity"}
     # b52 (Batch 14 item 63): the capex chain's single names are equities that are
