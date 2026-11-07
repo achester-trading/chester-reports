@@ -4,6 +4,7 @@ The narrative register -- the stories the market is trading, as dated entities.
     python -m altdata.narratives list
     python -m altdata.narratives show fiscal_dominance
     python -m altdata.narratives seed            # sync config/narratives.yaml
+                                                 # (and config/dated_calls.yaml)
     python -m altdata.narratives confirm <id>    # THE human gate (operator only)
     python -m altdata.narratives reject <id>
 
@@ -1420,6 +1421,14 @@ def resolve_due(as_of: Optional[str] = None, db_path: Optional[str] = None
                                                    default=str)[:2000],
                                    resolved_at=cutoff)
                 out["resolved"].append(done)
+        # BATCH 25 ITEM 132 (B139): the dated public calls' claims are scored in
+        # the same pass, once each at its date (altdata/dated_calls.py). A fault
+        # costs the calls' scores, never the narratives' resolutions.
+        try:
+            from . import dated_calls                            # noqa: PLC0415
+            out["dated_calls"] = dated_calls.grade_due(cutoff, db_path, store=store)
+        except Exception:                                        # noqa: BLE001
+            log.warning("the dated calls' grading faulted", exc_info=True)
     finally:
         store.close()
     return out
@@ -1594,7 +1603,15 @@ def _main(argv: list[str]) -> int:
                       f"{r['synced'] or 'none'}")
                 for nid, why in r["refused"].items():
                     print(f"REFUSED {nid}: {'; '.join(why)}")
-                return 1 if r["refused"] else 0
+                # BATCH 25 ITEM 132 (B139): the dated public calls seed beside
+                # the stories (config/dated_calls.yaml).
+                from . import dated_calls                        # noqa: PLC0415
+                dc = dated_calls.seed(a.db)
+                print(f"dated calls: inserted {dc['inserted'] or 'none'}; synced "
+                      f"{dc['synced'] or 'none'}")
+                for cid, why in dc["refused"].items():
+                    print(f"REFUSED {cid}: {'; '.join(why)}")
+                return 1 if (r["refused"] or dc["refused"]) else 0
             if a.cmd == "confirm":
                 r = reg.confirm(a.id, by=_operator())
                 print(f"confirmed {a.id}: active, {r['state']}, opened {r['opened']}")

@@ -14079,6 +14079,34 @@ metrics:
     trigger_eligible: false
     description: >-
       The CCC & lower OAS less the BB OAS (BAMLH0A3HYC less BAMLH0A1HYBB), bp: the architecture's Session 2 CCC-BB differential, the tail of high yield against its best credits. 6e, the rest (16 Oct 2026); altdata/macro_6e.py.
+  calc.viral_call_count.down:
+    source: derived_state
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      Viral crash calls captured per ET day: the narrative register's dated public calls of direction down (config/dated_calls.yaml), rejected rows excluded, zeros from the first captured row. An attention input to the Capitulation Count (item 97), with no direction. Batch 25 item 132 (B139, 7 Nov 2026); altdata/dated_calls.py.
+  calc.viral_call_count.up:
+    source: derived_state
+    mechanism_group: narrative
+    native_horizon: daily
+    freq: daily
+    information_half_life: session
+    invalidated_by: none
+    observation_type: calculated
+    revision_policy: recomputed
+    units: count
+    family: quantity
+    trigger_eligible: false
+    description: >-
+      Viral melt-up calls captured per ET day: the narrative register's dated public calls of direction up (config/dated_calls.yaml), the mirror of calc.viral_call_count.down so the input is two-sided. An attention input to the Capitulation Count (item 97), with no direction. Batch 25 item 132 (B139, 7 Nov 2026); altdata/dated_calls.py.
   calc.real_policy_rate:
     # Its inputs (the feed repair of 24 Oct 2026): it inherits their publication lag.
     inputs: [fred.effr, fred.core_pce]
@@ -20912,6 +20940,9 @@ market_state_barred:
   - order: "item 124 Tranche 0 (the tail-days order's 106i), ruled 6 Nov 2026 (D60; A126)"
     rule: "the Fed's credit spreads are report only: nothing enters the market-state object, a composite or an overlay"
     keys: ["fed.ebp", "fed.gz_spread"]
+  - order: "signal-triage Batch 25 item 132 (the order's 111; S3, D62, 6 Nov 2026; B139)"
+    rule: "register rows and an attention input: the viral-call counts carry no direction and enter no composite, flag, dial or the market-state object"
+    keys: ["calc.viral_call_count.*"]
 forward_dated:
   fred.iorb: "FRED dates IORB by its effective day: a rate announced on a Wednesday is stored under the following Thursday's or the next business day's date, ahead of the edition"
 long_windows:

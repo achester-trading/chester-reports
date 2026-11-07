@@ -1,0 +1,138 @@
+# THE DATED PUBLIC CALL -- an entry type of the narrative register (signal-triage
+# Batch 25 item 132, the order's 111; docs/change-order-signal-triage-batch-25-
+# 2026-11-06.md; S3: recorded against items 97 and 50; B139, 7 Nov 2026, the code
+# half). Read by altdata/dated_calls.py; held by tools/validate_items_131_132.py.
+#
+# A dated, falsifiable, viral forecast with its incentives disclosed: attention
+# data with a built-in scorecard. Register rows and an attention input only -- no
+# forecast right, no scenario or theme change (the order's Rights).
+#
+# WHO WRITES ROWS. The X-digest triage task (the chat's, not a session's: S6)
+# extracts calls above the capture threshold from the existing digests and writes
+# them here as drafts; a session commits them as drafted and lists them for the
+# operator's accept-all. Row one is the order's own (its ruling names it).
+# NO PERSON'S NAME OR HANDLE in a row: a forecaster is described by kind.
+#
+# HOW A CLAIM IS SCORED. At each claim's expiry the register's grading pass
+# (altdata.narratives resolve_due, through altdata.dated_calls.grade_due) scores it
+# hit or miss from the observation store where the claim names a level or a move
+# (`rule` below), and writes it once; a claim with no rule is `unresolved` and
+# left for the operator (`operator_score`, filled only by the operator's ruling).
+
+version: dated-calls-1
+updated: 2026-11-07
+
+# ---------------------------------------------------------------- the entry type
+entry_type:
+  id: dated_public_call
+  fields:
+    call_id: "a stable id, lower case"
+    status: "proposed | active | rejected (proposed until the operator's accept-all)"
+    direction: "down (a crash call) | up (a melt-up call): the call's own"
+    forecaster: "described by kind, never named (no handle)"
+    incentive_tags: "position_disclosed (short | long | none | not stated), product_sold (what the forecaster sells, or none)"
+    engagement_at_capture: "views and reposts at capture, each null when not recorded"
+    posted_at: "the call's own date"
+    captured_at: "when the digest captured it (UTC instant)"
+    expiry: "the call's last dated day"
+    claims: "each with its own date (the day it resolves), its text, and a rule when the store can answer it"
+    score: "per claim at its expiry: hit | miss | unresolved"
+  scores: [hit, miss, unresolved]
+  directions: [down, up]
+  statuses: [proposed, active, rejected]
+  # A claim's rule, by kind. Every price is a stored close read as known at the
+  # grading cutoff; a move is the close against the baseline in percent.
+  rule_kinds:
+    move_on: "the close ON `date` against the previous close, at or beyond `pct` (signed)"
+    move_by: "any close after `baseline_date` through `date` against the baseline_date close, at or beyond `pct` (signed)"
+    level_by: "any close after `baseline_date` through `date` below `below` (or above `above`)"
+    move_from_high: "any close after `baseline_date` through `date` at or beyond `pct` from the highest close of the `high_sessions` closes ending baseline_date"
+
+# ---------------------------------------------------------------- O-111a, capture
+# Accepted at its proposed default (S4, D62, 6 Nov 2026, 08:38 ET); reviewed after
+# one month of rows.
+capture:
+  min_views: 10000
+  min_reposts: 100            # either one suffices
+  max_claim_days: 30          # dated claims within 30 days of capture
+  ruled: "O-111a, D62, 6 Nov 2026"
+  review_on: 2026-12-06       # one month after the ruling; the order: "after one month of rows"
+
+# ---------------------------------------------------------------- the two counts
+# Rows captured per ET day, by the call's direction, from the register's rows
+# (rejected rows excluded): calc.viral_call_count.down (crash calls) and
+# calc.viral_call_count.up (melt-up calls), so the input is two-sided. Written by
+# the features pass from the first captured row; before any row, nothing is
+# stored and a reader prints "no rows yet".
+counts:
+  keys: {down: calc.viral_call_count.down, up: calc.viral_call_count.up}
+  no_rows: "no rows yet (the X-digest triage writes them)"
+
+# ---------------------------------------------------------------- item 97's two inputs
+# V-111d, read 7 Nov 2026 on origin/b79-capitulation-count (B79's config,
+# config/capitulation_count.yaml, version capitulation-count-1): its five
+# families are vix, put_call, gamma, short_interest and flows. None is a
+# social-attention input, so these two are new, not an extension. B79 is not on
+# this branch's base; chain-13's stitch moves this block, unchanged, into that
+# file as its `attention_inputs:` (docs/briefs/b139-notes.md). An attention input
+# carries NO DIRECTION and scores no family: the count's points are unchanged.
+capitulation_count_inputs:
+  - id: viral_crash_calls
+    key: calc.viral_call_count.down
+    label: "viral crash calls captured (per day)"
+    direction: none
+    scores: false
+    empty: "no rows yet"
+    source: "the narrative register's dated public calls (config/dated_calls.yaml)"
+  - id: viral_melt_up_calls
+    key: calc.viral_call_count.up
+    label: "viral melt-up calls captured (per day)"
+    direction: none
+    scores: false
+    empty: "no rows yet"
+    source: "the narrative register's dated public calls (config/dated_calls.yaml)"
+
+# ---------------------------------------------------------------- the rows
+# Row one, a JUDGMENT DRAFT committed as drafted and listed for the operator's
+# accept-all (CLAUDE.md, by-hand data lines: a judgment draft is not a data line).
+# The claims are the order's as it lists them (item 111, "Read"); day 1 is 5 Nov.
+# Where a move's reference is not stated, the baseline is the close before day 1
+# (4 Nov), and a "from the top" move is from the year's highest close to 4 Nov --
+# both the session's reading, stated here for the operator to amend at accept-all.
+# Proxies are labelled: QQQ for the Nasdaq-100, SMH for "chips", EWY for Korea.
+calls:
+  x_funnel_15day_2026_11_05:
+    status: proposed
+    direction: down
+    forecaster: "an X membership-funnel account"
+    incentive_tags: {position_disclosed: short, product_sold: "a paid membership community"}
+    engagement_at_capture: {views: null, reposts: null}
+    engagement_note: "not recorded in the order; row one is admitted by the order's ruling, not by the O-111a threshold"
+    admitted_by: "Batch 25 item 132 (the order's 111), ruling: row one"
+    posted_at: 2026-11-05
+    captured_at: "2026-11-06T12:53:00Z"     # the chat's screenshots, 6 Nov 07:53 ET
+    expiry: 2026-11-20
+    claims:
+      - {id: c01, date: 2026-11-05, text: "Day 1 (happened): the Nasdaq 100 -6.4%",
+         rule: {kind: move_on, metric: yfinance.mkt_qqq, proxy: "QQQ for the Nasdaq-100", pct: -6.4}}
+      - {id: c02, date: 2026-11-05, text: "Day 1 (happened): Korea halted; Japan and Taiwan in bear markets"}
+      - {id: c03, date: 2026-11-06, text: "The jobs report (6 Nov)"}
+      - {id: c04, date: 2026-11-08, text: "Weekend margin calls; futures red Sunday"}
+      - {id: c05, date: 2026-11-20, text: "Asia, a second wave"}
+      - {id: c06, date: 2026-11-10, text: "CPI Tuesday 10 Nov (\"the last one was 3.7%\")"}
+      - {id: c07, date: 2026-11-20, text: "\"The Fed already raised rates in September\", and a Fed president saying more hikes are needed (V-111a)"}
+      - {id: c08, date: 2026-11-11, text: "The Nasdaq -20% by day 7",
+         rule: {kind: move_by, metric: yfinance.mkt_qqq, proxy: "QQQ for the Nasdaq-100", pct: -20, baseline_date: 2026-11-04}}
+      - {id: c09, date: 2026-11-20, text: "Hedge funds' biggest October selloff in ten years"}
+      - {id: c10, date: 2026-11-20, text: "The S&P 500 -10%",
+         rule: {kind: move_by, metric: yfinance.mkt_gspc, pct: -10, baseline_date: 2026-11-04}}
+      - {id: c11, date: 2026-11-20, text: "Bitcoin under $70,000",
+         rule: {kind: level_by, metric: yfinance.mkt_btc_usd, below: 70000, baseline_date: 2026-11-04}}
+      - {id: c12, date: 2026-11-17, text: "Nvidia reports 17 Nov (V-111b)"}
+      - {id: c13, date: 2026-11-20, text: "Big Tech spending up to $828bn on AI this year, four of the five biggest spenders burning cash (V-111c)"}
+      - {id: c14, date: 2026-11-20, text: "Monthly options expiry, 20 Nov, the day \"correction becomes CRASH\""}
+      - {id: c15, date: 2026-11-20, text: "Chips -38% from the top",
+         rule: {kind: move_from_high, metric: yfinance.mkt_smh, proxy: "SMH for chips", pct: -38, high_sessions: 252, baseline_date: 2026-11-04}}
+      - {id: c16, date: 2026-11-20, text: "Korea -44%",
+         rule: {kind: move_from_high, metric: yfinance.mkt_ewy, proxy: "EWY for Korea", pct: -44, high_sessions: 252, baseline_date: 2026-11-04}}
+      - {id: c17, date: 2026-11-20, text: "\"When this is over, 2008 and the dot-com crash will look small\""}

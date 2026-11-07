@@ -859,6 +859,14 @@ def compute_rows(db: observations.ObservationStore,
         rows += macro_6e.rows(db, as_of=as_of, first_day=first_day)
     except Exception:                                            # noqa: BLE001
         log.warning("6e macro-completeness rows failed", exc_info=True)
+    # BATCH 25 ITEM 132 (B139, 7 Nov 2026): the viral-call counts, rows captured
+    # per day by direction, from the register's dated public calls; nothing
+    # before the first row. Never fatal.
+    try:
+        from . import dated_calls                                # noqa: PLC0415
+        rows += dated_calls.count_rows(db, as_of=as_of, first_day=first_day)
+    except Exception:                                            # noqa: BLE001
+        log.warning("the viral-call counts failed", exc_info=True)
     return rows
 
 

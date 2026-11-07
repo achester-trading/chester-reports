@@ -180,6 +180,12 @@ commands:
   altdata.narratives:
     domain: narrative
     line: The narrative register -- the stories the market is trading, as dated entities
+  altdata.dated_calls:
+    domain: narrative
+    line: "The narrative register's dated public calls (Batch 25 item 132): list, seed from config/dated_calls.yaml, grade each claim once at its date, and print the viral-call counts -- register rows and an attention input, no direction"
+  altdata.credit_bifurcation:
+    domain: rates
+    line: "The HY bifurcation line (Batch 25 item 131): the cycle series (HY OAS, Baa less the 10-year) beside the CCC/HY ratio with its honest window and CCC less BB; show prints it as of a cutoff -- read-only, report only"
   altdata.observations:
     domain: infrastructure
     line: Point-in-time observation store (SQLite)
