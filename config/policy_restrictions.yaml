@@ -1,0 +1,107 @@
+# policy_restrictions.yaml -- signal-triage Batch 22 item 117 (the order's 99) and
+# section 0's O-2; paste B135, 6 Nov 2026. Read by altdata/policy_restrictions.py.
+#
+# RIGHTS (the order): an input line and a flag; no composite change. The ledger is
+# a table in the register database (policy_restrictions), append-only: a row is
+# never edited and a stage change is a new row that names the row it supersedes.
+# Every row enters PROPOSED; the operator's accept-all promotes it (a review row,
+# never an edit). No by-hand feed (the 10 Oct rule): rows come from the two
+# writers below and the seed drafts.
+
+version: policy-restrictions-v1
+updated: 2026-11-06
+
+# O-2: the flag fires when ACCEPTED restrictions at the ENACTED stage cover at
+# least this share of tracked planned capacity (the accepted planned_build rows'
+# MW). Reviewed one quarter after the ledger's first row (the seed, 6 Nov 2026).
+flag:
+  threshold: 0.10
+  review_date: "2027-02-06"
+  first_row: "2026-11-06"
+
+# The reaction column: the one-day move on the row's stage date, from the store.
+# ^SOX is not stored and no new Yahoo symbol may be added (D33), so SMH, the
+# stored semiconductor ETF, stands in for it, labelled so.
+reaction:
+  - {id: semis, label: "SMH (the semiconductor proxy; ^SOX not stored)", key: yfinance.mkt_smh}
+  - {id: spx, label: "S&P 500", key: yfinance.mkt_gspc}
+
+# THE NEWS WRITER's classification of a headline, by declared keywords (first
+# match wins); anything unmatched is "unclassified" and counts toward no flag
+# until the operator's accepted row says what it is.
+classify:
+  instrument:
+    - {match: ["executive order"], value: executive order}
+    - {match: ["ballot", "voters", "referendum", "measure"], value: ballot measure}
+    - {match: ["ordinance", "city council", "county", "township", "zoning"], value: ordinance}
+    - {match: ["senate bill", "house bill", "congress", "federal"], value: federal bill}
+    - {match: ["legislature", "statute", "state law", "governor signs"], value: state statute}
+  stage:
+    - {match: ["signed", "signs", "enacted", "enacts", "approved", "approves", "passes into law", "takes effect"], value: enacted}
+    - {match: ["passed", "passes", "advances"], value: passed}
+    - {match: ["introduced", "introduces", "proposed", "proposes", "files", "unveils"], value: introduced}
+
+# THE SEED (V-99a), judgment drafts for the operator's accept-all (rule 31): every
+# row from a primary source, or listed below as not written with its reason. No
+# person's name: officials by office, the bill by its name. A link whose address
+# carries a person's name stays chat-side (D38), so the bill cites congress.gov.
+seed:
+  - row_type: restriction
+    jurisdiction: United States (federal)
+    instrument: federal bill
+    stage: introduced
+    stage_date: "2026-09-23"
+    title: "Ban Artificial Superintelligence Act of 2026 (S. 5493), introduced in the Senate"
+    source_url: https://www.congress.gov/bill/119th-congress/senate-bill/5493/text
+    source_kind: primary (congress.gov, the bill's text)
+    note: >-
+      A permanent ban on superintelligence and a pause on advanced AI until a new
+      Department of AI sets rules. No capacity at risk is estimable. Its House
+      companion is the next row.
+  - row_type: restriction
+    jurisdiction: United States (federal)
+    instrument: federal bill
+    stage: introduced
+    stage_date: "2026-09-24"
+    title: "Ban Artificial Superintelligence Act of 2026 (H.R. 10538), introduced in the House"
+    source_url: https://www.congress.gov/bill/119th-congress/house-bill/10538/text
+    source_kind: primary (congress.gov, the bill's text)
+    note: The House companion of S. 5493.
+  - row_type: restriction
+    jurisdiction: Wells, Maine (town)
+    instrument: ballot measure
+    stage: introduced
+    stage_date: "2026-11-03"
+    title: "Article 5, a six-month data-center moratorium, on the 3 Nov 2026 special town meeting warrant"
+    source_url: https://wellstown.org/DocumentCenter/View/8514/November-3-2026-Special-Town-Meeting-Warrant
+    source_kind: primary (the town's warrant)
+    note: >-
+      A live row: on the 3 Nov ballot. The certified result was not found from a
+      primary source at the seed, so the enacted-stage row is not written.
+  - row_type: reference
+    jurisdiction: United States (planned data-center capacity)
+    instrument: unclassified
+    stage: unclassified
+    stage_date: "2026-11-04"
+    title: >-
+      Goldman Sachs: Democratic state and local wins could bring temporary
+      data-center moratoria affecting up to 45% of planned US capacity
+    source_url: https://investinglive.com/stocks/goldman-sachs-45-of-planned-us-data-centre-capacity-faces-state-pauses-but-likely-short-lived/
+    source_kind: reporting of the note (the note itself not read)
+    note: >-
+      A reference row: an estimate, never a measure, and never in the flag's
+      numerator or its denominator.
+
+# The seed's rows NOT WRITTEN, each with its reason (V-99a: "source not found" and
+# left unwritten). Listed for the operator; nothing reads them.
+not_written:
+  - item: the 3 Nov local measures' results (Ottawa KS, Grove City OH, Janesville WI, Harwood ND, Perry OH, Ashville OH, Boulder City NV, the Kansas water-use moratorium and the other Maine town moratoria)
+    reason: >-
+      source not found: no jurisdiction's certified result was found at the seed;
+      the counts (40 of 41 restrictive) are reporting and Ballotpedia, not primary
+  - item: the incoming governors' stated positions on construction pauses (Texas, Ohio, Georgia, as the order names them)
+    reason: >-
+      source not found: the positions are on campaign pages whose addresses carry
+      the person's name (kept chat-side, D38), and no official statement was
+      found; reporting of Goldman's note names Texas, Georgia and Michigan, not
+      Ohio

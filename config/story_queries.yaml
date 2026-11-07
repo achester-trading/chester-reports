@@ -204,3 +204,22 @@ mechanism_watch:
                       "ft.com", "bloomberg.com", "wsj.com"]
     hashrate_trackers: ["hashrate.no", "kryptex.com", "hashrateindex.com"]
     mcap_min_usd: 50000000
+
+# -----------------------------------------------------------------------------
+# THE POLICY-RESTRICTION GROUP (signal-triage Batch 22 item 117, the order's 99;
+# B135, 6 Nov 2026). Like the mechanism-watch group it sends nothing to any
+# search: its terms FILTER the titles of the items the daily voices scan has
+# already read from its declared public sources (voice_scan_seen), and a match is
+# proposed as a row of the AI policy-restriction ledger (altdata/
+# policy_restrictions.py), PROPOSED with its URL, for the operator's accept-all.
+# -----------------------------------------------------------------------------
+policy_restrictions:
+  version: policy-restriction-queries-v1
+  updated: 2026-11-06
+  window_days: 3            # the scan's items seen in the last three days
+  cap_per_run: 20           # rows proposed per run at most
+  # A title matches when it carries one term from each list.
+  subject: ["data center", "data centre", "data-center", "artificial intelligence",
+            " ai ", "ai bill", "superintelligence", "hyperscale"]
+  action: ["moratorium", "moratoria", "ban", "pause", "restriction", "restrict",
+           "ordinance", "ballot", "bill", "executive order", "zoning", "veto"]
