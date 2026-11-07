@@ -357,3 +357,24 @@ copy, scanned this tree with the new `time.monotonic()` calls in it: 9 passed,
 | validate_alpha_no_orders | 73/0 |
 | validate_clock_reads (A116's copy, this tree) | 9/0, 0 new |
 | check_registry | OK |
+
+## A132 (6 Nov 2026): the week-after branches refreshed to main
+
+Paste A132, committed first on this branch (`7f7945be`). origin/main at `ee04ba21` (b114-names-sweep's merge, PR #52). Order: a121, b122, a112, a116, a117, a119. Each branch: one merge of origin/main, then the must-run steps (validate_lenses, check_registry, yaml_section_check, stitch_counts --check) and the branch's own gates, then a push.
+
+| Branch | Old tip | Merge commit | Conflicts | Gates |
+|---|---|---|---|---|
+| a121-merge-week-manifest | `a85a528f` | `cc7072e3` | none (docs only) | must-run clean; check_library 0/0 |
+| b122-ci-job-grouping | `fa17ee60` | `9710f692` | none | must-run clean; validate_gates 38/0; ci_groups: 163 gates in 20 jobs, 1 in the default group (as B122 recorded) |
+| a112-em-shock-screen-amendment | `ac8b23c7` | `66f32495` | none (source_registry.yaml touched on both sides; no key moved) | must-run clean; validate_move_screen 67/0, validate_official_sources 381/0, validate_outliers 37/0 |
+| a116-clock-reads-gate | `ccaaa66e` | `02d690e4` | CLAUDE.md (the count line: main's, then stitch_counts --write, 168/165); Makefile (a116 had added its gate to the explicit list main replaced with declarations, S1: main's side taken, and `validate_clock_reads.py` gains `GATE_KIND = "code"` so it stays listed) | must-run clean; validate_clock_reads 11/0 after the carry below; validate_gates 32/0; validate_audit_3a 88/0; check_library 0/0 |
+| a117-attention-ledger-pending | `989aa121` | `906c5777` | tools/validate_backup.py, two hunks, both additions kept (a117's attention-ledger pattern with main's A92b digest pattern; a117's block and main's A92b folder block); rclone_sync.sh merged as is | must-run clean; validate_digital_addendum 107/0, validate_backup 90/0, validate_backups 29/0, validate_secrets 58/0 |
+| a119-clock-burn-down-1 | `900add11` | `726c0c67` (main), then `4ee3b9b8` (a116) | none with main; with a116, docs/briefs/a116-notes.md add/add (a116's file taken) | must-run clean on both merges; A119's 25 gates all pass (validate_alpha 271/0, validate_regime 524/0, validate_register 180/0 2 skipped, the rest as listed in the A119 section); validate_security_master 102/0; validate_clock_reads 11/0 |
+
+**The merge-time actions.**
+- **The A119 section folded in** (`2fc176f1`, on this branch): verbatim from a119's copy of this file at `900add11`, with one italic line saying so. On a119 the copy is gone: merging a116 into a119 took this file in its place (`4ee3b9b8`).
+- **Why a116 was merged into a119.** The allowlist and the clock-reads gate live only on a116; a119 never carried them, while A132 asks for the burned-down entries to be removed and the gate run on a119. Merging a116 into a119 is the one way to do both there without an add/add conflict at chain-13. It changes only a119, a named branch.
+- **The burned-down entries removed** (`be8e4c22`, on a119): A119's 33 converted modules and `register/heat.py`, whose entry says it "burns down when A119 merges" -- 34 in all.
+- **A123's one-line fix** (`d5fad88b`, on a119): `security_master._day(None)` returns `session.session_date()`, the ET session date, instead of `date.today()`; at 21:30 ET on 6 Nov an undated resolve now answers 2026-11-06, not 7 Nov. Its own allowlist entry burns down with it and is removed. The allowlist carries 20 reads in 14 files after both.
+
+**One more carry, on a116** (`f89d8006`). After main merged, the clock-reads gate found 11 direct reads in 7 files main's merge week brought in (altdata/dth1_ledger.py, altdata/sources/_quarterly_common.py, gdelt.py, hf_releases.py, llama_breadth.py, altdata/tb_harness.py, paper_exec/state.py). They are existing code, not new reads, so they are carried in the allowlist as `source: A132 merge of main`, pending burn-down, and the gate's provenance check accepts that source. A later burn-down paste takes them.
