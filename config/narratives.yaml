@@ -566,3 +566,69 @@ proposals:
       comparison: up
       quorum: 1
       horizon_days: 182
+
+  # SIGNAL-TRIAGE BATCH 22 ITEM 123 (the order's 105; B136, 6 Nov 2026): the
+  # cash-cycle pair, seeded PROPOSED for the operator's confirm or reject. The
+  # scorecard (altdata/cash_cycle.py, the Factor I sub-panel) adjudicates between
+  # them each quarter -- incremental margin, backlog, capex against cash flow and
+  # the treadmill flag -- so each starts with its evidence rule alone, on SMH, the
+  # stored semiconductor ETF whose demand both stories are about.
+  ai_capex_j_curve:
+    name: The AI capex J-curve
+    direction: >-
+      AI infrastructure is already profitable by segment; hyperscalers' negative
+      free cash flow is a J-curve timing effect; contracted backlog shows demand
+      is not the constraint; and the build will be funded through joint
+      ventures, leases, prepayments and customer-supplied hardware rather than
+      by cutting capex, so semiconductor demand holds. Incentive tag, carried
+      with the story: sell-side, a semiconductor and hardware franchise (a
+      bullish incentive); the source note itself was not read.
+    proposed_by: >-
+      session B, as drafted from the Batch 22 change order item 123 (the order's
+      105; a sell-side report on AI data centers, relayed by an X thread),
+      committed 6 Nov 2026 as PROPOSED, the bull case for Factor I; confirming
+      or rejecting is the operator's
+    linked_dimensions: {trend: "+"}
+    linked_instruments: [yfinance.mkt_smh]
+    prediction_market_contracts: []
+    evidence:
+      series_moves:
+        yfinance.mkt_smh: {sign: "+", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        SMH (the semiconductor ETF) is higher at the horizon, two quarters on,
+        than when the forecast was emitted.
+      metrics: [yfinance.mkt_smh]
+      comparison: up
+      quorum: 1
+      horizon_days: 182
+
+  ai_capex_treadmill:
+    name: The AI capex treadmill and counterparty credit
+    direction: >-
+      The house Bull Rebuttal for Factor I. Segment margins are earned on an
+      older installed base; if a GPU's economic life is three to four years and
+      rental prices keep falling, replacement capex arrives before payback, so
+      the J-curve becomes a treadmill; backlog is counterparty credit owed by a
+      few AI labs whose ability to pay rests on their next funding round; and
+      the financing structures move leverage out of sight, so data-center ABS,
+      single-name credit and the private-credit window turn before cloud
+      revenue does. The scorecard's treadmill flag is its measure.
+    proposed_by: >-
+      session B, as drafted from the Batch 22 change order item 123 (the 3 Nov
+      review's four points), committed 6 Nov 2026 as PROPOSED, the house Bull
+      Rebuttal for Factor I; confirming or rejecting is the operator's
+    linked_dimensions: {trend: "-"}
+    linked_instruments: [yfinance.mkt_smh]
+    prediction_market_contracts: []
+    evidence:
+      series_moves:
+        yfinance.mkt_smh: {sign: "-", horizon: 5, percentile: 10, max_age_sessions: 3}
+    implied_outcome:
+      claim: >-
+        SMH (the semiconductor ETF) is lower at the horizon, two quarters on,
+        than when the forecast was emitted.
+      metrics: [yfinance.mkt_smh]
+      comparison: down
+      quorum: 1
+      horizon_days: 182
